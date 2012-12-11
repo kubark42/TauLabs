@@ -26,9 +26,7 @@
 #include "uavobjectgeneratormatlab.h"
 #include "../../../gcs/src/plugins/coreplugin/coreconstants.h"
 
-
 using namespace std;
-
 
 bool UAVObjectGeneratorMatlab::generate(UAVObjectParser* parser,QString templatepath,QString outputpath) {
 
