@@ -10,6 +10,9 @@ include(../../plugins/uavtalk/uavtalk.pri)
 include(../../plugins/pathplanner/pathplanner.pri)
 include(../../libs/utils/utils.pri)
 
+DEFINES += USE_PATHPLANNER \
+    USE_GEOFENCE
+
 HEADERS += opmapplugin.h \
     opmapgadgetoptionspage.h \
     opmapgadgetfactory.h \
@@ -19,8 +22,10 @@ HEADERS += opmapplugin.h \
     opmap_zoom_slider_widget.h \
     opmap_statusbar_widget.h \
     modelmapproxy.h \
+    geofencedatamodel.h \
+    geofencemodelmapproxy.h \
+    geofencedialog.h \
     homeeditor.h
-
 SOURCES += opmapplugin.cpp \
     opmapgadgetwidget.cpp \
     opmapgadgetoptionspage.cpp \
@@ -30,6 +35,9 @@ SOURCES += opmapplugin.cpp \
     opmap_zoom_slider_widget.cpp \
     opmap_statusbar_widget.cpp \
     modelmapproxy.cpp \
+    geofencedatamodel.cpp \
+    geofencemodelmapproxy.cpp \
+    geofencedialog.cpp \
     homeeditor.cpp
 
 OTHER_FILES += OPMapGadget.pluginspec
@@ -39,6 +47,7 @@ FORMS += opmapgadgetoptionspage.ui \
     opmap_zoom_slider_widget.ui \
     opmap_statusbar_widget.ui \
     opmap_overlay_widget.ui \
+    geofencedialog.ui \
     homeeditor.ui
 
 RESOURCES += opmap.qrc
