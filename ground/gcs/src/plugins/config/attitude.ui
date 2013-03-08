@@ -62,6 +62,9 @@
           </item>
           <item row="1" column="2">
            <widget class="QDoubleSpinBox" name="yawRotation">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the yaw offset from the flightcontroller. A positive number counteracts a yaw to the left, a negative number a yaw to the right. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="minimum">
              <double>-180.000000000000000</double>
             </property>
@@ -81,6 +84,9 @@
           </item>
           <item row="1" column="1">
            <widget class="QDoubleSpinBox" name="pitchRotation">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the pitch offset from the flightcontroller. A positive number counteracts a pitch to the downwards, a negative number counteracts a pitch upwards. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="minimum">
              <double>-90.000000000000000</double>
             </property>
@@ -100,6 +106,9 @@
           </item>
           <item row="1" column="0">
            <widget class="QDoubleSpinBox" name="rollRotation">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the roll offset from the flightcontroller. A positive number counteracts a roll to the left, a negative number counteracts a roll to the right. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="minimum">
              <double>-180.000000000000000</double>
             </property>
@@ -228,6 +237,9 @@
             <property name="enabled">
              <bool>false</bool>
             </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;For multirotors, ensure that the vehicle is as level as possible before starting.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;For fixed wing, ensure that the latitudinal and longitudinal axes of the plane are perfectly perpendicular to the ground.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="text">
              <string>Start</string>
             </property>
@@ -236,12 +248,10 @@
           <item row="2" column="1">
            <widget class="QCheckBox" name="zeroGyroBiasOnArming">
             <property name="toolTip">
-             <string>If enabled, a fast recalibration of gyro zero point will be done
-whenever the frame is armed. Do not move the airframe while
-arming it in that case!</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If enabled, a fast recalibration of gyro rate zero point will be done&lt;/p&gt;&lt;p&gt;whenever the frame is armed. If enabled, do not move the airframe &lt;/p&gt;&lt;p&gt;while arming it!&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="text">
-             <string>Zero gyros while arming aircraft</string>
+             <string>Zero gyro rates while arming aircraft</string>
             </property>
             <property name="objrelation" stdset="0">
              <stringlist>
