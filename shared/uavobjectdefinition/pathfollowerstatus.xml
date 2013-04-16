@@ -1,0 +1,15 @@
+<xml>
+	<object name="PathFollowerStatus" singleinstance="true" settings="false">
+		<description>Status of the current path mode  Can come from any @ref PathFollower module</description>
+
+		<field name="Status" units="" type="enum" elements="1" options="Succeeding,Failing,Idle"/>
+		<field name="FractionalProgress" units="" type="float" elements="1"/>
+		<field name="TimeToCompletion" units="" type="float" elements="1"/>
+		<field name="TrackingError" units="m" type="float" elements="1"/>
+
+		<access gcs="readwrite" flight="readwrite"/>
+		<telemetrygcs acked="false" updatemode="manual" period="0"/>
+		<telemetryflight acked="false" updatemode="onchange" period="0"/>
+		<logging updatemode="onchange" period="0"/>
+	</object>
+</xml>

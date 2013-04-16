@@ -44,7 +44,6 @@ HEADERS += $$UAVOBJECT_SYNTHETICS/accels.h \
     $$UAVOBJECT_SYNTHETICS/faultsettings.h \
     $$UAVOBJECT_SYNTHETICS/firmwareiapobj.h \
     $$UAVOBJECT_SYNTHETICS/fixedwingairspeeds.h \
-    $$UAVOBJECT_SYNTHETICS/fixedwingpathfollowersettingscc.h \
     $$UAVOBJECT_SYNTHETICS/fixedwingpathfollowersettings.h \
     $$UAVOBJECT_SYNTHETICS/fixedwingpathfollowerstatus.h \
     $$UAVOBJECT_SYNTHETICS/flightbatterysettings.h \
@@ -94,7 +93,10 @@ HEADERS += $$UAVOBJECT_SYNTHETICS/accels.h \
     $$UAVOBJECT_SYNTHETICS/overosyncsettings.h \
     $$UAVOBJECT_SYNTHETICS/overosyncstats.h \
     $$UAVOBJECT_SYNTHETICS/pathdesired.h \
+    $$UAVOBJECT_SYNTHETICS/pathfollowerstatus.h \
+    $$UAVOBJECT_SYNTHETICS/pathmanagerstatus.h \
     $$UAVOBJECT_SYNTHETICS/pathplannersettings.h \
+    $$UAVOBJECT_SYNTHETICS/pathsegmentdescriptor.h \
     $$UAVOBJECT_SYNTHETICS/pathstatus.h \
     $$UAVOBJECT_SYNTHETICS/positionactual.h \
     $$UAVOBJECT_SYNTHETICS/ratedesired.h \
@@ -141,7 +143,6 @@ SOURCES += $$UAVOBJECT_SYNTHETICS/accels.cpp \
     $$UAVOBJECT_SYNTHETICS/faultsettings.cpp \
     $$UAVOBJECT_SYNTHETICS/firmwareiapobj.cpp \
     $$UAVOBJECT_SYNTHETICS/fixedwingairspeeds.cpp \
-    $$UAVOBJECT_SYNTHETICS/fixedwingpathfollowersettingscc.cpp \
     $$UAVOBJECT_SYNTHETICS/fixedwingpathfollowersettings.cpp \
     $$UAVOBJECT_SYNTHETICS/fixedwingpathfollowerstatus.cpp \
     $$UAVOBJECT_SYNTHETICS/flightbatterysettings.cpp \
@@ -191,7 +192,10 @@ SOURCES += $$UAVOBJECT_SYNTHETICS/accels.cpp \
     $$UAVOBJECT_SYNTHETICS/overosyncsettings.cpp \
     $$UAVOBJECT_SYNTHETICS/overosyncstats.cpp \
     $$UAVOBJECT_SYNTHETICS/pathdesired.cpp \
+    $$UAVOBJECT_SYNTHETICS/pathfollowerstatus.cpp \
+    $$UAVOBJECT_SYNTHETICS/pathmanagerstatus.cpp \
     $$UAVOBJECT_SYNTHETICS/pathplannersettings.cpp \
+    $$UAVOBJECT_SYNTHETICS/pathsegmentdescriptor.cpp \
     $$UAVOBJECT_SYNTHETICS/pathstatus.cpp \
     $$UAVOBJECT_SYNTHETICS/positionactual.cpp \
     $$UAVOBJECT_SYNTHETICS/ratedesired.cpp \
@@ -217,3 +221,4 @@ SOURCES += $$UAVOBJECT_SYNTHETICS/accels.cpp \
     $$UAVOBJECT_SYNTHETICS/watchdogstatus.cpp \
     $$UAVOBJECT_SYNTHETICS/waypoint.cpp \
     $$UAVOBJECT_SYNTHETICS/waypointactive.cpp
+

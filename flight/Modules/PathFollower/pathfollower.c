@@ -45,8 +45,9 @@
 
 #include "airspeedactual.h"
 #include "fixedwingairspeeds.h"
-#include "fixedwingpathfollowersettingscc.h"
+#include "fixedwingpathfollowersettings.h"
 #include "flightstatus.h"
+#include "modulesettings.h"
 #include "pathdesired.h"
 #include "systemsettings.h"
 
@@ -59,7 +60,6 @@
 
 // Private constants
 #define MAX_QUEUE_SIZE 4
-#define STACK_SIZE_BYTES 750
 #define TASK_PRIORITY (tskIDLE_PRIORITY+2)
 #define CRITICAL_ERROR_THRESHOLD_MS 5000	//Time in [ms] before an error becomes a critical error
 
@@ -74,6 +74,7 @@ static uint8_t flightMode = FLIGHTSTATUS_FLIGHTMODE_MANUAL;
 static bool followerEnabled = false;
 bool flightStatusUpdate = false;
 static uint8_t pathFollowerType;
+static uint16_t stackSizeBytes = 750;
 
 // Private functions
 static void PathFollowerTask(void *parameters);
@@ -88,11 +89,8 @@ int32_t PathFollowerStart()
 	// Start main task
 	if (followerEnabled) {
 		// Start main task
-		xTaskCreate(PathFollowerTask, (signed char *)"PathFollower",
-			    STACK_SIZE_BYTES / 4, NULL, TASK_PRIORITY,
-			    &PathFollowerTaskHandle);
-		TaskMonitorAdd(TASKINFO_RUNNING_PATHFOLLOWER,
-			       PathFollowerTaskHandle);
+		xTaskCreate(PathFollowerTask, (signed char *)"PathFollower", stackSizeBytes/4, NULL, TASK_PRIORITY, &PathFollowerTaskHandle);
+		TaskMonitorAdd(TASKINFO_RUNNING_PATHFOLLOWER, PathFollowerTaskHandle);
 	}
 
 	return 0;
@@ -104,9 +102,9 @@ int32_t PathFollowerStart()
  */
 int32_t PathFollowerInitialize()
 {
-	HwSettingsInitialize();
-	uint8_t optionalModules[HWSETTINGS_OPTIONALMODULES_NUMELEM];
-	HwSettingsOptionalModulesGet(optionalModules);
+	ModuleSettingsInitialize();
+	uint8_t module_state[MODULESETTINGS_ADMINSTATE_NUMELEM];
+	ModuleSettingsAdminStateGet(module_state);
 
 	// Select algorithm based on vehicle type
 	SystemSettingsInitialize();
@@ -117,6 +115,7 @@ int32_t PathFollowerInitialize()
 		case SYSTEMSETTINGS_AIRFRAMETYPE_FIXEDWINGELEVON:
 		case SYSTEMSETTINGS_AIRFRAMETYPE_FIXEDWINGVTAIL:
 			pathFollowerType = FIXEDWING;
+			stackSizeBytes = 750;
 			break;
 		case SYSTEMSETTINGS_AIRFRAMETYPE_TRI:
 		case SYSTEMSETTINGS_AIRFRAMETYPE_QUADX:
@@ -151,9 +150,9 @@ int32_t PathFollowerInitialize()
 			break;
 	}
 
-	if (optionalModules[HWSETTINGS_OPTIONALMODULES_FIXEDWINGPATHFOLLOWER] ==
-	    HWSETTINGS_OPTIONALMODULES_ENABLED) {
-		FixedWingPathFollowerSettingsCCInitialize();
+	if (module_state[MODULESETTINGS_ADMINSTATE_FIXEDWINGPATHFOLLOWER] ==
+	    MODULESETTINGS_ADMINSTATE_ENABLED) {
+		FixedWingPathFollowerSettingsInitialize();
 		FixedWingAirspeedsInitialize();
 		AirspeedActualInitialize();
 		PathDesiredInitialize();
@@ -189,32 +188,41 @@ int32_t PathFollowerInitialize()
 	return -1;
 }
 
-MODULE_INITCALL(PathFollowerInitialize, PathFollowerStart)
+MODULE_INITCALL(PathFollowerInitialize, PathFollowerStart);
 
 /**
  * Module thread, should not return.
  */
 static void PathFollowerTask(void *parameters)
 {
+	AlarmsClear(SYSTEMALARMS_ALARM_PATHFOLLOWER);
+
 	portTickType lastUpdateTime;
-	FixedWingPathFollowerSettingsCCData fixedwingpathfollowerSettings;
+	FixedWingPathFollowerSettingsData fixedwingpathfollowerSettings;
 
 	// Main task loop
 	lastUpdateTime = xTaskGetTickCount();
 	while (1) {
 		// TODO: Refactor this into the fixed wing method as a callback
-		FixedWingPathFollowerSettingsCCGet(&fixedwingpathfollowerSettings);
+		FixedWingPathFollowerSettingsGet(&fixedwingpathfollowerSettings);
 
 		vTaskDelayUntil(&lastUpdateTime, fixedwingpathfollowerSettings.UpdatePeriod / portTICK_RATE_MS);
 
 		if (flightStatusUpdate)
 			FlightStatusFlightModeGet(&flightMode);
 
+
+		if(!(flightMode == FLIGHTSTATUS_FLIGHTMODE_RETURNTOHOME ||
+				flightMode == FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD ||
+				flightMode == FLIGHTSTATUS_FLIGHTMODE_PATHPLANNER)){
+			return;
+		}
+
 		// Depending on vehicle type, call appropriate path follower
 		// TODO: Index into array of methods
 		switch (pathFollowerType) {
 		case FIXEDWING:
-			updateFixedWingDesiredStabilization(flightMode, fixedwingpathfollowerSettings);
+			updateFixedWingDesiredStabilization(&fixedwingpathfollowerSettings);
 			break;
 //		case MULTIROTOR:
 //			// Set alarm, currently untested

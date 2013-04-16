@@ -1,0 +1,28 @@
+<xml>
+	<object name="PathSegmentDescriptor" singleinstance="false" settings="false">
+		<description>An intermediate switching position the vehicle uses as part of a path segment.</description>
+
+		<!-- The location of the switching locus -->
+		<field name="SwitchingLocus" units="m" type="float" elementnames="North, East, Down"/>
+
+		<!-- The velocity and acceleration across the path segment -->
+		<field name="FinalVelocity" units="m/s" type="float" elements="1" default="0"/>
+		<field name="DesiredAcceleration" units="m/s^2" type="float" elements="1" default="0"/>
+		
+		<field name="SegmentType" units="" type="enum" elements="1">
+			<options>
+				<option>Line</option>
+				<option>CurveCounterClockwise</option>
+				<option>CurveClockwise</option>
+			</options>
+		</field>
+
+		<!-- The amount of time the path follower has to finish the segment -->
+		<field name="Timeout" units="s" type="uint16" elements="1" default="0"/>
+
+		<access gcs="readwrite" flight="readwrite"/>
+		<telemetrygcs acked="false" updatemode="manual" period="0"/>
+		<telemetryflight acked="false" updatemode="periodic" period="5000"/>
+		<logging updatemode="periodic" period="1000"/>
+	</object>
+</xml>

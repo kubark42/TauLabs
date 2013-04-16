@@ -90,7 +90,6 @@ static portTickType lastSysTime;
 static void updateActuatorDesired(ManualControlCommandData * cmd);
 static void updateStabilizationDesired(ManualControlCommandData * cmd, ManualControlSettingsData * settings);
 static void altitudeHoldDesired(ManualControlCommandData * cmd, bool flightModeChanged);
-static void updatePathDesired(ManualControlCommandData * cmd, bool flightModeChanged, bool home);
 static void processFlightMode(ManualControlSettingsData * settings, float flightMode);
 static void processArm(ManualControlCommandData * cmd, ManualControlSettingsData * settings);
 static void setArmedIfChanged(uint8_t val);
@@ -420,11 +419,9 @@ static void manualControlTask(void *parameters)
 					case FLIGHTSTATUS_FLIGHTMODE_ALTITUDEHOLD:
 						altitudeHoldDesired(&cmd, lastFlightMode != flightStatus.FlightMode);
 						break;
+					case FLIGHTSTATUS_FLIGHTMODE_PATHPLANNER:
 					case FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD:
-						updatePathDesired(&cmd, lastFlightMode != flightStatus.FlightMode, false);
-						break;
 					case FLIGHTSTATUS_FLIGHTMODE_RETURNTOHOME:
-						updatePathDesired(&cmd, lastFlightMode != flightStatus.FlightMode, true);
 						break;
 					default:
 						set_manual_control_error(SYSTEMALARMS_MANUALCONTROL_UNDEFINED);
@@ -658,56 +655,6 @@ static void updateStabilizationDesired(ManualControlCommandData * cmd, ManualCon
 
 #if defined(REVOLUTION)
 /**
- * @brief Update the position desired to current location when
- * enabled and allow the waypoint to be moved by transmitter
- */
-static void updatePathDesired(ManualControlCommandData * cmd, bool flightModeChanged, bool home)
-{
-	PositionActualData positionActual;
-	PositionActualGet(&positionActual);
-	PathDesiredData pathDesired;
-	PathDesiredGet(&pathDesired);
-
-	if (home && flightModeChanged) {
-		// Simple Return To Home mode - climb 10 meters and fly to home position
-		pathDesired.Start[PATHDESIRED_START_NORTH] = positionActual.North;
-		pathDesired.Start[PATHDESIRED_START_EAST] = positionActual.East;
-		pathDesired.Start[PATHDESIRED_START_DOWN] = positionActual.Down;
-		pathDesired.End[PATHDESIRED_END_NORTH] = 0;
-		pathDesired.End[PATHDESIRED_END_EAST] = 0;
-		pathDesired.End[PATHDESIRED_END_DOWN] = positionActual.Down - 10;
-		pathDesired.StartingVelocity=10;
-		pathDesired.EndingVelocity=10;
-	} else if(flightModeChanged) {
-		// Simple position hold - stay at present altitude and position
-		
-		pathDesired.Start[PATHDESIRED_START_NORTH] = positionActual.North;
-		pathDesired.Start[PATHDESIRED_START_EAST] = positionActual.East;
-		pathDesired.Start[PATHDESIRED_START_DOWN] = positionActual.Down;
-		pathDesired.End[PATHDESIRED_END_NORTH] = positionActual.North;
-		pathDesired.End[PATHDESIRED_END_EAST] = positionActual.East;
-		pathDesired.End[PATHDESIRED_END_DOWN] = positionActual.Down;
-		pathDesired.StartingVelocity=10;
-		pathDesired.EndingVelocity=10;
-		pathDesired.Mode = PATHDESIRED_MODE_HOLDPOSITION;
-	}
-
-	// Select how to hold position in a model type specific way
-	uint8_t vehicle_type;
-	SystemSettingsAirframeTypeGet(&vehicle_type);
-	if (vehicle_type == SYSTEMSETTINGS_AIRFRAMETYPE_FIXEDWING ||
-	    vehicle_type == SYSTEMSETTINGS_AIRFRAMETYPE_FIXEDWINGELEVON ||
-		vehicle_type == SYSTEMSETTINGS_AIRFRAMETYPE_FIXEDWINGVTAIL) {
-		FixedWingPathFollowerSettingsOrbitRadiusGet(&pathDesired.ModeParameters);
-		pathDesired.Mode = PATHDESIRED_MODE_CIRCLEPOSITIONLEFT;
-	} else {
-		pathDesired.ModeParameters = 0;
-		pathDesired.Mode = PATHDESIRED_MODE_HOLDPOSITION;
-	}
-	PathDesiredSet(&pathDesired);
-}
-
-/**
  * @brief Update the altitude desired to current altitude when
  * enabled and enable altitude mode for stabilization
  * @todo: Need compile flag to exclude this from copter control
@@ -716,7 +663,7 @@ static void altitudeHoldDesired(ManualControlCommandData * cmd, bool flightModeC
 {
 	const float DEADBAND_HIGH = 0.55;
 	const float DEADBAND_LOW = 0.45;
-	
+
 	static portTickType lastSysTime;
 	static bool zeroed = false;
 	portTickType thisSysTime;
@@ -734,7 +681,7 @@ static void altitudeHoldDesired(ManualControlCommandData * cmd, bool flightModeC
 	altitudeHoldDesired.Roll = cmd->Roll * stabSettings.RollMax;
 	altitudeHoldDesired.Pitch = cmd->Pitch * stabSettings.PitchMax;
 	altitudeHoldDesired.Yaw = cmd->Yaw * stabSettings.ManualRate[STABILIZATIONSETTINGS_MANUALRATE_YAW];
-	
+
 	float currentDown;
 	PositionActualDownGet(&currentDown);
 	if(flightModeChanged) {
@@ -747,15 +694,10 @@ static void altitudeHoldDesired(ManualControlCommandData * cmd, bool flightModeC
 		altitudeHoldDesired.Altitude += (cmd->Throttle - DEADBAND_LOW) * dT;
 	else if (cmd->Throttle >= DEADBAND_LOW && cmd->Throttle <= DEADBAND_HIGH)  // Require the stick to enter the dead band before they can move height
 		zeroed = true;
-	
+
 	AltitudeHoldDesiredSet(&altitudeHoldDesired);
 }
 #else
-static void updatePathDesired(ManualControlCommandData * cmd, bool flightModeChanged, bool home)
-{
-
-}
-
 static void altitudeHoldDesired(ManualControlCommandData * cmd, bool flightModeChanged)
 {
 	set_manual_control_error(SYSTEMALARMS_MANUALCONTROL_ALTITUDEHOLD);

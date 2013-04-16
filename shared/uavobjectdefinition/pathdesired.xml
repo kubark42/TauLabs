@@ -20,7 +20,7 @@
 				<option>DriveVector</option>
 				<option>DriveCircleLeft</option>
 				<option>DriveCircleRight</option>
-				<option>HoldPosition</option>
+				<option>Hover</option>
 				<option>CirclePositionLeft</option>
 				<option>CirclePositionRight</option>
 				<option>Land</option>
