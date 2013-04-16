@@ -51,10 +51,17 @@
 #include "pathdesired.h"
 #include "systemsettings.h"
 
+#include "positionactual.h"
+#include "velocityactual.h"
+#include "stabilizationdesired.h"
+
+
 #include "fixedwingpathfollower.h"
 #include "helicopterpathfollower.h"
 #include "multirotorpathfollower.h"
 #include "dubinscartpathfollower.h"
+
+#include "pathmanagerstatus.h"
 
 #include "CoordinateConversions.h"
 
@@ -88,6 +95,8 @@ int32_t PathFollowerStart()
 {
 	// Start main task
 	if (followerEnabled) {
+
+
 		// Start main task
 		xTaskCreate(PathFollowerTask, (signed char *)"PathFollower", stackSizeBytes/4, NULL, TASK_PRIORITY, &PathFollowerTaskHandle);
 		TaskMonitorAdd(TASKINFO_RUNNING_PATHFOLLOWER, PathFollowerTaskHandle);
@@ -115,7 +124,6 @@ int32_t PathFollowerInitialize()
 		case SYSTEMSETTINGS_AIRFRAMETYPE_FIXEDWINGELEVON:
 		case SYSTEMSETTINGS_AIRFRAMETYPE_FIXEDWINGVTAIL:
 			pathFollowerType = FIXEDWING;
-			stackSizeBytes = 750;
 			break;
 		case SYSTEMSETTINGS_AIRFRAMETYPE_TRI:
 		case SYSTEMSETTINGS_AIRFRAMETYPE_QUADX:
@@ -150,16 +158,25 @@ int32_t PathFollowerInitialize()
 			break;
 	}
 
+	// Initialize UAVOs necessary for all pathfinders
+	FlightStatusInitialize();
+	PathDesiredInitialize();
+	PathManagerStatusInitialize();
+	PositionActualInitialize();
+	StabilizationDesiredInitialize();
+	VelocityActualInitialize();
+
 	if (module_state[MODULESETTINGS_ADMINSTATE_FIXEDWINGPATHFOLLOWER] ==
 	    MODULESETTINGS_ADMINSTATE_ENABLED) {
 		FixedWingPathFollowerSettingsInitialize();
 		FixedWingAirspeedsInitialize();
 		AirspeedActualInitialize();
-		PathDesiredInitialize();
 
 		// TODO: Index into array of functions
 		switch (pathFollowerType) {
 		case FIXEDWING:
+			stackSizeBytes = 750;
+			PathManagerStatusConnectCallback(PathFollowerUpdatedCb);
 			initializeFixedWingPathFollower();
 			break;
 		case MULTIROTOR:
@@ -215,7 +232,7 @@ static void PathFollowerTask(void *parameters)
 		if(!(flightMode == FLIGHTSTATUS_FLIGHTMODE_RETURNTOHOME ||
 				flightMode == FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD ||
 				flightMode == FLIGHTSTATUS_FLIGHTMODE_PATHPLANNER)){
-			return;
+			continue;
 		}
 
 		// Depending on vehicle type, call appropriate path follower

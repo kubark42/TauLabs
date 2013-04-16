@@ -27,10 +27,14 @@
 #ifndef MISC_MATH_H
 #define MISC_MATH_H
 
+#include <pios.h>
+
 //! Bound input value within range (plus or minus)
 float bound_sym(float val, float range);
 
 //! Bound input value between min and max
 float bound_min_max(float val, float min, float max);
+
+void arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_point, float *end_point, float radius, float *center, bool clockwise, bool minor);
 
 #endif /* MISC_MATH_H */

@@ -44,8 +44,10 @@
 #define TASK_PRIORITY (tskIDLE_PRIORITY+1)
 #define MAX_QUEUE_SIZE 2
 #define UPDATE_RATE_MS 20
+#define IDLE_UPDATE_RATE_MS 100
 
 // Private types
+enum guidanceTypes{NOGUIDANCE, RETURNHOME, HOLDPOSITION, PATHPLANNER};
 
 // Private variables
 static xTaskHandle taskHandle;
@@ -123,7 +125,7 @@ int32_t PathPlannerInitialize()
 	return -1;
 }
 
-MODULE_INITCALL(PathPlannerInitialize, PathPlannerStart)
+MODULE_INITCALL(PathPlannerInitialize, PathPlannerStart);
 
 /**
  * Module task
@@ -145,7 +147,8 @@ static void pathPlannerTask(void *parameters)
 
 	PathStatusConnectCallback(pathStatusUpdated);
 
-	FlightStatusData flightStatus;
+	uint8_t flightMode;
+	uint8_t guidanceMode = NOGUIDANCE;
 
 	// Main thread loop
 	bool pathplanner_active = false;
@@ -154,41 +157,69 @@ static void pathPlannerTask(void *parameters)
 	while (1)
 	{
 
-		vTaskDelay(UPDATE_RATE_MS / portTICK_RATE_MS);
+		vTaskDelay(UPDATE_RATE_MS * portTICK_RATE_MS);
 
 		// When not running the path planner short circuit and wait
-		FlightStatusGet(&flightStatus);
-		if (flightStatus.FlightMode != FLIGHTSTATUS_FLIGHTMODE_PATHPLANNER) {
-			pathplanner_active = false;
-			continue;
+		FlightStatusFlightModeGet(&flightMode);
+		switch (flightMode) {
+			case FLIGHTSTATUS_FLIGHTMODE_RETURNTOHOME:
+				if (guidanceMode != RETURNHOME){
+//					WaypointData waypoint;
+//					waypoint.Position[0] = 0;
+//					waypoint.Position[1] = 0;
+//					waypoint.Position[2] = 0;
+					WaypointActiveSet(&waypointActive);
+
+					guidanceMode = RETURNHOME;
+				}
+
+				break;
+			case FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD:
+				if (guidanceMode != HOLDPOSITION){
+//					WaypointData waypoint;
+//					waypoint.Position[0] = 0;
+//					waypoint.Position[1] = 0;
+//					waypoint.Position[2] = 0;
+					WaypointActiveSet(&waypointActive);
+
+					guidanceMode = HOLDPOSITION;
+				}
+				WaypointActiveSet(&waypointActive);
+//				holdCurrentPosition();
+				break;
+			case FLIGHTSTATUS_FLIGHTMODE_PATHPLANNER:
+				if (guidanceMode != PATHPLANNER){
+					guidanceMode = PATHPLANNER;
+				}
+				break;
+			default:
+				guidanceMode = NOGUIDANCE;
+				pathplanner_active = false;
+				vTaskDelay(IDLE_UPDATE_RATE_MS * portTICK_RATE_MS);
+				continue;
 		}
 
+		// Check if this the path_planner were just activated
 		if(pathplanner_active == false) {
-			// Reset the state.  Active waypoint should be set to an invalid
+			// Reset the state.  Active waypoint sholud be set to an invalid
 			// value to force waypoint 0 to become activated when starting
-			// Note: this needs to be done before the callback is triggered!
+			// Note: this needs to be done before the WaypointActive callback is triggered!
 			active_waypoint = -1;
 			previous_waypoint = -1;
 
 			// This triggers callback to update variable
 			WaypointActiveGet(&waypointActive);
-			waypointActive.Index = 0;
+			if (guidanceMode == PATHPLANNER)
+				waypointActive.Index = 0;
 			WaypointActiveSet(&waypointActive);
 
 			pathplanner_active = true;
 			continue;
 		}
 
-		/* This method determines if we have achieved the goal of the active */
-		/* waypoint */
+		/* Check if we have achieved the goal of the active waypoint */
 		if (path_status_updated)
 			checkTerminationCondition();
-
-		/* If advance waypoint takes a long time to calculate then it should */
-		/* be called from here when the active_waypoints does not equal the  */
-		/* WaypointActive.Index                                              */
-		/* if (active_waypoint != WaypointActive.Index)                      */
-		/*     advanceWaypoint(WaypointActive.Index)                         */
 	}
 }
 
@@ -244,7 +275,21 @@ static void holdCurrentPosition()
 	pathDesired.End[PATHDESIRED_END_NORTH] = position.North;
 	pathDesired.End[PATHDESIRED_END_EAST] = position.East;
 	pathDesired.End[PATHDESIRED_END_DOWN] = position.Down;
-	pathDesired.Mode = PATHDESIRED_MODE_HOLDPOSITION;
+	uint8_t vehicleClass = 1;
+	switch (vehicleClass){
+		case 1:
+			pathDesired.Mode = PATHDESIRED_MODE_HOVER;
+			break;
+		case 2:
+			pathDesired.Mode = PATHDESIRED_MODE_FLYCIRCLERIGHT;
+			break;
+		case 3:
+			pathDesired.Mode = PATHDESIRED_MODE_DRIVECIRCLERIGHT;
+			break;
+	default:
+		break;
+	}
+
 	PathDesiredSet(&pathDesired);
 }
 

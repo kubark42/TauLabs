@@ -212,7 +212,7 @@ static void vtolPathFollowerTask(void *parameters)
 			 * is correct.  RETURNTOHOME mode uses HOLDPOSITION with the position
 			 * set to home */
 			case FLIGHTSTATUS_FLIGHTMODE_RETURNTOHOME:
-				if (pathDesired.Mode == PATHDESIRED_MODE_HOLDPOSITION) {
+				if (pathDesired.Mode == PATHDESIRED_MODE_HOVER) {
 					updateEndpointVelocity();
 					updateVtolDesiredAttitude();
 				} else {
@@ -220,7 +220,7 @@ static void vtolPathFollowerTask(void *parameters)
 				}
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD:
-				if (pathDesired.Mode == PATHDESIRED_MODE_HOLDPOSITION) {
+				if (pathDesired.Mode == PATHDESIRED_MODE_HOVER) {
 					updateEndpointVelocity();
 					updateVtolDesiredAttitude();
 				} else {
@@ -229,7 +229,7 @@ static void vtolPathFollowerTask(void *parameters)
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_PATHPLANNER:
 				if (pathDesired.Mode == PATHDESIRED_MODE_FLYENDPOINT ||
-					pathDesired.Mode == PATHDESIRED_MODE_HOLDPOSITION) {
+					pathDesired.Mode == PATHDESIRED_MODE_HOVER) {
 					updateEndpointVelocity();
 					updateVtolDesiredAttitude();
 				} else if (pathDesired.Mode == PATHDESIRED_MODE_FLYVECTOR ||

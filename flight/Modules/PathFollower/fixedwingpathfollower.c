@@ -102,7 +102,7 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 
 	VelocityActualGet(&velocityActual);
 	StabilizationDesiredGet(&stabDesired);
-	AirspeedActualTrueAirspeedGet(&trueAirspeed); //BOOOO!!! This not the way to get true airspeed. It needs to come from a UAVO that merges everything together.
+	AirspeedActualTrueAirspeedGet(&trueAirspeed);
 
 	PositionActualData positionActual;
 	PositionActualGet(&positionActual);
@@ -227,19 +227,14 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 	rho=powf(pathDesired.EndingVelocity,2)/(9.805f*tanf(fabs(ROLL_FOR_HOLDING_CIRCLE*DEG2RAD)));
 
 
-	switch (pathSegmentDescriptor.SegmentType){
-		case PATHSEGMENTDESCRIPTOR_SEGMENTTYPE_CURVECOUNTERCLOCKWISE:
+	if(pathSegmentDescriptor.PathCurvature == 0){
+		headingCommand_R=followStraightLine(r, q, p, headingActual_R, chi_inf, k_path, k_psi_int, dT);
+	}
+	else{
+		if(pathSegmentDescriptor.ArcAngle > 0)
 			headingCommand_R=followOrbit(c, rho, false, p, headingActual_R, k_orbit, k_psi_int, dT);
-			break;
-		case PATHSEGMENTDESCRIPTOR_SEGMENTTYPE_CURVECLOCKWISE:
+		else
 			headingCommand_R=followOrbit(c, rho, true, p, headingActual_R, k_orbit, k_psi_int, dT);
-			break;
-		case PATHSEGMENTDESCRIPTOR_SEGMENTTYPE_LINE:
-			headingCommand_R=followStraightLine(r, q, p, headingActual_R, chi_inf, k_path, k_psi_int, dT);
-			break;
-		default:
-			// TODO: Throw a critical error
-			return -1;
 	}
 
 	//Calculate heading error
@@ -327,7 +322,7 @@ float followOrbit(float c[3], float rho, bool direction, float p[3], float psi, 
 	return psi_command;
 }
 
-void GuidanceSettingsUpdatedCb(UAVObjEvent * ev)
+void PathFollowerUpdatedCb(UAVObjEvent * ev)
 {
 	if (ev == NULL || ev->obj == FixedWingPathFollowerSettingsHandle())
 		FixedWingPathFollowerSettingsGet(&fixedwingpathfollowerSettings);
@@ -338,5 +333,38 @@ void GuidanceSettingsUpdatedCb(UAVObjEvent * ev)
 		PathManagerStatusData pathManagerStatusData;
 		PathManagerStatusGet(&pathManagerStatusData);
 		activeSegment = pathManagerStatusData.ActiveSegment;
+
+		PathSegmentDescriptorData pathSegmentDescriptor;
+
+
+		//VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
+		// BLAH, BLAH, BLAH. THIS SHOULDN'T BE USING PATHDESIRED
+		//----------------------------------------------
+		PathSegmentDescriptorInstGet(activeSegment-1, &pathSegmentDescriptor);
+		pathDesired.Start[0]=pathSegmentDescriptor.SwitchingLocus[0];
+		pathDesired.Start[1]=pathSegmentDescriptor.SwitchingLocus[1];
+		pathDesired.Start[2]=pathSegmentDescriptor.SwitchingLocus[2];
+
+		PathSegmentDescriptorInstGet(activeSegment, &pathSegmentDescriptor);
+
+		// For a straight line use the switching locus as the vector endpoint...
+		if(pathSegmentDescriptor.PathCurvature == 0){
+			pathDesired.End[0]=pathSegmentDescriptor.SwitchingLocus[0];
+			pathDesired.End[1]=pathSegmentDescriptor.SwitchingLocus[1];
+			pathDesired.End[2]=pathSegmentDescriptor.SwitchingLocus[2];
+		}
+		else{ // ...but for an arc, use the switching loci to calculate the arc center
+			float oldPosition_NE[2] = {pathDesired.Start[0], pathDesired.Start[1]};
+			float newPosition_NE[2] = {pathSegmentDescriptor.SwitchingLocus[0], pathSegmentDescriptor.SwitchingLocus[1]};
+			float arcCenter_XY[2];
+			arcCenterFromTwoPointsAndRadiusAndArcRank(oldPosition_NE, newPosition_NE, 1.0f/pathSegmentDescriptor.PathCurvature, arcCenter_XY, pathSegmentDescriptor.ArcAngle > 0, pathSegmentDescriptor.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR);
+
+		}
+
+		pathDesired.EndingVelocity=pathSegmentDescriptor.FinalVelocity;
+		PathDesiredSet(&pathDesired);
+		//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		// BLAH, BLAH, BLAH. THIS SHOULDN'T BE USING PATHDESIRED
+		//----------------------------------------------
 	}
 }
