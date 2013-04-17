@@ -48,7 +48,6 @@
 #include "fixedwingpathfollowersettings.h"
 #include "flightstatus.h"
 #include "modulesettings.h"
-#include "pathdesired.h"
 #include "systemsettings.h"
 
 #include "positionactual.h"
@@ -61,7 +60,9 @@
 #include "multirotorpathfollower.h"
 #include "dubinscartpathfollower.h"
 
+#include "pathdesired.h"
 #include "pathmanagerstatus.h"
+#include "pathstatus.h"
 
 #include "CoordinateConversions.h"
 
@@ -162,6 +163,7 @@ int32_t PathFollowerInitialize()
 	FlightStatusInitialize();
 	PathDesiredInitialize();
 	PathManagerStatusInitialize();
+	PathStatusInitialize();
 	PositionActualInitialize();
 	StabilizationDesiredInitialize();
 	VelocityActualInitialize();

@@ -35,6 +35,8 @@ float bound_min_max(float val, float min, float max)
 		return min;
 	if (val > max)
 		return max;
+//	if (isnan(val))
+//		return max;
 	return val;
 }
 
@@ -48,6 +50,8 @@ float bound_sym(float val, float range)
 	} else if(val > range) {
 		val = range;
 	}
+//	if (isnan(val))
+//		return range;
 	return val;
 }
 
@@ -63,7 +67,7 @@ float bound_sym(float val, float range)
  * @param[in] minor true if minor arc, false if major arc
  * @param[out] center Center of circle formed by two points, in North-East coordinates
  */
-void arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_point,
+bool arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_point,
 	                   float *end_point,
 	                   float radius,
 	                   float *center,
@@ -71,6 +75,13 @@ void arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_point,
 					   bool minor
 					   )
 {
+	// Sanity check
+	if(fabs(start_point[0] - end_point[0]) < 1e-6 && fabs(start_point[1] - end_point[1]) < 1e-6){
+		// This means that the start point and end point are directly on top of each other. In this
+		// case, there is no circle as a single point and a radius is not enough to define one
+		return false;
+	}
+
 	float m_n, m_e, p_n, p_e, d;
 
 	// Center between start and end
@@ -100,4 +111,6 @@ void arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_point,
 		center[0] = m_n + p_n * d * radius_sign;
 		center[1] = m_e + p_e * d * radius_sign;
 	}
+
+	return true;
 }

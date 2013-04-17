@@ -5,6 +5,8 @@
 		<field name="Status" units="" type="enum" elements="1" options="InProgress,Completed,TimedOut,Warning,Critical" defaultvalue="Completed"/>
 		<field name="ActiveSegment" units="" type="uint8" elements="1"/>
 
+		<field name="StatusParameters" units="" type="float" elements="4"/>
+
 		<access gcs="readwrite" flight="readwrite"/>
 		<telemetrygcs acked="false" updatemode="manual" period="0"/>
 		<telemetryflight acked="false" updatemode="onchange" period="0"/>

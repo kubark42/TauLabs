@@ -25,6 +25,7 @@
 
 #include "physical_constants.h"
 #include "paths.h"
+#include "pathstatus.h"
 #include "misc_math.h"
 
 #include "attitudeactual.h"
@@ -60,6 +61,7 @@ static PathDesiredData pathDesired;
 static FixedWingPathFollowerSettingsData fixedwingpathfollowerSettings;
 static FixedWingAirspeedsData fixedWingAirspeeds;
 static uint16_t activeSegment;
+static float rho;
 
 // Private functions
 
@@ -148,8 +150,7 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 										 THROTTLE_ILIMIT/THROTTLE_KI)*(1.0f-1.0f/(1.0f+30.0f/dT));
 	}
 
-	powerCommand=errorTotalEnergy*THROTTLE_KP
-	+ integral->totalEnergyError*THROTTLE_KI;
+	powerCommand=errorTotalEnergy*THROTTLE_KP + integral->totalEnergyError*THROTTLE_KI;
 
 #define THROTTLELIMIT_NEUTRAL fixedwingpathfollowerSettings->ThrottleLimit[FIXEDWINGPATHFOLLOWERSETTINGS_THROTTLELIMIT_NEUTRAL]
 #define THROTTLELIMIT_MIN     fixedwingpathfollowerSettings->ThrottleLimit[FIXEDWINGPATHFOLLOWERSETTINGS_THROTTLELIMIT_MIN]
@@ -175,17 +176,17 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 	}
 
 	//Compute the cross feed from altitude to pitch, with saturation
-#define PITCHCROSSFEED_KP fixedwingpathfollowerSettings->VerticalToPitchCrossFeed[FIXEDWINGPATHFOLLOWERSETTINGS_VERTICALTOPITCHCROSSFEED_KP]
-#define PITCHCROSSFEED_MIN	fixedwingpathfollowerSettings->VerticalToPitchCrossFeed[FIXEDWINGPATHFOLLOWERSETTINGS_VERTICALTOPITCHCROSSFEED_MAX]
-#define PITCHCROSSFEED_MAX fixedwingpathfollowerSettings->VerticalToPitchCrossFeed[FIXEDWINGPATHFOLLOWERSETTINGS_VERTICALTOPITCHCROSSFEED_MAX]
+#define PITCHCROSSFEED_KP fixedwingpathfollowerSettings->AltitudeErrorToPitchCrossFeed[FIXEDWINGPATHFOLLOWERSETTINGS_ALTITUDEERRORTOPITCHCROSSFEED_KP]
+#define PITCHCROSSFEED_MIN	fixedwingpathfollowerSettings->AltitudeErrorToPitchCrossFeed[FIXEDWINGPATHFOLLOWERSETTINGS_ALTITUDEERRORTOPITCHCROSSFEED_KP]
+#define PITCHCROSSFEED_MAX fixedwingpathfollowerSettings->AltitudeErrorToPitchCrossFeed[FIXEDWINGPATHFOLLOWERSETTINGS_ALTITUDEERRORTOPITCHCROSSFEED_KP]
 	float alitudeError=pathDesired.End[2]-positionActual.Down;
-	float altitudeToPitchCommandComponent=bound_min_max( alitudeError* PITCHCROSSFEED_KP,
+	float altitudeErrorToPitchCommandComponent=bound_min_max( alitudeError* PITCHCROSSFEED_KP,
 												 -PITCHCROSSFEED_MIN,
 												 PITCHCROSSFEED_MAX);
 
 	//Compute the pitch command as err*Kp + errInt*Ki + X_feed.
-	pitchCommand= -(airspeedError*AIRSPEED_KP
-					+ integral->airspeedError*AIRSPEED_KI)	+ altitudeToPitchCommandComponent;
+	pitchCommand = -(airspeedError*AIRSPEED_KP
+					+ integral->airspeedError*AIRSPEED_KI)	+ altitudeErrorToPitchCommandComponent;
 
 	//Saturate pitch command
 #define PITCHLIMIT_NEUTRAL  fixedwingpathfollowerSettings->PitchLimit[FIXEDWINGPATHFOLLOWERSETTINGS_PITCHLIMIT_NEUTRAL]
@@ -218,23 +219,16 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 	chi_inf= chi_inf < PI/4.0f? PI/4.0f: chi_inf;
 	//========================================
 
-	float rho;
 	float headingCommand_R;
 
-#define ROLL_FOR_HOLDING_CIRCLE 15.0f	 //Assume that we want a 15 degree bank angle. This should yield a nice, non-agressive turn
-	//Calculate radius, rho, using r*omega=v and omega = g/V_g * tan(phi)
-	//THIS SHOULD ONLY BE CALCULATED ONCE, INSTEAD OF EVERY TIME
-	rho=powf(pathDesired.EndingVelocity,2)/(9.805f*tanf(fabs(ROLL_FOR_HOLDING_CIRCLE*DEG2RAD)));
-
-
-	if(pathSegmentDescriptor.PathCurvature == 0){
+	if (pathSegmentDescriptor.PathCurvature == 0) { // Straight line has no curvature
 		headingCommand_R=followStraightLine(r, q, p, headingActual_R, chi_inf, k_path, k_psi_int, dT);
 	}
-	else{
-		if(pathSegmentDescriptor.ArcAngle > 0)
-			headingCommand_R=followOrbit(c, rho, false, p, headingActual_R, k_orbit, k_psi_int, dT);
-		else
+	else {
+		if(pathSegmentDescriptor.ArcAngle > 0) // Turn clockwise
 			headingCommand_R=followOrbit(c, rho, true, p, headingActual_R, k_orbit, k_psi_int, dT);
+		else // Turn counter-clockwise
+			headingCommand_R=followOrbit(c, rho, false, p, headingActual_R, k_orbit, k_psi_int, dT);
 	}
 
 	//Calculate heading error
@@ -263,13 +257,20 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 	 * Compute desired yaw command
 	 */
 	// TODO Once coordinated flight is merged in, YAW needs to switch to STABILIZATIONDESIRED_STABILIZATIONMODE_COORDINATEDFLIGHT
-	stabDesired.Yaw = 0;
+	stabDesired.Yaw = rho/100;
 
 	stabDesired.StabilizationMode[STABILIZATIONDESIRED_STABILIZATIONMODE_ROLL] = STABILIZATIONDESIRED_STABILIZATIONMODE_ATTITUDE;
 	stabDesired.StabilizationMode[STABILIZATIONDESIRED_STABILIZATIONMODE_PITCH] = STABILIZATIONDESIRED_STABILIZATIONMODE_ATTITUDE;
 	stabDesired.StabilizationMode[STABILIZATIONDESIRED_STABILIZATIONMODE_YAW] = STABILIZATIONDESIRED_STABILIZATIONMODE_COORDINATEDFLIGHT;
 
 	StabilizationDesiredSet(&stabDesired);
+
+	PathStatusData pathStatus;
+	PathStatusGet(&pathStatus);
+	pathStatus.StatusParameters[0] = integral->airspeedError;
+	pathStatus.StatusParameters[1] = airspeedError;
+	PathStatusSet(&pathStatus);
+
 
 	return 0;
 }
@@ -315,9 +316,9 @@ float followOrbit(float c[3], float rho, bool direction, float p[3], float psi, 
 	}
 
 
-	float psi_command= direction==true?
-		phi+(PI/2.0f + atanf(k_orbit*err_orbit) + k_psi_int*integral->circleError):
-		phi-(PI/2.0f + atanf(k_orbit*err_orbit) + k_psi_int*integral->circleError);
+	float psi_command = direction==true?
+		phi+(PI/2.0f + atanf(k_orbit*err_orbit) + k_psi_int*integral->circleError): // Turn clockwise
+		phi-(PI/2.0f + atanf(k_orbit*err_orbit) + k_psi_int*integral->circleError); // Turn counter-clockwise
 
 	return psi_command;
 }
@@ -357,8 +358,29 @@ void PathFollowerUpdatedCb(UAVObjEvent * ev)
 			float oldPosition_NE[2] = {pathDesired.Start[0], pathDesired.Start[1]};
 			float newPosition_NE[2] = {pathSegmentDescriptor.SwitchingLocus[0], pathSegmentDescriptor.SwitchingLocus[1]};
 			float arcCenter_XY[2];
-			arcCenterFromTwoPointsAndRadiusAndArcRank(oldPosition_NE, newPosition_NE, 1.0f/pathSegmentDescriptor.PathCurvature, arcCenter_XY, pathSegmentDescriptor.ArcAngle > 0, pathSegmentDescriptor.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR);
+			bool ret;
+			ret = arcCenterFromTwoPointsAndRadiusAndArcRank(oldPosition_NE, newPosition_NE, 1.0f/pathSegmentDescriptor.PathCurvature, arcCenter_XY, pathSegmentDescriptor.ArcAngle > 0, pathSegmentDescriptor.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR);
 
+			if (ret == true){
+				pathDesired.End[0]=arcCenter_XY[0];
+				pathDesired.End[1]=arcCenter_XY[1];
+				pathDesired.End[2]=pathSegmentDescriptor.SwitchingLocus[2];
+			}
+			else {
+				// This is bad, but we have to handle it.
+				// Probably the path manager should advance to the next waypoint, but for now we'll circle over the point
+				pathDesired.End[0]=pathSegmentDescriptor.SwitchingLocus[0];
+				pathDesired.End[1]=pathSegmentDescriptor.SwitchingLocus[1];
+				pathDesired.End[2]=pathSegmentDescriptor.SwitchingLocus[2];
+
+				// TODO: Set alarm warning
+				AlarmsSet(SYSTEMALARMS_ALARM_PATHFOLLOWER, SYSTEMALARMS_ALARM_WARNING);
+			}
+
+#define MAX_ROLL_FOR_ARC 15.0f	 //Assume that we want a maximum 15 degree bank angle. This should yield a nice, non-agressive turn
+#define MIN_RHO (powf(pathDesired.EndingVelocity,2)/(9.805f*tanf(fabs(MAX_ROLL_FOR_ARC*DEG2RAD))))
+			//Calculate radius, rho, using r*omega=v and omega = g/V_g * tan(phi)
+			rho = 1.0f/pathSegmentDescriptor.PathCurvature > MIN_RHO ? 1.0f/pathSegmentDescriptor.PathCurvature : MIN_RHO;
 		}
 
 		pathDesired.EndingVelocity=pathSegmentDescriptor.FinalVelocity;

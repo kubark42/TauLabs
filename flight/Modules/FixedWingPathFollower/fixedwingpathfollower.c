@@ -45,7 +45,6 @@
 #include "CoordinateConversions.h"
 
 #include "pathfollowerstatus.h"
-#include "pathmanagerstatus.h"
 #include "pathplannersettings.h"
 #include "pathsegmentdescriptor.h"
 
