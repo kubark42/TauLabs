@@ -35,6 +35,7 @@ float bound_sym(float val, float range);
 //! Bound input value between min and max
 float bound_min_max(float val, float min, float max);
 
-bool arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_point, float *end_point, float radius, float *center, bool clockwise, bool minor);
+typedef enum CenterCalculationResult {CENTER_FOUND, COINCIDENT_POINTS, INSUFFICIENT_RADIUS} CenterCalculationResult;
+CenterCalculationResult arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_point, float *end_point, float radius, float *center, bool clockwise, bool minor);
 
 #endif /* MISC_MATH_H */

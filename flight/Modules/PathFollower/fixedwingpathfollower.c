@@ -89,7 +89,7 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 	float dT = fixedwingpathfollowerSettings->UpdatePeriod / 1000.0f; //Convert from [ms] to [s]
 
 	VelocityActualData velocityActual;
-	StabilizationDesiredData stabDesired;
+	StabilizationDesiredData stabilizationDesired;
 	float trueAirspeed;
 
 	float calibratedAirspeedActual;
@@ -103,7 +103,7 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 	float rollCommand;
 
 	VelocityActualGet(&velocityActual);
-	StabilizationDesiredGet(&stabDesired);
+	StabilizationDesiredGet(&stabilizationDesired);
 	AirspeedActualTrueAirspeedGet(&trueAirspeed);
 
 	PositionActualData positionActual;
@@ -157,7 +157,7 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 #define THROTTLELIMIT_MAX     fixedwingpathfollowerSettings->ThrottleLimit[FIXEDWINGPATHFOLLOWERSETTINGS_THROTTLELIMIT_MAX]
 
 	// set throttle
-	stabDesired.Throttle = bound_min_max(powerCommand+THROTTLELIMIT_NEUTRAL,
+	stabilizationDesired.Throttle = bound_min_max(powerCommand+THROTTLELIMIT_NEUTRAL,
 								 THROTTLELIMIT_MIN,
 								 THROTTLELIMIT_MAX);
 	/**
@@ -193,7 +193,7 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 #define PITCHLIMIT_MIN      fixedwingpathfollowerSettings->PitchLimit[FIXEDWINGPATHFOLLOWERSETTINGS_PITCHLIMIT_MIN]
 #define PITCHLIMIT_MAX      fixedwingpathfollowerSettings->PitchLimit[FIXEDWINGPATHFOLLOWERSETTINGS_PITCHLIMIT_MAX]
 
-	stabDesired.Pitch = bound_min_max(PITCHLIMIT_NEUTRAL +
+	stabilizationDesired.Pitch = bound_min_max(PITCHLIMIT_NEUTRAL +
 							  pitchCommand,
 							  PITCHLIMIT_MIN,
 							  PITCHLIMIT_MAX);
@@ -225,7 +225,7 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 		headingCommand_R=followStraightLine(r, q, p, headingActual_R, chi_inf, k_path, k_psi_int, dT);
 	}
 	else {
-		if(pathSegmentDescriptor.ArcAngle > 0) // Turn clockwise
+		if(pathSegmentDescriptor.PathCurvature > 0) // Turn clockwise
 			headingCommand_R=followOrbit(c, rho, true, p, headingActual_R, k_orbit, k_psi_int, dT);
 		else // Turn counter-clockwise
 			headingCommand_R=followOrbit(c, rho, false, p, headingActual_R, k_orbit, k_psi_int, dT);
@@ -248,7 +248,7 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 
 	//Turn heading
 
-	stabDesired.Roll = bound_min_max( ROLLLIMIT_NEUTRAL +
+	stabilizationDesired.Roll = bound_min_max( ROLLLIMIT_NEUTRAL +
 							 rollCommand,
 							 ROLLLIMIT_MIN,
 							 ROLLLIMIT_MAX);
@@ -256,14 +256,13 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 	/**
 	 * Compute desired yaw command
 	 */
-	// TODO Once coordinated flight is merged in, YAW needs to switch to STABILIZATIONDESIRED_STABILIZATIONMODE_COORDINATEDFLIGHT
-	stabDesired.Yaw = rho/100;
+	stabilizationDesired.Yaw = 0; // Coordinated flight control only works when stabilizationDesired.Yaw == 0
 
-	stabDesired.StabilizationMode[STABILIZATIONDESIRED_STABILIZATIONMODE_ROLL] = STABILIZATIONDESIRED_STABILIZATIONMODE_ATTITUDE;
-	stabDesired.StabilizationMode[STABILIZATIONDESIRED_STABILIZATIONMODE_PITCH] = STABILIZATIONDESIRED_STABILIZATIONMODE_ATTITUDE;
-	stabDesired.StabilizationMode[STABILIZATIONDESIRED_STABILIZATIONMODE_YAW] = STABILIZATIONDESIRED_STABILIZATIONMODE_COORDINATEDFLIGHT;
+	stabilizationDesired.StabilizationMode[STABILIZATIONDESIRED_STABILIZATIONMODE_ROLL] = STABILIZATIONDESIRED_STABILIZATIONMODE_ATTITUDE;
+	stabilizationDesired.StabilizationMode[STABILIZATIONDESIRED_STABILIZATIONMODE_PITCH] = STABILIZATIONDESIRED_STABILIZATIONMODE_ATTITUDE;
+	stabilizationDesired.StabilizationMode[STABILIZATIONDESIRED_STABILIZATIONMODE_YAW] = STABILIZATIONDESIRED_STABILIZATIONMODE_COORDINATEDFLIGHT;
 
-	StabilizationDesiredSet(&stabDesired);
+	StabilizationDesiredSet(&stabilizationDesired);
 
 	PathStatusData pathStatus;
 	PathStatusGet(&pathStatus);
@@ -359,9 +358,9 @@ void PathFollowerUpdatedCb(UAVObjEvent * ev)
 			float newPosition_NE[2] = {pathSegmentDescriptor.SwitchingLocus[0], pathSegmentDescriptor.SwitchingLocus[1]};
 			float arcCenter_XY[2];
 			bool ret;
-			ret = arcCenterFromTwoPointsAndRadiusAndArcRank(oldPosition_NE, newPosition_NE, 1.0f/pathSegmentDescriptor.PathCurvature, arcCenter_XY, pathSegmentDescriptor.ArcAngle > 0, pathSegmentDescriptor.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR);
+			ret = arcCenterFromTwoPointsAndRadiusAndArcRank(oldPosition_NE, newPosition_NE, 1.0f/pathSegmentDescriptor.PathCurvature, arcCenter_XY, pathSegmentDescriptor.PathCurvature > 0, pathSegmentDescriptor.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR);
 
-			if (ret == true){
+			if (ret == CENTER_FOUND){
 				pathDesired.End[0]=arcCenter_XY[0];
 				pathDesired.End[1]=arcCenter_XY[1];
 				pathDesired.End[2]=pathSegmentDescriptor.SwitchingLocus[2];
@@ -380,7 +379,7 @@ void PathFollowerUpdatedCb(UAVObjEvent * ev)
 #define MAX_ROLL_FOR_ARC 15.0f	 //Assume that we want a maximum 15 degree bank angle. This should yield a nice, non-agressive turn
 #define MIN_RHO (powf(pathDesired.EndingVelocity,2)/(9.805f*tanf(fabs(MAX_ROLL_FOR_ARC*DEG2RAD))))
 			//Calculate radius, rho, using r*omega=v and omega = g/V_g * tan(phi)
-			rho = 1.0f/pathSegmentDescriptor.PathCurvature > MIN_RHO ? 1.0f/pathSegmentDescriptor.PathCurvature : MIN_RHO;
+			rho = fabs(1.0f/pathSegmentDescriptor.PathCurvature) > MIN_RHO ? fabs(1.0f/pathSegmentDescriptor.PathCurvature) : MIN_RHO;
 		}
 
 		pathDesired.EndingVelocity=pathSegmentDescriptor.FinalVelocity;

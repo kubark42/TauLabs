@@ -66,8 +66,9 @@ float bound_sym(float val, float range)
  * @param[in] clockwise true if clockwise is the positive sense of the arc, false if otherwise
  * @param[in] minor true if minor arc, false if major arc
  * @param[out] center Center of circle formed by two points, in North-East coordinates
+ * @return
  */
-bool arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_point,
+CenterCalculationResult arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_point,
 	                   float *end_point,
 	                   float radius,
 	                   float *center,
@@ -77,12 +78,14 @@ bool arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_point,
 {
 	// Sanity check
 	if(fabs(start_point[0] - end_point[0]) < 1e-6 && fabs(start_point[1] - end_point[1]) < 1e-6){
-		// This means that the start point and end point are directly on top of each other. In this
-		// case, there is no circle as a single point and a radius is not enough to define one
-		return false;
+		// This means that the start point and end point are directly on top of each other. In the
+		// case of coincident points, there is not enough information to define the circle
+		center[0]=NAN;
+		center[1]=NAN;
+		return COINCIDENT_POINTS;
 	}
 
-	float m_n, m_e, p_n, p_e, d;
+	float m_n, m_e, p_n, p_e, d, d2;
 
 	// Center between start and end
 	m_n = (start_point[0] + end_point[0]) / 2;
@@ -98,19 +101,27 @@ bool arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_point,
 		p_e = -(end_point[0] - start_point[0]);
 	}
 
-	// Work out how far to go along the perpendicular bisector
-	d = sqrtf(radius * radius / (p_n * p_n + p_e * p_e) - 0.25f);
+	// Work out how far to go along the perpendicular bisector. First check there is a solution.
+	d2 = radius * radius / (p_n * p_n + p_e * p_e) - 0.25f;
+	if (d2 < 0){
+		if (d2 > -radius*radius*0.01f*0.01f) // Make a 1% allowance for roundoff error
+			d2 = 0;
+		else {
+			center[0]=NAN;
+			center[1]=NAN;
+			return INSUFFICIENT_RADIUS; // In this case, the radius wasn't big enough to connect the two points
+		}
+	}
 
-	float radius_sign = (radius > 0) ? 1 : -1;
-	radius = fabs(radius);
+	d = sqrtf(d2);
 
 	if (fabs(p_n) < 1e-3 && fabs(p_e) < 1e-3) {
 		center[0] = m_n;
 		center[1] = m_e;
 	} else {
-		center[0] = m_n + p_n * d * radius_sign;
-		center[1] = m_e + p_e * d * radius_sign;
+		center[0] = m_n + p_n * d;
+		center[1] = m_e + p_e * d;
 	}
 
-	return true;
+	return CENTER_FOUND;
 }

@@ -9,24 +9,15 @@
 		<field name="FinalVelocity" units="m/s" type="float" elements="1" default="0"/>
 		<field name="DesiredAcceleration" units="m/s^2" type="float" elements="1" default="0"/>
 		
-		<!-- REMOVE THIS FIELD, IT IS COMPLETELY DESCRIBED BY PATHCURVATURE -->
-		<field name="SegmentType" units="" type="enum" elements="1">
-			<options>
-				<option>Line</option>
-				<option>CurveCounterClockwise</option>
-				<option>CurveClockwise</option>
-			</options>
-		</field>
-
 		<!-- The curvature of an arc, k, is 1/R, where R is the radius of the arc. This gives the happy 
-		result that for straight lines k = 0. -->
+		result that for straight lines k = 0. Negative curvature means a negative turn. -->
 		<field name="PathCurvature" units="deg/m" type="float" elements="1" default="0"/>
 
-		<!-- The number of degrees the vehicle will travel on this arc. All values are permitted. 
+		<!-- The number of complete orbits the vehicle will travel on this arc. All values are permitted. 
 		 By taking advantage of the round-off error in float precision, we can define an infinite
 		 circling behavior by using a floating point number so large that x - 360 = x, up to a
 		 round-off error. With 32-bits of precision, this occurs at around 1e10. -->
-		<field name="ArcAngle" units="deg" type="float" elements="1" default="0"/>
+		<field name="NumberOfOrbits" units="deg" type="float" elements="1" default="0"/>
 
 		<!-- When defining an arc by only two points and a radius, there are in fact two solutions. We 
 		 define the Major solution to be the longer of the two arcs, and the Minor solution to be the
