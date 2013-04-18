@@ -186,7 +186,7 @@ static void pathManagerTask(void *parameters)
 		FlightStatusData flightStatus;
 		FlightStatusGet(&flightStatus);
 		switch (flightStatus.FlightMode) {
-#if 1
+#if 1 // If there is no path planner, it's probably because memory is too scarce, such as on CC/CC3D. In that case, provide a return to home and a position hold
 			case FLIGHTSTATUS_FLIGHTMODE_RETURNTOHOME:
 				if(guidanceType != RETURNHOME){
 					guidanceType = RETURNHOME;
@@ -205,7 +205,7 @@ static void pathManagerTask(void *parameters)
 					pathSegmentDescriptor.SwitchingLocus[0] = positionActual.North;
 					pathSegmentDescriptor.SwitchingLocus[1] = positionActual.East;
 					pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down;
-					pathSegmentDescriptor.FinalVelocity = 12.1f; //TODO: Relate this to the airspeeds
+					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 					pathSegmentDescriptor.DesiredAcceleration = 0;
 					pathSegmentDescriptor.Timeout = 0;
 					pathSegmentDescriptor.NumberOfOrbits = 0;
@@ -221,7 +221,7 @@ static void pathManagerTask(void *parameters)
 					pathSegmentDescriptor.SwitchingLocus[0] = cos(approachTheta_rad) * radius;
 					pathSegmentDescriptor.SwitchingLocus[1] = sin(approachTheta_rad) * radius;
 					pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down - 10;
-					pathSegmentDescriptor.FinalVelocity = 12.1f;
+					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 					pathSegmentDescriptor.DesiredAcceleration = 0;
 					pathSegmentDescriptor.Timeout = 60;
 					pathSegmentDescriptor.NumberOfOrbits = 0;
@@ -233,7 +233,7 @@ static void pathManagerTask(void *parameters)
 					pathSegmentDescriptor.SwitchingLocus[0] = -cos(approachTheta_rad) * radius;
 					pathSegmentDescriptor.SwitchingLocus[1] = -sin(approachTheta_rad) * radius;
 					pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down - 10;
-					pathSegmentDescriptor.FinalVelocity = 12.1f;
+					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 					pathSegmentDescriptor.DesiredAcceleration = 0;
 					pathSegmentDescriptor.Timeout = 60;
 					pathSegmentDescriptor.PathCurvature = 1/radius;
@@ -262,7 +262,7 @@ static void pathManagerTask(void *parameters)
 					pathSegmentDescriptor.SwitchingLocus[0] = positionActual.North - radius;
 					pathSegmentDescriptor.SwitchingLocus[1] = positionActual.East;
 					pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down;
-					pathSegmentDescriptor.FinalVelocity = 12.1f; //TODO: Relate this to the airspeeds
+					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 					pathSegmentDescriptor.DesiredAcceleration = 0;
 					pathSegmentDescriptor.Timeout = 0;
 					pathSegmentDescriptor.NumberOfOrbits = 0;
@@ -274,7 +274,7 @@ static void pathManagerTask(void *parameters)
 					pathSegmentDescriptor.SwitchingLocus[0] = positionActual.North + radius;
 					pathSegmentDescriptor.SwitchingLocus[1] = positionActual.East;
 					pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down - 10;
-					pathSegmentDescriptor.FinalVelocity = 12.1f;
+					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 					pathSegmentDescriptor.DesiredAcceleration = 0;
 					pathSegmentDescriptor.Timeout = 60;
 					pathSegmentDescriptor.PathCurvature = 1/radius;
@@ -302,7 +302,7 @@ static void pathManagerTask(void *parameters)
 					pathSegmentDescriptor.SwitchingLocus[0] = positionActual.North;
 					pathSegmentDescriptor.SwitchingLocus[1] = positionActual.East;
 					pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down;
-					pathSegmentDescriptor.FinalVelocity = 12.1f; //TODO: Relate this to the airspeeds
+					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 					pathSegmentDescriptor.DesiredAcceleration = 0;
 					pathSegmentDescriptor.Timeout = 0;
 					pathSegmentDescriptor.NumberOfOrbits = 0;
@@ -313,7 +313,7 @@ static void pathManagerTask(void *parameters)
 					pathSegmentDescriptor.SwitchingLocus[0] = 100;
 					pathSegmentDescriptor.SwitchingLocus[1] = 0;
 					pathSegmentDescriptor.SwitchingLocus[2] = -2450;
-					pathSegmentDescriptor.FinalVelocity = 12.1f;
+					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 					pathSegmentDescriptor.Timeout = 60;
 					pathSegmentDescriptor.NumberOfOrbits = 0;
 					pathSegmentDescriptor.PathCurvature = 0;
@@ -322,7 +322,7 @@ static void pathManagerTask(void *parameters)
 					pathSegmentDescriptor.SwitchingLocus[0] = 100;
 					pathSegmentDescriptor.SwitchingLocus[1] = 200;
 					pathSegmentDescriptor.SwitchingLocus[2] = -2450;
-					pathSegmentDescriptor.FinalVelocity = 12.1f;
+					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 					pathSegmentDescriptor.Timeout = 60;
 					pathSegmentDescriptor.NumberOfOrbits = 0;
 					pathSegmentDescriptor.PathCurvature = 0;
@@ -331,7 +331,7 @@ static void pathManagerTask(void *parameters)
 					pathSegmentDescriptor.SwitchingLocus[0] = 100;
 					pathSegmentDescriptor.SwitchingLocus[1] = 200+120;
 					pathSegmentDescriptor.SwitchingLocus[2] = -2500;
-					pathSegmentDescriptor.FinalVelocity = 12.4f;
+					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 					pathSegmentDescriptor.Timeout = 60;
 					pathSegmentDescriptor.PathCurvature = 1/60.0f; // 70m radius
 					pathSegmentDescriptor.NumberOfOrbits = 1;
@@ -341,7 +341,7 @@ static void pathManagerTask(void *parameters)
 					pathSegmentDescriptor.SwitchingLocus[0] = 100;
 					pathSegmentDescriptor.SwitchingLocus[1] = 0;
 					pathSegmentDescriptor.SwitchingLocus[2] = -2500;
-					pathSegmentDescriptor.FinalVelocity = 12.1f;
+					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 					pathSegmentDescriptor.Timeout = 60;
 					pathSegmentDescriptor.NumberOfOrbits = 0;
 					pathSegmentDescriptor.PathCurvature = 0;
@@ -350,7 +350,7 @@ static void pathManagerTask(void *parameters)
 					pathSegmentDescriptor.SwitchingLocus[0] = 600;
 					pathSegmentDescriptor.SwitchingLocus[1] = 0;
 					pathSegmentDescriptor.SwitchingLocus[2] = -2500;
-					pathSegmentDescriptor.FinalVelocity = 12.2f;
+					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 					pathSegmentDescriptor.Timeout = 60;
 					pathSegmentDescriptor.PathCurvature = 1/400.0f;
 					pathSegmentDescriptor.NumberOfOrbits = 0;
@@ -360,7 +360,7 @@ static void pathManagerTask(void *parameters)
 					pathSegmentDescriptor.SwitchingLocus[0] = 800;
 					pathSegmentDescriptor.SwitchingLocus[1] = 0;
 					pathSegmentDescriptor.SwitchingLocus[2] = -2500;
-					pathSegmentDescriptor.FinalVelocity = 12.3f;
+					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 					pathSegmentDescriptor.Timeout = 60;
 					pathSegmentDescriptor.PathCurvature = 0;
 					pathSegmentDescriptor.NumberOfOrbits = 0;
@@ -418,8 +418,6 @@ static void pathManagerTask(void *parameters)
 		// straight lines and infinite number of orbits about a point.
 		if( sign(pathSegmentDescriptor_current.PathCurvature) * (angularDistanceToComplete - angularDistanceCompleted) < ANGULAR_PROXIMITY_THRESHOLD)
 			advanceSegment_flag = checkGoalCondition();
-		else
-			pathManagerStatus.StatusParameters[2] = rand();
 
 
 		// Check if the path_manager was just activated
@@ -465,8 +463,8 @@ static void pathManagerTask(void *parameters)
 					1.0f/pathSegmentDescriptor_current.PathCurvature, arcCenter_NE,
 					pathSegmentDescriptor_current.PathCurvature > 0, pathSegmentDescriptor_current.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR);
 
-				pathManagerStatus.StatusParameters[8] = arcCenter_NE[0];
-				pathManagerStatus.StatusParameters[9] = arcCenter_NE[1];
+//				pathManagerStatus.StatusParameters[8] = arcCenter_NE[0];
+//				pathManagerStatus.StatusParameters[9] = arcCenter_NE[1];
 
 				// If the arc has a center, then set the initial position as the beginning of the arc, and calculate the angular
 				// distance to be traveled along the arc
@@ -579,16 +577,16 @@ static bool checkGoalCondition()
 				q_future_mag = VectorMagnitude(q_future); //Normalize
 
 
-				pathManagerStatus.StatusParameters[1] = rand();
-				pathManagerStatus.StatusParameters[2] = arcCenter_NE[0];
-				pathManagerStatus.StatusParameters[3] = arcCenter_NE[1];
-				pathManagerStatus.StatusParameters[4] = swl_past[0];
-				pathManagerStatus.StatusParameters[5] = swl_past[1];
-				pathManagerStatus.StatusParameters[6] = q_future[0]+.01*pathManagerStatus.ActiveSegment;
-				pathManagerStatus.StatusParameters[7] = q_future[1]+.03;
-				pathManagerStatus.StatusParameters[8] = q_current[0]+.02;
-				pathManagerStatus.StatusParameters[9] = q_current[1]+.04;
-				PathManagerStatusSet(&pathManagerStatus);
+//				pathManagerStatus.StatusParameters[1] = rand();
+//				pathManagerStatus.StatusParameters[2] = arcCenter_NE[0];
+//				pathManagerStatus.StatusParameters[3] = arcCenter_NE[1];
+//				pathManagerStatus.StatusParameters[4] = swl_past[0];
+//				pathManagerStatus.StatusParameters[5] = swl_past[1];
+//				pathManagerStatus.StatusParameters[6] = q_future[0]+.01*pathManagerStatus.ActiveSegment;
+//				pathManagerStatus.StatusParameters[7] = q_future[1]+.03;
+//				pathManagerStatus.StatusParameters[8] = q_current[0]+.02;
+//				pathManagerStatus.StatusParameters[9] = q_current[1]+.04;
+//				PathManagerStatusSet(&pathManagerStatus);
 
 			}
 			// "Small Unmanned Aircraft: Theory and Practice" provides no guidance for the perpendicular
@@ -676,20 +674,20 @@ static void checkOvershoot()
 		PositionActualData positionActual;
 		PositionActualGet(&positionActual);
 
-		float p[3] = {positionActual.North, positionActual.East, positionActual.Down};
-		float *c = pathSegmentDescriptor_current.SwitchingLocus;
+		float p[2] = {positionActual.North, positionActual.East};
+		float c[2] = {pathSegmentDescriptor_current.SwitchingLocus[0], pathSegmentDescriptor_current.SwitchingLocus[1]};
 		float *r = previousLocus->Position;
 
 		// Calculate vector from initial to final point
-		float q[3] = {c[0] - r[0], c[1] - r[1], c[2] - r[2]};
+		float q[3] = {c[0] - r[0], c[1] - r[1], 0};
+		float q_mag = VectorMagnitude(q); //Normalize
 
-		//Compute the norm squared of the horizontal path length
-		float pathLength=sqrtf(q[0]*q[0]+q[1]*q[1]);
+		// Add in a distance equal to 5s of flight time for good measure, in to make sure we don't have any jitter.
+		for (int i=0; i < 2; i++)
+			c[i] += q[i]/q_mag * fixedWingAirspeeds.BestClimbRateSpeed * 5;
 
 		// Perform a quick vector dot product to test if we've gone past the waypoint.
-		// Add in a distance equal to 5s of flight time for good measure to make sure we don't have any jitter.
-		// TODO: THE MATH HERE IS WRONG.
-		if (0 && sqrtf(powf((p[0]-r[0])*q[0],2)+powf((p[1]-r[1])*q[1],2)) > pathLength+5.0f*pathSegmentDescriptor_current.FinalVelocity){
+		if ((p[0]-c[0])*q[0] + (p[1]-c[1])*q[1] > 0){
 			//Whoops, we've really overflown our destination point, and haven't received any instructions.
 
 			//Inform the FSM
@@ -701,7 +699,6 @@ static void checkOvershoot()
 			//TODO: Start circling
 		}
 	}
-
 }
 
 //<<<UGH, This function is badly named. All it's doing is calculating the angle between two vectors>>>

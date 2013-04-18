@@ -336,9 +336,8 @@ void PathFollowerUpdatedCb(UAVObjEvent * ev)
 
 		PathSegmentDescriptorData pathSegmentDescriptor;
 
-
 		//VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
-		// BLAH, BLAH, BLAH. THIS SHOULDN'T BE USING PATHDESIRED
+		// BLAH, BLAH, BLAH. THIS SHOULDN'T BE USING PATHDESIRED UAVO
 		//----------------------------------------------
 		PathSegmentDescriptorInstGet(activeSegment-1, &pathSegmentDescriptor);
 		pathDesired.Start[0]=pathSegmentDescriptor.SwitchingLocus[0];
