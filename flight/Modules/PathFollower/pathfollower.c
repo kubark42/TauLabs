@@ -62,7 +62,7 @@
 
 #include "pathdesired.h"
 #include "pathmanagerstatus.h"
-#include "pathstatus.h"
+#include "pathfollowerstatus.h"
 
 #include "CoordinateConversions.h"
 
@@ -162,8 +162,8 @@ int32_t PathFollowerInitialize()
 	// Initialize UAVOs necessary for all pathfinders
 	FlightStatusInitialize();
 	PathDesiredInitialize();
+	PathFollowerStatusInitialize();
 	PathManagerStatusInitialize();
-	PathStatusInitialize();
 	PositionActualInitialize();
 	StabilizationDesiredInitialize();
 	VelocityActualInitialize();
@@ -177,7 +177,7 @@ int32_t PathFollowerInitialize()
 		// TODO: Index into array of functions
 		switch (pathFollowerType) {
 		case FIXEDWING:
-			stackSizeBytes = 750;
+			stackSizeBytes = 850;
 			PathManagerStatusConnectCallback(PathFollowerUpdatedCb);
 			initializeFixedWingPathFollower();
 			break;

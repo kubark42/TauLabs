@@ -39,10 +39,10 @@
 
 #include "fixedwingairspeeds.h"
 
-#include "pathfollowerstatus.h"
 #include "pathmanagerstatus.h"
 #include "pathmanagersettings.h"
 #include "pathsegmentdescriptor.h"
+#include "paths library.h"
 
 #include "CoordinateConversions.h"
 
@@ -77,7 +77,8 @@ static portTickType segmentTimer;
 static float angularDistanceToComplete;
 static float angularDistanceCompleted;
 static float oldPosition_NE[2];
-float arcCenter_NE[2];
+static float arcCenter_NE[2];
+static uint8_t guidanceType = NOMANAGER;
 
 // Private functions
 static bool checkGoalCondition();
@@ -124,7 +125,6 @@ int32_t PathManagerInitialize()
 #endif
 
 	if(module_enabled) {
-		PathFollowerStatusInitialize();
 		PathManagerStatusInitialize();
 		PathManagerSettingsInitialize();
 		PathSegmentDescriptorInitialize();
@@ -150,7 +150,7 @@ MODULE_INITCALL(PathManagerInitialize, PathManagerStart);
  */
 static void pathManagerTask(void *parameters)
 {
-	// If PathFollowerStatus is not available then no follower is running and we cannot continue
+	// If no follower is running then we cannot continue
 	while (!TaskMonitorQueryRunning(TASKINFO_RUNNING_PATHFOLLOWER)) {
 		AlarmsSet(SYSTEMALARMS_ALARM_PATHMANAGER, SYSTEMALARMS_ALARM_CRITICAL);
 		vTaskDelay(1000);
@@ -172,7 +172,6 @@ static void pathManagerTask(void *parameters)
 	static portTickType overshootTimer;
 	lastSysTime = xTaskGetTickCount();
 	overshootTimer = xTaskGetTickCount();
-	uint8_t guidanceType = NOMANAGER;
 	uint8_t theta_roundoff_trim_count = 0;
 
 	// Main thread loop
@@ -186,60 +185,15 @@ static void pathManagerTask(void *parameters)
 		FlightStatusData flightStatus;
 		FlightStatusGet(&flightStatus);
 		switch (flightStatus.FlightMode) {
-#if 1 // If there is no path planner, it's probably because memory is too scarce, such as on CC/CC3D. In that case, provide a return to home and a position hold
+#ifndef PATH_PLANNER // If there is no path planner, it's probably because memory is too scarce, such as on CC/CC3D. In that case, provide a return to home and a position hold
 			case FLIGHTSTATUS_FLIGHTMODE_RETURNTOHOME:
 				if(guidanceType != RETURNHOME){
 					guidanceType = RETURNHOME;
 					pathplanner_active = false;
 
-					PathSegmentDescriptorData pathSegmentDescriptor;
+					// Load pregenerated return to home program
+					simple_return_to_home();
 
-					for (int i=UAVObjGetNumInstances(PathSegmentDescriptorHandle()); i<=3; i++){
-						PathSegmentDescriptorCreateInstance();
-					}
-
-					PositionActualData positionActual;
-					PositionActualGet(&positionActual);
-
-					// First locus is current vehicle position
-					pathSegmentDescriptor.SwitchingLocus[0] = positionActual.North;
-					pathSegmentDescriptor.SwitchingLocus[1] = positionActual.East;
-					pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down;
-					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-					pathSegmentDescriptor.DesiredAcceleration = 0;
-					pathSegmentDescriptor.Timeout = 0;
-					pathSegmentDescriptor.NumberOfOrbits = 0;
-					pathSegmentDescriptor.PathCurvature = 0;
-					pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-					PathSegmentDescriptorInstSet(0, &pathSegmentDescriptor);
-
-					// Calculate direction from home to initial segment
-					float radius = 60;
-					float approachTheta_rad = atan2f(pathSegmentDescriptor.SwitchingLocus[1], pathSegmentDescriptor.SwitchingLocus[0]);
-
-					// Go straight back to home
-					pathSegmentDescriptor.SwitchingLocus[0] = cos(approachTheta_rad) * radius;
-					pathSegmentDescriptor.SwitchingLocus[1] = sin(approachTheta_rad) * radius;
-					pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down - 10;
-					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-					pathSegmentDescriptor.DesiredAcceleration = 0;
-					pathSegmentDescriptor.Timeout = 60;
-					pathSegmentDescriptor.NumberOfOrbits = 0;
-					pathSegmentDescriptor.PathCurvature = 0;
-					pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-					PathSegmentDescriptorInstSet(1, &pathSegmentDescriptor);
-
-					// Orbit home
-					pathSegmentDescriptor.SwitchingLocus[0] = -cos(approachTheta_rad) * radius;
-					pathSegmentDescriptor.SwitchingLocus[1] = -sin(approachTheta_rad) * radius;
-					pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down - 10;
-					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-					pathSegmentDescriptor.DesiredAcceleration = 0;
-					pathSegmentDescriptor.Timeout = 60;
-					pathSegmentDescriptor.PathCurvature = 1/radius;
-					pathSegmentDescriptor.NumberOfOrbits = 1e8; //TODO: Define this really large floating-point value as a magic number
-					pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-					PathSegmentDescriptorInstSet(2, &pathSegmentDescriptor);
 				}
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD:
@@ -247,126 +201,28 @@ static void pathManagerTask(void *parameters)
 					guidanceType = HOLDPOSITION;
 					pathplanner_active = false;
 
-					PathSegmentDescriptorData pathSegmentDescriptor;
-
-					for (int i=UAVObjGetNumInstances(PathSegmentDescriptorHandle()); i<=2; i++){
-						PathSegmentDescriptorCreateInstance();
-					}
-
-					PositionActualData positionActual;
-					PositionActualGet(&positionActual);
-
-					float radius = 60;
-
-					// First locus is current vehicle position
-					pathSegmentDescriptor.SwitchingLocus[0] = positionActual.North - radius;
-					pathSegmentDescriptor.SwitchingLocus[1] = positionActual.East;
-					pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down;
-					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-					pathSegmentDescriptor.DesiredAcceleration = 0;
-					pathSegmentDescriptor.Timeout = 0;
-					pathSegmentDescriptor.NumberOfOrbits = 0;
-					pathSegmentDescriptor.PathCurvature = 0;
-					pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-					PathSegmentDescriptorInstSet(0, &pathSegmentDescriptor);
-
-					// Orbit current position
-					pathSegmentDescriptor.SwitchingLocus[0] = positionActual.North + radius;
-					pathSegmentDescriptor.SwitchingLocus[1] = positionActual.East;
-					pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down - 10;
-					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-					pathSegmentDescriptor.DesiredAcceleration = 0;
-					pathSegmentDescriptor.Timeout = 60;
-					pathSegmentDescriptor.PathCurvature = 1/radius;
-					pathSegmentDescriptor.NumberOfOrbits = 1e8; //TODO: Define this really large floating-point value as a magic number
-					pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-					PathSegmentDescriptorInstSet(1, &pathSegmentDescriptor);
+					// Load pregenerated hold-position program
+					simple_hold_position();
 				}
 				break;
-#endif //NO_PATHPLANNER
 			case FLIGHTSTATUS_FLIGHTMODE_PATHPLANNER:
 				if(guidanceType != PATHPLANNER){
 					guidanceType = PATHPLANNER;
 					pathplanner_active = false;
 
-					PathSegmentDescriptorData pathSegmentDescriptor;
-
-					for (int i=UAVObjGetNumInstances(PathSegmentDescriptorHandle()); i<=6; i++){
-						PathSegmentDescriptorCreateInstance();
-					}
-
-					PositionActualData positionActual;
-					PositionActualGet(&positionActual);
-
-					// First locus is current vehicle position
-					pathSegmentDescriptor.SwitchingLocus[0] = positionActual.North;
-					pathSegmentDescriptor.SwitchingLocus[1] = positionActual.East;
-					pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down;
-					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-					pathSegmentDescriptor.DesiredAcceleration = 0;
-					pathSegmentDescriptor.Timeout = 0;
-					pathSegmentDescriptor.NumberOfOrbits = 0;
-					pathSegmentDescriptor.PathCurvature = 0;
-					pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-					PathSegmentDescriptorInstSet(0, &pathSegmentDescriptor);
-
-					pathSegmentDescriptor.SwitchingLocus[0] = 100;
-					pathSegmentDescriptor.SwitchingLocus[1] = 0;
-					pathSegmentDescriptor.SwitchingLocus[2] = -2450;
-					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-					pathSegmentDescriptor.Timeout = 60;
-					pathSegmentDescriptor.NumberOfOrbits = 0;
-					pathSegmentDescriptor.PathCurvature = 0;
-					PathSegmentDescriptorInstSet(1, &pathSegmentDescriptor);
-
-					pathSegmentDescriptor.SwitchingLocus[0] = 100;
-					pathSegmentDescriptor.SwitchingLocus[1] = 200;
-					pathSegmentDescriptor.SwitchingLocus[2] = -2450;
-					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-					pathSegmentDescriptor.Timeout = 60;
-					pathSegmentDescriptor.NumberOfOrbits = 0;
-					pathSegmentDescriptor.PathCurvature = 0;
-					PathSegmentDescriptorInstSet(2, &pathSegmentDescriptor);
-
-					pathSegmentDescriptor.SwitchingLocus[0] = 100;
-					pathSegmentDescriptor.SwitchingLocus[1] = 200+120;
-					pathSegmentDescriptor.SwitchingLocus[2] = -2500;
-					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-					pathSegmentDescriptor.Timeout = 60;
-					pathSegmentDescriptor.PathCurvature = 1/60.0f; // 70m radius
-					pathSegmentDescriptor.NumberOfOrbits = 1;
-					pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-					PathSegmentDescriptorInstSet(3, &pathSegmentDescriptor);
-
-					pathSegmentDescriptor.SwitchingLocus[0] = 100;
-					pathSegmentDescriptor.SwitchingLocus[1] = 0;
-					pathSegmentDescriptor.SwitchingLocus[2] = -2500;
-					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-					pathSegmentDescriptor.Timeout = 60;
-					pathSegmentDescriptor.NumberOfOrbits = 0;
-					pathSegmentDescriptor.PathCurvature = 0;
-					PathSegmentDescriptorInstSet(4, &pathSegmentDescriptor);
-
-					pathSegmentDescriptor.SwitchingLocus[0] = 600;
-					pathSegmentDescriptor.SwitchingLocus[1] = 0;
-					pathSegmentDescriptor.SwitchingLocus[2] = -2500;
-					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-					pathSegmentDescriptor.Timeout = 60;
-					pathSegmentDescriptor.PathCurvature = 1/400.0f;
-					pathSegmentDescriptor.NumberOfOrbits = 0;
-					pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-					PathSegmentDescriptorInstSet(5, &pathSegmentDescriptor);
-
-					pathSegmentDescriptor.SwitchingLocus[0] = 800;
-					pathSegmentDescriptor.SwitchingLocus[1] = 0;
-					pathSegmentDescriptor.SwitchingLocus[2] = -2500;
-					pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-					pathSegmentDescriptor.Timeout = 60;
-					pathSegmentDescriptor.PathCurvature = 0;
-					pathSegmentDescriptor.NumberOfOrbits = 0;
-					PathSegmentDescriptorInstSet(6, &pathSegmentDescriptor);
+					// Load pregenerated example program
+					example_program();
 				}
 				break;
+#else
+// In this case, there is an on-board path planner which is writing the variables.
+			case FLIGHTSTATUS_FLIGHTMODE_PATHPLANNER:
+				if(guidanceType != PATHPLANNER){
+					guidanceType = PATHPLANNER;
+					pathplanner_active = false;
+				}
+				break;
+#endif //PATH_PLANNER
 			default:
 				// When not running the path manager, short circuit and wait
 				pathplanner_active = false;
@@ -698,7 +554,20 @@ static void checkOvershoot()
 			AlarmsSet(SYSTEMALARMS_ALARM_PATHMANAGER, SYSTEMALARMS_ALARM_CRITICAL);
 			//TODO: Start circling
 		}
+
+		pathManagerStatus.StatusParameters[2] = p[0];
+		pathManagerStatus.StatusParameters[3] = p[1];
+		pathManagerStatus.StatusParameters[4] = c[0];
+		pathManagerStatus.StatusParameters[5] = c[1];
+		pathManagerStatus.StatusParameters[6] = q[0];
+		pathManagerStatus.StatusParameters[7] = q[1];
+		pathManagerStatus.StatusParameters[8] = (p[0]-c[0])*q[0] + (p[1]-c[1])*q[1];
 	}
+
+	pathManagerStatus.StatusParameters[9] = rand();
+	PathManagerStatusSet(&pathManagerStatus);
+
+
 }
 
 //<<<UGH, This function is badly named. All it's doing is calculating the angle between two vectors>>>
@@ -723,9 +592,14 @@ static float updateArcMeasure(float oldPosition_NE[2], float newPosition_NE[2], 
  */
 static void pathSegmentDescriptorsUpdated(UAVObjEvent * ev)
 {
-	// On new path, reset to path beginning.
+#ifdef PATH_PLANNER
+ 	// On receiving new path, reset to path beginning.
 	// This is somewhat brittle, since it means we can't resume a path
-	PathSegmentDescriptorInstGet(0, &pathSegmentDescriptor_current);
+	guidanceType = NOMANAGER;
+#else
+	// If there is no path planner, then do not reset the guidanceType, since the program will enter a loop
+	// where the built-in path programs will trigger this callback.
+#endif
 }
 
 

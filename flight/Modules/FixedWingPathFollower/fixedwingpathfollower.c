@@ -40,11 +40,8 @@
 #include "stabilizationdesired.h" // object that will be updated by the module
 #include "systemsettings.h"
 
-#include "follower_guidance.h"
-#include "follwer_fsm.h"
 #include "CoordinateConversions.h"
 
-#include "pathfollowerstatus.h"
 #include "pathplannersettings.h"
 #include "pathsegmentdescriptor.h"
 

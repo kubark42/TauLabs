@@ -25,7 +25,6 @@
 
 #include "physical_constants.h"
 #include "paths.h"
-#include "pathstatus.h"
 #include "misc_math.h"
 
 #include "attitudeactual.h"
@@ -43,6 +42,7 @@
 #include "CoordinateConversions.h"
 #include "fixedwingpathfollower.h"
 #include "pathsegmentdescriptor.h"
+#include "pathfollowerstatus.h"
 #include "pathmanagerstatus.h"
 
 // Private constants
@@ -216,27 +216,29 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 	float chi_inf=PI/4.0f; //THIS NEEDS TO BE A FUNCTION OF HOW LONG OUR PATH IS.
 
 	//Saturate chi_inf. I.e., never approach the path at a steeper angle than 45 degrees
-	chi_inf= chi_inf < PI/4.0f? PI/4.0f: chi_inf;
+	chi_inf = chi_inf > PI/4.0f? PI/4.0f: chi_inf;
 	//========================================
 
-	float headingCommand_R;
+	float headingDesired_R;
 
 	if (pathSegmentDescriptor.PathCurvature == 0) { // Straight line has no curvature
-		headingCommand_R=followStraightLine(r, q, p, headingActual_R, chi_inf, k_path, k_psi_int, dT);
+		headingDesired_R=followStraightLine(r, q, p, headingActual_R, chi_inf, k_path, k_psi_int, dT);
 	}
 	else {
 		if(pathSegmentDescriptor.PathCurvature > 0) // Turn clockwise
-			headingCommand_R=followOrbit(c, rho, true, p, headingActual_R, k_orbit, k_psi_int, dT);
+			headingDesired_R=followOrbit(c, rho, true, p, headingActual_R, k_orbit, k_psi_int, dT);
 		else // Turn counter-clockwise
-			headingCommand_R=followOrbit(c, rho, false, p, headingActual_R, k_orbit, k_psi_int, dT);
+			headingDesired_R=followOrbit(c, rho, false, p, headingActual_R, k_orbit, k_psi_int, dT);
 	}
 
 	//Calculate heading error
-	headingError_R = headingCommand_R-headingActual_R;
+	headingError_R = headingDesired_R-headingActual_R;
 
 	//Wrap heading error around circle
-	if (headingError_R < -PI) headingError_R+=2.0f*PI;
-	if (headingError_R >  PI) headingError_R-=2.0f*PI;
+	if (headingError_R < -PI)
+		headingError_R+=2.0f*PI;
+	if (headingError_R >  PI)
+		headingError_R-=2.0f*PI;
 
 
 	//GET RID OF THE RAD2DEG. IT CAN BE FACTORED INTO HeadingPI
@@ -264,19 +266,13 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 
 	StabilizationDesiredSet(&stabilizationDesired);
 
-	PathStatusData pathStatus;
-	PathStatusGet(&pathStatus);
-	pathStatus.StatusParameters[0] = integral->airspeedError;
-	pathStatus.StatusParameters[1] = airspeedError;
-	PathStatusSet(&pathStatus);
-
-
 	return 0;
 }
 
 /**
  * Calculate command for following simple vector based line. Taken from R. Beard at BYU.
  */
+
 float followStraightLine(float r[3], float q[3], float p[3], float psi, float chi_inf, float k_path, float k_psi_int, float delT){
 	float chi_q=atan2f(q[1], q[0]);
 	while (chi_q - psi < -PI) {

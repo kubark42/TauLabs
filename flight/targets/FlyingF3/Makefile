@@ -34,8 +34,10 @@ include $(TOP)/make/boards/$(BOARD_NAME)/board-info.mk
 # @optbrief Set to YES to compile for debugging
 DEBUG ?= NO
 
-
 # @endgroup Compile Options
+
+PATH_PLANNER ?= NO
+
 # List of modules to include
 MODULES = Sensors
 MODULES += Attitude/revolution
@@ -114,6 +116,9 @@ endif
 
 SRC += $(FLIGHTLIB)/CoordinateConversions.c
 SRC += $(FLIGHTLIB)/paths.c
+SRC += $(FLIGHTLIB)/paths_library/example_program.c
+SRC += $(FLIGHTLIB)/paths_library/simple_return_to_home.c
+SRC += $(FLIGHTLIB)/paths_library/simple_hold_position.c
 SRC += $(FLIGHTLIB)/fifo_buffer.c
 SRC += $(FLIGHTLIB)/WorldMagModel.c
 SRC += $(FLIGHTLIB)/insgps13state.c
@@ -232,6 +237,10 @@ endif
 
 ifeq ($(ENABLE_DEBUG_CONSOLE), YES)
 CDEFS += -DPIOS_INCLUDE_DEBUG_CONSOLE
+endif
+
+ifeq ($(PATH_PLANNER), YES)
+CFLAGS += -DPATH_PLANNER
 endif
 
 CDEFS += -DEE_BANK_BASE=$(EE_BANK_BASE)
