@@ -109,6 +109,7 @@ UAVOBJSRCFILENAMES += pathsegmentdescriptor
 UAVOBJSRCFILENAMES += pathstatus
 UAVOBJSRCFILENAMES += pathfollowerstatus
 UAVOBJSRCFILENAMES += pathmanagerstatus
+UAVOBJSRCFILENAMES += pathmanagersettings
 
 UAVOBJSRCFILENAMES += i2cvm
 UAVOBJSRCFILENAMES += i2cvmuserprogram

@@ -94,6 +94,7 @@ HEADERS += $$UAVOBJECT_SYNTHETICS/accels.h \
     $$UAVOBJECT_SYNTHETICS/overosyncstats.h \
     $$UAVOBJECT_SYNTHETICS/pathdesired.h \
     $$UAVOBJECT_SYNTHETICS/pathfollowerstatus.h \
+    $$UAVOBJECT_SYNTHETICS/pathmanagersettings.h \
     $$UAVOBJECT_SYNTHETICS/pathmanagerstatus.h \
     $$UAVOBJECT_SYNTHETICS/pathplannersettings.h \
     $$UAVOBJECT_SYNTHETICS/pathsegmentdescriptor.h \
@@ -193,6 +194,7 @@ SOURCES += $$UAVOBJECT_SYNTHETICS/accels.cpp \
     $$UAVOBJECT_SYNTHETICS/overosyncstats.cpp \
     $$UAVOBJECT_SYNTHETICS/pathdesired.cpp \
     $$UAVOBJECT_SYNTHETICS/pathfollowerstatus.cpp \
+    $$UAVOBJECT_SYNTHETICS/pathmanagersettings.cpp \
     $$UAVOBJECT_SYNTHETICS/pathmanagerstatus.cpp \
     $$UAVOBJECT_SYNTHETICS/pathplannersettings.cpp \
     $$UAVOBJECT_SYNTHETICS/pathsegmentdescriptor.cpp \

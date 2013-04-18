@@ -37,9 +37,11 @@
 #include "waypointactive.h"
 #include "modulesettings.h"
 
+#include "fixedwingairspeeds.h"
+
 #include "pathfollowerstatus.h"
 #include "pathmanagerstatus.h"
-#include "pathplannersettings.h"
+#include "pathmanagersettings.h"
 #include "pathsegmentdescriptor.h"
 
 #include "CoordinateConversions.h"
@@ -67,6 +69,8 @@ static struct PreviousLocus {
 static bool module_enabled;
 static xTaskHandle taskHandle;
 static xQueueHandle queue;
+static FixedWingAirspeedsData fixedWingAirspeeds;
+static PathManagerSettingsData pathManagerSettings;
 static PathManagerStatusData pathManagerStatus;
 static PathSegmentDescriptorData pathSegmentDescriptor_current;
 static portTickType segmentTimer;
@@ -79,6 +83,7 @@ float arcCenter_NE[2];
 static bool checkGoalCondition();
 static void checkOvershoot();
 static void pathManagerTask(void *parameters);
+static void settingsUpdated(UAVObjEvent * ev);
 static void pathSegmentDescriptorsUpdated(UAVObjEvent * ev);
 static float updateArcMeasure(float oldPosition_NE[2], float newPosition_NE[2], float arcCenter_NE[2]);
 
@@ -121,8 +126,10 @@ int32_t PathManagerInitialize()
 	if(module_enabled) {
 		PathFollowerStatusInitialize();
 		PathManagerStatusInitialize();
-		PathPlannerSettingsInitialize();
+		PathManagerSettingsInitialize();
 		PathSegmentDescriptorInitialize();
+
+		FixedWingAirspeedsInitialize(); //TODO: This shouldn't really be here, as it's airframe specific
 
 		// Create object queue
 		queue = xQueueCreate(MAX_QUEUE_SIZE, sizeof(UAVObjEvent)); //TODO: Is this even necessary?
@@ -151,8 +158,12 @@ static void pathManagerTask(void *parameters)
 	AlarmsClear(SYSTEMALARMS_ALARM_PATHMANAGER);
 
 	// Connect callbacks
-//	PathPlannerSettingsConnectCallback(settingsUpdated);
+	PathManagerSettingsConnectCallback(settingsUpdated);
+	FixedWingAirspeedsConnectCallback(settingsUpdated);
 	PathSegmentDescriptorConnectCallback(pathSegmentDescriptorsUpdated);
+
+	// Force reload all settings
+	settingsUpdated(NULL);
 
 	// Initialize all main loop variables
 	bool pathplanner_active = false;
@@ -162,14 +173,7 @@ static void pathManagerTask(void *parameters)
 	lastSysTime = xTaskGetTickCount();
 	overshootTimer = xTaskGetTickCount();
 	uint8_t guidanceType = NOMANAGER;
-
-	//---------------------
-	// REMOVE THIS LINE
-	//VVVVVVVVVVVVVVVVVVVV
-	uint8_t bob = 0;
-	//^^^^^^^^^^^^^^^^^^^^
-	// REMOVE THIS LINE
-	//---------------------
+	uint8_t theta_roundoff_trim_count = 0;
 
 	// Main thread loop
 	while (1)
@@ -287,7 +291,7 @@ static void pathManagerTask(void *parameters)
 
 					PathSegmentDescriptorData pathSegmentDescriptor;
 
-					for (int i=UAVObjGetNumInstances(PathSegmentDescriptorHandle()); i<=5; i++){
+					for (int i=UAVObjGetNumInstances(PathSegmentDescriptorHandle()); i<=6; i++){
 						PathSegmentDescriptorCreateInstance();
 					}
 
@@ -307,7 +311,7 @@ static void pathManagerTask(void *parameters)
 					PathSegmentDescriptorInstSet(0, &pathSegmentDescriptor);
 
 					pathSegmentDescriptor.SwitchingLocus[0] = 100;
-					pathSegmentDescriptor.SwitchingLocus[1] = 100;
+					pathSegmentDescriptor.SwitchingLocus[1] = 0;
 					pathSegmentDescriptor.SwitchingLocus[2] = -2450;
 					pathSegmentDescriptor.FinalVelocity = 12.1f;
 					pathSegmentDescriptor.Timeout = 60;
@@ -316,42 +320,51 @@ static void pathManagerTask(void *parameters)
 					PathSegmentDescriptorInstSet(1, &pathSegmentDescriptor);
 
 					pathSegmentDescriptor.SwitchingLocus[0] = 100;
-					pathSegmentDescriptor.SwitchingLocus[1] = 100+120;
-					pathSegmentDescriptor.SwitchingLocus[2] = -2500;
-					pathSegmentDescriptor.FinalVelocity = 12.4f;
+					pathSegmentDescriptor.SwitchingLocus[1] = 200;
+					pathSegmentDescriptor.SwitchingLocus[2] = -2450;
+					pathSegmentDescriptor.FinalVelocity = 12.1f;
 					pathSegmentDescriptor.Timeout = 60;
-					pathSegmentDescriptor.PathCurvature = 1/60.0f; // 60m radius
-					pathSegmentDescriptor.NumberOfOrbits = 1;
-					pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
+					pathSegmentDescriptor.NumberOfOrbits = 0;
+					pathSegmentDescriptor.PathCurvature = 0;
 					PathSegmentDescriptorInstSet(2, &pathSegmentDescriptor);
 
 					pathSegmentDescriptor.SwitchingLocus[0] = 100;
-					pathSegmentDescriptor.SwitchingLocus[1] = -100;
+					pathSegmentDescriptor.SwitchingLocus[1] = 200+120;
+					pathSegmentDescriptor.SwitchingLocus[2] = -2500;
+					pathSegmentDescriptor.FinalVelocity = 12.4f;
+					pathSegmentDescriptor.Timeout = 60;
+					pathSegmentDescriptor.PathCurvature = 1/60.0f; // 70m radius
+					pathSegmentDescriptor.NumberOfOrbits = 1;
+					pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
+					PathSegmentDescriptorInstSet(3, &pathSegmentDescriptor);
+
+					pathSegmentDescriptor.SwitchingLocus[0] = 100;
+					pathSegmentDescriptor.SwitchingLocus[1] = 0;
 					pathSegmentDescriptor.SwitchingLocus[2] = -2500;
 					pathSegmentDescriptor.FinalVelocity = 12.1f;
 					pathSegmentDescriptor.Timeout = 60;
 					pathSegmentDescriptor.NumberOfOrbits = 0;
 					pathSegmentDescriptor.PathCurvature = 0;
-					PathSegmentDescriptorInstSet(3, &pathSegmentDescriptor);
+					PathSegmentDescriptorInstSet(4, &pathSegmentDescriptor);
 
 					pathSegmentDescriptor.SwitchingLocus[0] = 600;
-					pathSegmentDescriptor.SwitchingLocus[1] = -100;
+					pathSegmentDescriptor.SwitchingLocus[1] = 0;
 					pathSegmentDescriptor.SwitchingLocus[2] = -2500;
 					pathSegmentDescriptor.FinalVelocity = 12.2f;
 					pathSegmentDescriptor.Timeout = 60;
-					pathSegmentDescriptor.PathCurvature = 1/500.0f;
+					pathSegmentDescriptor.PathCurvature = 1/400.0f;
 					pathSegmentDescriptor.NumberOfOrbits = 0;
 					pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-					PathSegmentDescriptorInstSet(4, &pathSegmentDescriptor);
+					PathSegmentDescriptorInstSet(5, &pathSegmentDescriptor);
 
 					pathSegmentDescriptor.SwitchingLocus[0] = 800;
-					pathSegmentDescriptor.SwitchingLocus[1] = -100;
+					pathSegmentDescriptor.SwitchingLocus[1] = 0;
 					pathSegmentDescriptor.SwitchingLocus[2] = -2500;
 					pathSegmentDescriptor.FinalVelocity = 12.3f;
 					pathSegmentDescriptor.Timeout = 60;
 					pathSegmentDescriptor.PathCurvature = 0;
 					pathSegmentDescriptor.NumberOfOrbits = 0;
-					PathSegmentDescriptorInstSet(5, &pathSegmentDescriptor);
+					PathSegmentDescriptorInstSet(6, &pathSegmentDescriptor);
 				}
 				break;
 			default:
@@ -378,9 +391,9 @@ static void pathManagerTask(void *parameters)
 
 			// Every 128 samples, correct for roundoff error. Error doesn't accumulate too quickly, so
 			// this trigger value can safely be made much higher, with the condition that the type of
-			// bob be changed from uint8_t;
-			if ((bob++ & 0x8F) == 0){
-				bob = 0;
+			// theta_roundoff_trim_count be changed from uint8_t;
+			if ((theta_roundoff_trim_count++ & 0x8F) == 0){
+				theta_roundoff_trim_count = 0;
 
 				float referenceTheta = updateArcMeasure(previousLocus->Position, newPosition_NE, arcCenter_NE) * RAD2DEG;
 
@@ -494,18 +507,6 @@ static void pathManagerTask(void *parameters)
 	}
 }
 
-/**
- * On changed path plan.
- */
-static void pathSegmentDescriptorsUpdated(UAVObjEvent * ev)
-{
-	// On new path, reset to path beginning.
-	// This is somewhat brittle, since it means we can't resume a path
-	PathSegmentDescriptorInstGet(0, &pathSegmentDescriptor_current);
-}
-
-
-
 
 // This is not a strict end to the segment, as some amount of error will always
 // creep in. Instead, come within either a preset distance or a preset time of
@@ -519,8 +520,7 @@ static bool checkGoalCondition()
 	// Note: The half-plane approach has difficulties when the plane and the two loci are close to colinear
 	// and reversing in direction. That is to say, a plane at P is supposed to go to A and then B:
 	//    B----------P------A
-	if(1)
-	{
+	if(pathManagerSettings.SwitchingStrategy == PATHMANAGERSETTINGS_SWITCHINGSTRATEGY_HALFPLANE) {
 		// Check if there is a switching locus after the present one
 		if (pathManagerStatus.ActiveSegment + 1 < UAVObjGetNumInstances(PathSegmentDescriptorHandle())){
 			// Calculate vector from past to preset switching locus
@@ -622,8 +622,6 @@ static bool checkGoalCondition()
 								q_future[1]*q_current_mag + q_current[1]*q_future_mag,
 								q_future[2]*q_current_mag + q_current[2]*q_future_mag};
 
-
-
 			// Test if the UAV is in the half plane, H. This is easy by taking advantage of simple vector
 			// calculus: a.b = |a||b|cos(theta), but since |a|,|b| >=0, then a.b > 0 if and only if
 			// cos(theta) > 0, which means that the UAV is in I or IV quadrants, i.e. is in the half plane.
@@ -631,12 +629,12 @@ static bool checkGoalCondition()
 			PositionActualGet(&positionActual);
 			float p[2] = {positionActual.North - swl_current[0], positionActual.East - swl_current[1]};
 
-			// If we want to switch based on nominal time to locus, subtract the normalized q_current times the speed times the time
-//			if(PathFollowerSettings.SwitchingThreshold != 0){
-//				for (int i=0; i<2; i++){
-//						p[i] -= q_current[i]/q_current_mag * nominal_speed * PathFollowerSettings.SwitchingThreshold
-//				}
-//			}
+			// If we want to switch based on nominal time to locus, add the normalized q_current times the speed times the timing advace
+			if(pathManagerSettings.HalfPlaneAdvanceTiming != 0){
+				for (int i=0; i<2; i++){
+						p[i] += q_current[i]/q_current_mag * fixedWingAirspeeds.BestClimbRateSpeed * (pathManagerSettings.HalfPlaneAdvanceTiming/1000.0f);
+				}
+			}
 
 			// Finally test a.b > 0
 			if(p[0]*halfPlane[0] + p[1]*halfPlane[1] > 0){
@@ -647,10 +645,21 @@ static bool checkGoalCondition()
 			//Do nothing.
 		}
 	}
-	// B-ball approach
+	// B-ball approach. This tests if the vehicle is within a threshold distance.
 	// From R. Beard and T. McLain, "Small Unmanned Aircraft: Theory and Practice", 2011, Section 11.1.
-	else if(0){
-		// This method is less robust to error, and is primarily included for completeness.
+	else if (pathManagerSettings.SwitchingStrategy == PATHMANAGERSETTINGS_SWITCHINGSTRATEGY_BBALL) {
+		// This method is less robust to error than the half-plane. It is cheaper and simpler, but those are it's only two advantages
+		PositionActualData positionActual;
+		PositionActualGet(&positionActual);
+		float d[3] = {positionActual.North - pathSegmentDescriptor_current.SwitchingLocus[0], positionActual.East - pathSegmentDescriptor_current.SwitchingLocus[1], 0};
+
+		if (VectorMagnitude(d) < pathManagerSettings.BBallThresholdDistance)
+		{
+			advanceSegment_flag = true;
+		}
+	}
+	else {
+		// TODO: This is bad to get here. Make sure it's not possible.
 	}
 
 	return advanceSegment_flag;
@@ -709,6 +718,28 @@ static float updateArcMeasure(float oldPosition_NE[2], float newPosition_NE[2], 
 	// yielding a x b / (a.b) = sin(theta)/cos(theta) == tan(theta)
 	float theta = atan2f(a[0]*b[1] - a[1]*b[0],(a[0]*b[0] + a[1]*b[1]));
 	return theta;
+}
+
+
+/**
+ * On changed path plan.
+ */
+static void pathSegmentDescriptorsUpdated(UAVObjEvent * ev)
+{
+	// On new path, reset to path beginning.
+	// This is somewhat brittle, since it means we can't resume a path
+	PathSegmentDescriptorInstGet(0, &pathSegmentDescriptor_current);
+}
+
+
+
+static void settingsUpdated(UAVObjEvent * ev) {
+	if (ev == NULL || ev->obj == PathManagerSettingsHandle()) {
+		PathManagerSettingsGet(&pathManagerSettings);
+	}
+	if (ev == NULL || ev->obj == FixedWingAirspeedsHandle()) {
+		FixedWingAirspeedsGet(&fixedWingAirspeeds);
+	}
 }
 
 
