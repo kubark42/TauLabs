@@ -79,6 +79,7 @@ static float angularDistanceCompleted;
 static float oldPosition_NE[2];
 static float arcCenter_NE[2];
 static uint8_t guidanceType = NOMANAGER;
+static int8_t arc_has_center = INSUFFICIENT_RADIUS;
 
 // Private functions
 static bool checkGoalCondition();
@@ -87,7 +88,7 @@ static void pathManagerTask(void *parameters);
 static void settingsUpdated(UAVObjEvent * ev);
 static void pathSegmentDescriptorsUpdated(UAVObjEvent * ev);
 static float updateArcMeasure(float oldPosition_NE[2], float newPosition_NE[2], float arcCenter_NE[2]);
-
+static void advanceSegment();
 /**
  * Module initialization
  */
@@ -167,7 +168,6 @@ static void pathManagerTask(void *parameters)
 
 	// Initialize all main loop variables
 	bool pathplanner_active = false;
-	int8_t arc_has_center = INSUFFICIENT_RADIUS;
 	static portTickType lastSysTime;
 	static portTickType overshootTimer;
 	lastSysTime = xTaskGetTickCount();
@@ -293,59 +293,7 @@ static void pathManagerTask(void *parameters)
 
 		// Advance segment
 		if(advanceSegment_flag){
-			PathSegmentDescriptorData pathSegmentDescriptor;
-			PathSegmentDescriptorInstGet(pathManagerStatus.ActiveSegment, &pathSegmentDescriptor);
-
-			previousLocus->Position[0] = pathSegmentDescriptor.SwitchingLocus[0];
-			previousLocus->Position[1] = pathSegmentDescriptor.SwitchingLocus[1];
-			previousLocus->Position[2] = pathSegmentDescriptor.SwitchingLocus[2];
-			previousLocus->Velocity = pathSegmentDescriptor.FinalVelocity;
-
-			// Advance segment
-			pathManagerStatus.ActiveSegment++;
-			pathManagerStatus.Status = PATHMANAGERSTATUS_STATUS_INPROGRESS;
-			PathManagerStatusSet(&pathManagerStatus);
-
-			// Load current segment into global memory.
-			PathSegmentDescriptorInstGet(pathManagerStatus.ActiveSegment, &pathSegmentDescriptor_current);
-
-			// Reset angular distance
-			angularDistanceCompleted = 0;
-
-			// If the path is an arc, find the center and angular distance along arc
-			if (pathSegmentDescriptor_current.PathCurvature != 0 ){
-				// Determine if the arc has a center, and if so assign it to arcCenter_NE
-				arc_has_center = arcCenterFromTwoPointsAndRadiusAndArcRank(previousLocus->Position, pathSegmentDescriptor_current.SwitchingLocus,
-					1.0f/pathSegmentDescriptor_current.PathCurvature, arcCenter_NE,
-					pathSegmentDescriptor_current.PathCurvature > 0, pathSegmentDescriptor_current.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR);
-
-//				pathManagerStatus.StatusParameters[8] = arcCenter_NE[0];
-//				pathManagerStatus.StatusParameters[9] = arcCenter_NE[1];
-
-				// If the arc has a center, then set the initial position as the beginning of the arc, and calculate the angular
-				// distance to be traveled along the arc
-				if (arc_has_center == CENTER_FOUND){
-					oldPosition_NE[0] = previousLocus->Position[0];
-					oldPosition_NE[1] = previousLocus->Position[1];
-
-					float tmpAngle = updateArcMeasure(previousLocus->Position, pathSegmentDescriptor_current.SwitchingLocus, arcCenter_NE) * RAD2DEG;
-					if (sign(pathSegmentDescriptor_current.PathCurvature) * tmpAngle < 0)
-					{
-						tmpAngle = tmpAngle	+ 360*sign(pathSegmentDescriptor_current.PathCurvature);
-					}
-					angularDistanceToComplete = sign(pathSegmentDescriptor_current.PathCurvature) * pathSegmentDescriptor_current.NumberOfOrbits*360 + tmpAngle;
-				}
-				else{
-					// TODO: This is really bad, and we need to handle these cases. We can probably handle them just by extending the vector until it reaches the arc center
-					angularDistanceToComplete = 0;
-				}
-			}
-			else{
-				angularDistanceToComplete = 0;
-			}
-
-			// Reset timer
-			segmentTimer = xTaskGetTickCount();
+			advanceSegment();
 		}
 		// Check if we have timed out
 		else if (lastSysTime-segmentTimer > pathSegmentDescriptor_current.Timeout*1000*portTICK_RATE_MS){
@@ -361,6 +309,63 @@ static void pathManagerTask(void *parameters)
 	}
 }
 
+
+static void advanceSegment()
+{
+	PathSegmentDescriptorData pathSegmentDescriptor;
+	PathSegmentDescriptorInstGet(pathManagerStatus.ActiveSegment, &pathSegmentDescriptor);
+
+	previousLocus->Position[0] = pathSegmentDescriptor.SwitchingLocus[0];
+	previousLocus->Position[1] = pathSegmentDescriptor.SwitchingLocus[1];
+	previousLocus->Position[2] = pathSegmentDescriptor.SwitchingLocus[2];
+	previousLocus->Velocity = pathSegmentDescriptor.FinalVelocity;
+
+	// Advance segment
+	pathManagerStatus.ActiveSegment++;
+	pathManagerStatus.Status = PATHMANAGERSTATUS_STATUS_INPROGRESS;
+	PathManagerStatusSet(&pathManagerStatus);
+
+	// Load current segment into global memory.
+	PathSegmentDescriptorInstGet(pathManagerStatus.ActiveSegment, &pathSegmentDescriptor_current);
+
+	// Reset angular distance
+	angularDistanceCompleted = 0;
+
+	// If the path is an arc, find the center and angular distance along arc
+	if (pathSegmentDescriptor_current.PathCurvature != 0 ){
+		// Determine if the arc has a center, and if so assign it to arcCenter_NE
+		arc_has_center = arcCenterFromTwoPointsAndRadiusAndArcRank(previousLocus->Position, pathSegmentDescriptor_current.SwitchingLocus,
+			1.0f/pathSegmentDescriptor_current.PathCurvature, arcCenter_NE,
+			pathSegmentDescriptor_current.PathCurvature > 0, pathSegmentDescriptor_current.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR);
+
+//				pathManagerStatus.StatusParameters[8] = arcCenter_NE[0];
+//				pathManagerStatus.StatusParameters[9] = arcCenter_NE[1];
+
+		// If the arc has a center, then set the initial position as the beginning of the arc, and calculate the angular
+		// distance to be traveled along the arc
+		if (arc_has_center == CENTER_FOUND){
+			oldPosition_NE[0] = previousLocus->Position[0];
+			oldPosition_NE[1] = previousLocus->Position[1];
+
+			float tmpAngle = updateArcMeasure(previousLocus->Position, pathSegmentDescriptor_current.SwitchingLocus, arcCenter_NE) * RAD2DEG;
+			if (sign(pathSegmentDescriptor_current.PathCurvature) * tmpAngle < 0)
+			{
+				tmpAngle = tmpAngle	+ 360*sign(pathSegmentDescriptor_current.PathCurvature);
+			}
+			angularDistanceToComplete = sign(pathSegmentDescriptor_current.PathCurvature) * pathSegmentDescriptor_current.NumberOfOrbits*360 + tmpAngle;
+		}
+		else{
+			// TODO: This is really bad, and we need to handle these cases. We can probably handle them just by extending the vector until it reaches the arc center
+			angularDistanceToComplete = 0;
+		}
+	}
+	else{
+		angularDistanceToComplete = 0;
+	}
+
+	// Reset timer
+	segmentTimer = xTaskGetTickCount();
+}
 
 // This is not a strict end to the segment, as some amount of error will always
 // creep in. Instead, come within either a preset distance or a preset time of
