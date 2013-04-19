@@ -295,14 +295,14 @@ static void pathManagerTask(void *parameters)
 		if(advanceSegment_flag){
 			advanceSegment();
 		}
-		// Check if we have timed out
-		else if (lastSysTime-segmentTimer > pathSegmentDescriptor_current.Timeout*1000*portTICK_RATE_MS){
+		else if (lastSysTime-segmentTimer > pathSegmentDescriptor_current.Timeout*1000*portTICK_RATE_MS)
+		{	// Check if we have timed out
 			// TODO: Handle the buffer overflow in xTaskGetTickCount
 			pathManagerStatus.Status = PATHMANAGERSTATUS_STATUS_TIMEDOUT;
 			PathManagerStatusSet(&pathManagerStatus);
 		}
-		// Once every second or so, check for higher-level path planner failure
-		else if (lastSysTime-overshootTimer > OVERSHOOT_TIMER_MS*portTICK_RATE_MS){
+		else if (lastSysTime-overshootTimer > OVERSHOOT_TIMER_MS*portTICK_RATE_MS)
+		{	// Once every second or so, check for higher-level path planner failure
 			checkOvershoot();
 			overshootTimer = lastSysTime;
 		}

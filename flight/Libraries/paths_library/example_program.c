@@ -77,17 +77,17 @@ void example_program()
 	pathSegmentDescriptor.NumberOfOrbits = 0;
 	pathSegmentDescriptor.PathCurvature = 0;
 	PathSegmentDescriptorInstSet(2, &pathSegmentDescriptor);
-	
+
 	pathSegmentDescriptor.SwitchingLocus[0] = 100;
 	pathSegmentDescriptor.SwitchingLocus[1] = 200+120;
 	pathSegmentDescriptor.SwitchingLocus[2] = -2500;
 	pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 	pathSegmentDescriptor.Timeout = 60;
-	pathSegmentDescriptor.PathCurvature = 1/60.0f; // 70m radius
+	pathSegmentDescriptor.PathCurvature = 1/70.0f; // 70m radius
 	pathSegmentDescriptor.NumberOfOrbits = 1;
 	pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
 	PathSegmentDescriptorInstSet(3, &pathSegmentDescriptor);
-	
+
 	pathSegmentDescriptor.SwitchingLocus[0] = 100;
 	pathSegmentDescriptor.SwitchingLocus[1] = 0;
 	pathSegmentDescriptor.SwitchingLocus[2] = -2500;

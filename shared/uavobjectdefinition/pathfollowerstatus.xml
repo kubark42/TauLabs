@@ -7,9 +7,11 @@
 		<field name="TimeToCompletion" units="" type="float" elements="1"/>
 		<field name="TrackingError" units="m" type="float" elements="1"/>
 
+		<field name="StatusParameters" units="" type="float" elements="10"/>
+
 		<access gcs="readwrite" flight="readwrite"/>
 		<telemetrygcs acked="false" updatemode="manual" period="0"/>
-		<telemetryflight acked="false" updatemode="onchange" period="0"/>
+		<telemetryflight acked="false" updatemode="periodic" period="1000"/>
 		<logging updatemode="onchange" period="0"/>
 	</object>
 </xml>

@@ -71,6 +71,9 @@ void initializeFixedWingPathFollower()
 	// Allocate memory
 	integral = (struct Integral *) pvPortMalloc(sizeof(struct Integral));
 	memset(integral, 0, sizeof(struct Integral));
+
+	// Load all settings
+	PathFollowerUpdatedCb((UAVObjEvent *)NULL);
 }
 
 void zeroGuidanceIntegral(){
@@ -92,8 +95,7 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 	StabilizationDesiredData stabilizationDesired;
 	float trueAirspeed;
 
-	float calibratedAirspeedActual;
-	float airspeedDesired;
+	float trueAirspeedDesired;
 	float airspeedError;
 
 	float pitchCommand;
@@ -104,7 +106,6 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 
 	VelocityActualGet(&velocityActual);
 	StabilizationDesiredGet(&stabilizationDesired);
-	AirspeedActualTrueAirspeedGet(&trueAirspeed);
 
 	PositionActualData positionActual;
 	PositionActualGet(&positionActual);
@@ -112,31 +113,29 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 	PathSegmentDescriptorData pathSegmentDescriptor;
 	PathSegmentDescriptorInstGet(activeSegment, &pathSegmentDescriptor);
 
+	// Current heading
+	float headingActual_R = atan2f(velocityActual.East, velocityActual.North);
 
 	/**
 	 * Compute speed error (required for throttle and pitch)
 	 */
 
 	// Current airspeed
-	calibratedAirspeedActual = trueAirspeed; //BOOOOOOOOOO!!! Where's the conversion from TAS to CAS?
+	AirspeedActualTrueAirspeedGet(&trueAirspeed);
 
-	// Current heading
-	float headingActual_R = atan2f(velocityActual.East, velocityActual.North);
-
-	// Desired airspeed
-	airspeedDesired=pathDesired.EndingVelocity;
-
+	// Set desired true airspeed, bounded by airframe limits
+	trueAirspeedDesired = bound_min_max(pathDesired.EndingVelocity, fixedWingAirspeeds.StallSpeedDirty, fixedWingAirspeeds.AirSpeedMax);
 
 	// Airspeed error
-	airspeedError = airspeedDesired - calibratedAirspeedActual;
+	airspeedError = trueAirspeedDesired - trueAirspeed;
 
 	/**
 	 * Compute desired throttle command
 	 */
 
 	//Proxy because instead of m*(1/2*v^2+g*h), it's v^2+2*gh. This saves processing power
-	float totalEnergyProxySetpoint=powf(pathDesired.EndingVelocity,2.0f) - 2.0f*9.8f*pathDesired.End[2];
-	float totalEnergyProxyActual=powf(trueAirspeed,2.0f) - 2.0f*9.8f*positionActual.Down;
+	float totalEnergyProxySetpoint=powf(trueAirspeedDesired, 2.0f) - 2.0f*9.8f*pathDesired.End[2];
+	float totalEnergyProxyActual=powf(trueAirspeed, 2.0f) - 2.0f*9.8f*positionActual.Down;
 	float errorTotalEnergy= totalEnergyProxySetpoint - totalEnergyProxyActual;
 
 #define THROTTLE_KP fixedwingpathfollowerSettings->ThrottlePI[FIXEDWINGPATHFOLLOWERSETTINGS_THROTTLEPI_KP]
@@ -207,16 +206,16 @@ int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fi
 	float *r = pathDesired.Start;
 	float q[3] = {pathDesired.End[0]-pathDesired.Start[0], pathDesired.End[1]-pathDesired.Start[1], pathDesired.End[2]-pathDesired.Start[2]};
 
-	float k_path  = fixedwingpathfollowerSettings->VectorFollowingGain/pathDesired.EndingVelocity; //Divide gain by airspeed so that the turn rate is independent of airspeed
-	float k_orbit = fixedwingpathfollowerSettings->OrbitFollowingGain/pathDesired.EndingVelocity; //Divide gain by airspeed so that the turn rate is independent of airspeed
+	float k_path  = fixedwingpathfollowerSettings->VectorFollowingGain/trueAirspeedDesired; //Divide gain by airspeed so that the turn rate is independent of airspeed
+	float k_orbit = fixedwingpathfollowerSettings->OrbitFollowingGain/trueAirspeedDesired; //Divide gain by airspeed so that the turn rate is independent of airspeed
 	float k_psi_int = fixedwingpathfollowerSettings->FollowerIntegralGain;
 	//========================================
 	//SHOULD NOT BE HARD CODED
 
-	float chi_inf=PI/4.0f; //THIS NEEDS TO BE A FUNCTION OF HOW LONG OUR PATH IS.
+	float chi_inf = PI/4.0f; //THIS NEEDS TO BE A FUNCTION OF HOW LONG OUR PATH IS.
 
 	//Saturate chi_inf. I.e., never approach the path at a steeper angle than 45 degrees
-	chi_inf = chi_inf > PI/4.0f? PI/4.0f: chi_inf;
+	chi_inf = chi_inf > PI/4.0f ? PI/4.0f : chi_inf;
 	//========================================
 
 	float headingDesired_R;
@@ -326,8 +325,15 @@ void PathFollowerUpdatedCb(UAVObjEvent * ev)
 		FixedWingAirspeedsGet(&fixedWingAirspeeds);
 	if (ev == NULL || ev->obj == PathManagerStatusHandle())
 	{
+		// Since the path manager could be constantly updating its status, don't use a callback. Instead, have
+		// an xqueue that instantly times out if the UAVO hasn't been updated.
+
 		PathManagerStatusData pathManagerStatusData;
 		PathManagerStatusGet(&pathManagerStatusData);
+
+		if (activeSegment == pathManagerStatusData.ActiveSegment)
+			return;
+
 		activeSegment = pathManagerStatusData.ActiveSegment;
 
 		PathSegmentDescriptorData pathSegmentDescriptor;
@@ -372,7 +378,7 @@ void PathFollowerUpdatedCb(UAVObjEvent * ev)
 			}
 
 #define MAX_ROLL_FOR_ARC 15.0f	 //Assume that we want a maximum 15 degree bank angle. This should yield a nice, non-agressive turn
-#define MIN_RHO (powf(pathDesired.EndingVelocity,2)/(9.805f*tanf(fabs(MAX_ROLL_FOR_ARC*DEG2RAD))))
+#define MIN_RHO (powf(pathSegmentDescriptor.FinalVelocity,2)/(9.805f*tanf(fabs(MAX_ROLL_FOR_ARC*DEG2RAD))))
 			//Calculate radius, rho, using r*omega=v and omega = g/V_g * tan(phi)
 			rho = fabs(1.0f/pathSegmentDescriptor.PathCurvature) > MIN_RHO ? fabs(1.0f/pathSegmentDescriptor.PathCurvature) : MIN_RHO;
 		}
