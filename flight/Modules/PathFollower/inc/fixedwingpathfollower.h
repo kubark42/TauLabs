@@ -35,10 +35,7 @@
 void initializeFixedWingPathFollower();
 //uint8_t updateFixedWingDesiredStabilization(uint8_t flightMode, FixedWingPathFollowerSettingsCCData fixedwingpathfollowerSettingsCC);
 
-int8_t updateFixedWingDesiredStabilization(FixedWingPathFollowerSettingsData *fixedwingpathfollowerSettings);
-float followStraightLine(float r[3], float q[3], float p[3], float psi, float chi_inf, float k_path, float k_psi_int, float delT);
-float followOrbit(float c[3], float rho, bool direction, float p[3], float psi, float k_orbit, float k_psi_int, float delT);
-void PathFollowerUpdatedCb(UAVObjEvent * ev);
+int8_t updateFixedWingDesiredStabilization();
 void zeroGuidanceIntegral();
 
 #endif				// FIXEDWINGPATHFOLLOWER_H

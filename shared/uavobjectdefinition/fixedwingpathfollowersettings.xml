@@ -39,7 +39,7 @@
         <field name="ThrottleLimit" units="" type="float" elements="3" elementnames="Min,Neutral,Max" defaultvalue="0.0,0.5,1.0" />
                 <!-- minimum and maximum allowed throttle and setpoint for cruise speed -->
 
-        <field name="UpdatePeriod" units="ms" type="int16" elements="1" defaultvalue="100"/>
+        <field name="UpdatePeriod" units="ms" type="uint16" elements="1" defaultvalue="100"/>
         <access gcs="readwrite" flight="readwrite"/>
         <telemetrygcs acked="true" updatemode="onchange" period="0"/>
         <telemetryflight acked="true" updatemode="onchange" period="0"/>

@@ -184,19 +184,39 @@ static void pathManagerTask(void *parameters)
 		// Check flight mode
 		FlightStatusData flightStatus;
 		FlightStatusGet(&flightStatus);
+
+		PathManagerStatusGet(&pathManagerStatus);
+		pathManagerStatus.StatusParameters[5] = flightStatus.FlightMode;
+		PathManagerStatusSet(&pathManagerStatus);
 		switch (flightStatus.FlightMode) {
 #ifndef PATH_PLANNER // If there is no path planner, it's probably because memory is too scarce, such as on CC/CC3D. In that case, provide a return to home and a position hold
 			case FLIGHTSTATUS_FLIGHTMODE_RETURNTOHOME:
+
+				PathManagerStatusGet(&pathManagerStatus);
+				pathManagerStatus.StatusParameters[2] = rand();
+				PathManagerStatusSet(&pathManagerStatus);
+
 				if(guidanceType != RETURNHOME){
 					guidanceType = RETURNHOME;
 					pathplanner_active = false;
 
+					PathManagerStatusGet(&pathManagerStatus);
+					pathManagerStatus.StatusParameters[3] = rand();
+					PathManagerStatusSet(&pathManagerStatus);
+
 					// Load pregenerated return to home program
 					simple_return_to_home();
+
+					PathManagerStatusGet(&pathManagerStatus);
+					pathManagerStatus.StatusParameters[4] = rand();
+					PathManagerStatusSet(&pathManagerStatus);
 
 				}
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD:
+				PathManagerStatusGet(&pathManagerStatus);
+				pathManagerStatus.StatusParameters[6] = rand();
+				PathManagerStatusSet(&pathManagerStatus);
 				if(guidanceType != HOLDPOSITION){
 					guidanceType = HOLDPOSITION;
 					pathplanner_active = false;
@@ -206,6 +226,9 @@ static void pathManagerTask(void *parameters)
 				}
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_PATHPLANNER:
+				PathManagerStatusGet(&pathManagerStatus);
+				pathManagerStatus.StatusParameters[7] = rand();
+				PathManagerStatusSet(&pathManagerStatus);
 				if(guidanceType != PATHPLANNER){
 					guidanceType = PATHPLANNER;
 					pathplanner_active = false;
@@ -228,8 +251,17 @@ static void pathManagerTask(void *parameters)
 				pathplanner_active = false;
 				guidanceType = NOMANAGER;
 				vTaskDelay(IDLE_UPDATE_RATE_MS * portTICK_RATE_MS);
+
+				PathManagerStatusGet(&pathManagerStatus);
+				pathManagerStatus.StatusParameters[0] = rand();
+				PathManagerStatusSet(&pathManagerStatus);
+
 				continue;
 		}
+
+		PathManagerStatusGet(&pathManagerStatus);
+		pathManagerStatus.StatusParameters[1] = rand();
+		PathManagerStatusSet(&pathManagerStatus);
 
 		bool advanceSegment_flag = false;
 

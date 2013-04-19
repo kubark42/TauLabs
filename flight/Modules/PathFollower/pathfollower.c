@@ -83,6 +83,7 @@ static bool followerEnabled = false;
 bool flightStatusUpdate = false;
 static uint8_t pathFollowerType;
 static uint16_t stackSizeBytes = 750;
+static uint16_t update_peroid_ms = 1000;
 
 // Private functions
 static void PathFollowerTask(void *parameters);
@@ -170,16 +171,14 @@ int32_t PathFollowerInitialize()
 
 	if (module_state[MODULESETTINGS_ADMINSTATE_FIXEDWINGPATHFOLLOWER] ==
 	    MODULESETTINGS_ADMINSTATE_ENABLED) {
-		FixedWingPathFollowerSettingsInitialize();
-		FixedWingAirspeedsInitialize();
-		AirspeedActualInitialize();
 
 		// TODO: Index into array of functions
 		switch (pathFollowerType) {
 		case FIXEDWING:
-			stackSizeBytes = 850;
-			PathManagerStatusConnectCallback(PathFollowerUpdatedCb);
 			initializeFixedWingPathFollower();
+
+			stackSizeBytes = 850;
+			FixedWingPathFollowerSettingsUpdatePeriodGet(&update_peroid_ms);
 			break;
 		case MULTIROTOR:
 //			initializeMultirotorPathFollower();
@@ -217,23 +216,23 @@ static void PathFollowerTask(void *parameters)
 	AlarmsClear(SYSTEMALARMS_ALARM_PATHFOLLOWER);
 
 	portTickType lastUpdateTime;
-	FixedWingPathFollowerSettingsData fixedwingpathfollowerSettings;
 
 	// Main task loop
 	lastUpdateTime = xTaskGetTickCount();
 	while (1) {
-		// TODO: Refactor this into the fixed wing method as a callback
-		FixedWingPathFollowerSettingsGet(&fixedwingpathfollowerSettings);
-
-		vTaskDelayUntil(&lastUpdateTime, fixedwingpathfollowerSettings.UpdatePeriod / portTICK_RATE_MS);
 
 		if (flightStatusUpdate)
 			FlightStatusFlightModeGet(&flightMode);
 
+		if(flightMode != FLIGHTSTATUS_FLIGHTMODE_RETURNTOHOME &&
+				flightMode != FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD &&
+				flightMode != FLIGHTSTATUS_FLIGHTMODE_PATHPLANNER){
 
-		if(!(flightMode == FLIGHTSTATUS_FLIGHTMODE_RETURNTOHOME ||
-				flightMode == FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD ||
-				flightMode == FLIGHTSTATUS_FLIGHTMODE_PATHPLANNER)){
+			// Be clean and reset integrals
+			zeroGuidanceIntegral();
+
+			// Wait 100ms before continuing
+			vTaskDelay(100 * portTICK_RATE_MS);
 			continue;
 		}
 
@@ -241,7 +240,8 @@ static void PathFollowerTask(void *parameters)
 		// TODO: Index into array of methods
 		switch (pathFollowerType) {
 		case FIXEDWING:
-			updateFixedWingDesiredStabilization(&fixedwingpathfollowerSettings);
+			vTaskDelayUntil(&lastUpdateTime, update_peroid_ms * portTICK_RATE_MS);
+			updateFixedWingDesiredStabilization();
 			break;
 //		case MULTIROTOR:
 //			// Set alarm, currently untested
@@ -260,8 +260,10 @@ static void PathFollowerTask(void *parameters)
 //			updateDubinsCartDesiredStabilization(flightMode, fixedwingpathfollowerSettings);
 //			break;
 		default:
-			//Something has gone wrong, we shouldn't be able to get to this point
+			//Something has gone wrong, we shouldn't be able to get to this point. Set an alarm and wait
 			AlarmsSet(SYSTEMALARMS_ALARM_PATHFOLLOWER, SYSTEMALARMS_ALARM_CRITICAL);
+
+			vTaskDelay(1000 * portTICK_RATE_MS);
 			break;
 		}
 	}
