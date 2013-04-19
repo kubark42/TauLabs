@@ -36,7 +36,7 @@ DEBUG ?= NO
 
 # @endgroup Compile Options
 
-PATH_PLANNER ?= NO
+PATH_PLANNER ?= YES
 
 # List of modules to include
 MODULES = Sensors

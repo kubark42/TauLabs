@@ -27,17 +27,17 @@
 #include "paths.h"
 #include "misc_math.h"
 
-#include "attitudeactual.h"
-#include "positionactual.h"
-#include "velocityactual.h"
-#include "manualcontrol.h"
 #include "airspeedactual.h"
-#include "homelocation.h"
-#include "stabilizationdesired.h" // object that will be updated by the module
-#include "systemsettings.h"
+#include "attitudeactual.h"
 #include "fixedwingairspeeds.h"
 #include "fixedwingpathfollowersettings.h"
+#include "homelocation.h"
+#include "manualcontrol.h"
 #include "modulesettings.h"
+#include "positionactual.h"
+#include "stabilizationdesired.h" // object that will be updated by the module
+#include "systemsettings.h"
+#include "velocityactual.h"
 
 #include "CoordinateConversions.h"
 #include "fixedwingpathfollower.h"
@@ -147,11 +147,11 @@ int8_t updateFixedWingDesiredStabilization()
 	float calibratedAirspeedDesired;
 	float calibratedAirspeedError;
 
-	float altitudeError;
+	float altitudeError_NED;
 	float headingError_R;
 
 
-	float altitudeDesired;
+	float altitudeDesired_NED;
 	float headingDesired_R;
 
 	VelocityActualGet(&velocityActual);
@@ -176,11 +176,13 @@ int8_t updateFixedWingDesiredStabilization()
 	// Set desired calibrated airspeed, bounded by airframe limits
 	calibratedAirspeedDesired = bound_min_max(pathDesired.EndingVelocity, fixedWingAirspeeds.StallSpeedDirty, fixedWingAirspeeds.AirSpeedMax);
 
-	// Set the desired true airspeed
-	trueAirspeedDesired = calibratedAirspeedDesired; // <--------- BOOOO. Need to use the correct definition of true airspeed, for the instantaneous altitude at which the plane is flying
+	// Set the desired true airspeed, using a simplified model that assumes STP atmospheric conditions. This isn't ideal, but we don't have a reliable source of temperature
+	float p =  STANDARD_AIR_SEA_LEVEL_PRESSURE * pow(1 - STANDARD_AIR_LAPSE_RATE*(-positionActual.Down)/STANDARD_AIR_TEMPERATURE, GRAVITY*STANDARD_AIR_MOLS2KG / (UNIVERSAL_GAS_CONSTANT*STANDARD_AIR_LAPSE_RATE));
+	float rho=p*STANDARD_AIR_MOLS2KG / (UNIVERSAL_GAS_CONSTANT*(STANDARD_AIR_TEMPERATURE - STANDARD_AIR_LAPSE_RATE*(-positionActual.Down)));
+	trueAirspeedDesired = calibratedAirspeedDesired	* sqrtf(STANDARD_AIR_DENSITY / rho);
 
 	// Set the desired altitude
-	altitudeDesired = pathDesired.End[2];
+	altitudeDesired_NED = pathDesired.End[2];
 
 	// Set the desired heading.
 	headingDesired_R = desiredTrackingHeading(&pathSegmentDescriptor, &positionActual, headingActual_R, trueAirspeedDesired, dT);
@@ -192,7 +194,7 @@ int8_t updateFixedWingDesiredStabilization()
 	calibratedAirspeedError = calibratedAirspeedDesired - calibratedAirspeed;
 
 	// Altitude error
-	altitudeError = altitudeDesired - positionActual.Down;
+	altitudeError_NED = altitudeDesired_NED - positionActual.Down;
 
 	// Heading error
 	headingError_R = headingDesired_R - headingActual_R;
@@ -208,7 +210,7 @@ int8_t updateFixedWingDesiredStabilization()
 	 */
 	// Compute airspeed control
 	struct ControllerOutput airspeedControl;
-	airspeedController(&airspeedControl, calibratedAirspeedError, altitudeError, dT);
+	airspeedController(&airspeedControl, calibratedAirspeedError, altitudeError_NED, dT);
 
 	// Compute altitude control
 	struct ControllerOutput totalEnergyControl;
@@ -229,7 +231,7 @@ int8_t updateFixedWingDesiredStabilization()
 	stabilizationDesired.Pitch    = bound_min_max(headingControl.pitch + airspeedControl.pitch + totalEnergyControl.pitch,
 												  fixedwingpathfollowerSettings.PitchLimit[FIXEDWINGPATHFOLLOWERSETTINGS_PITCHLIMIT_MIN],
 												  fixedwingpathfollowerSettings.PitchLimit[FIXEDWINGPATHFOLLOWERSETTINGS_PITCHLIMIT_MAX]);
-	stabilizationDesired.Yaw      = headingControl.yaw + airspeedControl.yaw + altitudeControl.yaw; // Coordinated flight control only works when stabilizationDesired.Yaw == 0
+	stabilizationDesired.Yaw      = headingControl.yaw + airspeedControl.yaw + totalEnergyControl.yaw; // Coordinated flight control only works when stabilizationDesired.Yaw == 0
 
 	// Set stabilization modes
 	stabilizationDesired.StabilizationMode[STABILIZATIONDESIRED_STABILIZATIONMODE_ROLL] = STABILIZATIONDESIRED_STABILIZATIONMODE_ATTITUDE; //This needs to be EnhancedAttitude control
@@ -346,7 +348,7 @@ void updateDestination(){
 }
 
 
-void airspeedController(struct ControllerOutput *airspeedControl, float calibratedAirspeedError, float altitudeError, float dT)
+void airspeedController(struct ControllerOutput *airspeedControl, float calibratedAirspeedError, float altitudeError_NED, float dT)
 {
 	// This is the throttle value required for level flight at the given airspeed
 	float feedForwardThrottle = fixedwingpathfollowerSettings.ThrottleLimit[FIXEDWINGPATHFOLLOWERSETTINGS_THROTTLELIMIT_NEUTRAL];
@@ -371,7 +373,7 @@ void airspeedController(struct ControllerOutput *airspeedControl, float calibrat
 #define PITCHCROSSFEED_KP fixedwingpathfollowerSettings.AltitudeErrorToPitchCrossFeed[FIXEDWINGPATHFOLLOWERSETTINGS_ALTITUDEERRORTOPITCHCROSSFEED_KP]
 #define PITCHCROSSFEED_MIN	fixedwingpathfollowerSettings.AltitudeErrorToPitchCrossFeed[FIXEDWINGPATHFOLLOWERSETTINGS_ALTITUDEERRORTOPITCHCROSSFEED_KP]
 #define PITCHCROSSFEED_MAX fixedwingpathfollowerSettings.AltitudeErrorToPitchCrossFeed[FIXEDWINGPATHFOLLOWERSETTINGS_ALTITUDEERRORTOPITCHCROSSFEED_KP]
-	float altitudeErrorToPitchCommandComponent=bound_min_max(altitudeError* PITCHCROSSFEED_KP, -PITCHCROSSFEED_MIN, PITCHCROSSFEED_MAX);
+	float altitudeErrorToPitchCommandComponent=bound_min_max(altitudeError_NED* PITCHCROSSFEED_KP, -PITCHCROSSFEED_MIN, PITCHCROSSFEED_MAX);
 
 	//Saturate pitch command
 #define PITCHLIMIT_NEUTRAL  fixedwingpathfollowerSettings.PitchLimit[FIXEDWINGPATHFOLLOWERSETTINGS_PITCHLIMIT_NEUTRAL]
@@ -379,7 +381,7 @@ void airspeedController(struct ControllerOutput *airspeedControl, float calibrat
 	// Assign airspeed controller outputs
 	airspeedControl->throttle = feedForwardThrottle;
 	airspeedControl->roll = 0;
-	airspeedControl->pitch = -(calibratedAirspeedError*AIRSPEED_KP + integral->calibratedAirspeedError*AIRSPEED_KI) + altitudeErrorToPitchCommandComponent + PITCHLIMIT_NEUTRAL;
+	airspeedControl->pitch = -(calibratedAirspeedError*AIRSPEED_KP + integral->calibratedAirspeedError*AIRSPEED_KI) + altitudeErrorToPitchCommandComponent + PITCHLIMIT_NEUTRAL; //TODO: This needs to be taken out once EnhancedAttitude is merged
 	airspeedControl->yaw = 0;
 }
 
@@ -415,7 +417,7 @@ void totalEnergyController(struct ControllerOutput *altitudeControl, float true_
 
 
 /**
- * This simplified heading controller only computes a roll command
+ * This calculates the setpoint as a function of a vector field going onto a path.
  */
 float desiredTrackingHeading(PathSegmentDescriptorData *pathSegmentDescriptor, PositionActualData *positionActual, float headingActual_R, float trueAirspeedDesired, float dT)
 {
