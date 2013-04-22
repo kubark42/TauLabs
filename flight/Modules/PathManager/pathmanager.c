@@ -95,7 +95,7 @@ static void advanceSegment();
  */
 int32_t PathManagerStart()
 {
-	if(module_enabled) {
+	if (module_enabled) {
 		taskHandle = NULL;
 
 		// Start VM thread
@@ -126,7 +126,7 @@ int32_t PathManagerInitialize()
 	}
 #endif
 
-	if(module_enabled) {
+	if (module_enabled) {
 		PathManagerStatusInitialize();
 		PathManagerSettingsInitialize();
 		PathSegmentDescriptorInitialize();
@@ -194,7 +194,7 @@ static void pathManagerTask(void *parameters)
 				pathManagerStatus.StatusParameters[2] = rand();
 				PathManagerStatusSet(&pathManagerStatus);
 
-				if(guidanceType != RETURNHOME){
+				if (guidanceType != RETURNHOME) {
 					guidanceType = RETURNHOME;
 					pathplanner_active = false;
 
@@ -215,7 +215,7 @@ static void pathManagerTask(void *parameters)
 				PathManagerStatusGet(&pathManagerStatus);
 				pathManagerStatus.StatusParameters[6] = rand();
 				PathManagerStatusSet(&pathManagerStatus);
-				if(guidanceType != HOLDPOSITION){
+				if (guidanceType != HOLDPOSITION) {
 					guidanceType = HOLDPOSITION;
 					pathplanner_active = false;
 
@@ -227,7 +227,7 @@ static void pathManagerTask(void *parameters)
 				PathManagerStatusGet(&pathManagerStatus);
 				pathManagerStatus.StatusParameters[7] = rand();
 				PathManagerStatusSet(&pathManagerStatus);
-				if(guidanceType != PATHPLANNER){
+				if (guidanceType != PATHPLANNER) {
 					guidanceType = PATHPLANNER;
 					pathplanner_active = false;
 
@@ -248,9 +248,9 @@ static void pathManagerTask(void *parameters)
 		PathPlannerStatusData pathPlannerStatus;
 		PathPlannerStatusGet(&pathPlannerStatus);
 
-		if(pathPlannerStatus.PathAvailability == PATHPLANNERSTATUS_PATHAVAILABILITY_PATHREADY)
+		if (pathPlannerStatus.PathAvailability == PATHPLANNERSTATUS_PATHAVAILABILITY_PATHREADY)
 		{
-			if(guidanceType != PATHPLANNER){
+			if (guidanceType != PATHPLANNER) {
 				guidanceType = PATHPLANNER;
 				pathplanner_active = false;
 			}
@@ -271,11 +271,11 @@ static void pathManagerTask(void *parameters)
 		bool advanceSegment_flag = false;
 
 		// Update arc measure traveled
-		if (pathSegmentDescriptor_current.PathCurvature != 0){
+		if (pathSegmentDescriptor_current.PathCurvature != 0) {
 			PositionActualData positionActual;
 			PositionActualGet(&positionActual);
 			float newPosition_NE[2] = {positionActual.North, positionActual.East};
-			if (arc_has_center == CENTER_FOUND){
+			if (arc_has_center == CENTER_FOUND) {
 				angularDistanceCompleted  += updateArcMeasure(oldPosition_NE, newPosition_NE, arcCenter_NE) * RAD2DEG;
 
 				oldPosition_NE[0] = newPosition_NE[0];
@@ -285,15 +285,15 @@ static void pathManagerTask(void *parameters)
 			// Every 128 samples, correct for roundoff error. Error doesn't accumulate too quickly, so
 			// this trigger value can safely be made much higher, with the condition that the type of
 			// theta_roundoff_trim_count be changed from uint8_t;
-			if ((theta_roundoff_trim_count++ & 0x8F) == 0){
+			if ((theta_roundoff_trim_count++ & 0x8F) == 0) {
 				theta_roundoff_trim_count = 0;
 
 				float referenceTheta = updateArcMeasure(previousLocus->Position, newPosition_NE, arcCenter_NE) * RAD2DEG;
 
-				while(referenceTheta-angularDistanceCompleted < -180){
+				while(referenceTheta-angularDistanceCompleted < -180) {
 					referenceTheta += 360;
 				}
-				while(referenceTheta-angularDistanceCompleted > 180){
+				while(referenceTheta-angularDistanceCompleted > 180) {
 					referenceTheta -= 360;
 				}
 
@@ -309,27 +309,12 @@ static void pathManagerTask(void *parameters)
 		// of the active path segment. Sufficiently close is chosen to be an arbitrary angular
 		// distance, as this is robust and sufficient to describe all paths, including infinite
 		// straight lines and infinite number of orbits about a point.
-		if( sign(pathSegmentDescriptor_current.PathCurvature) * (angularDistanceToComplete - angularDistanceCompleted) < ANGULAR_PROXIMITY_THRESHOLD)
+		if ( sign(pathSegmentDescriptor_current.PathCurvature) * (angularDistanceToComplete - angularDistanceCompleted) < ANGULAR_PROXIMITY_THRESHOLD)
 			advanceSegment_flag = checkGoalCondition();
 
 
 		// Check if the path_manager was just activated
-		if(pathplanner_active == false) {
-			// First locus is current vehicle position
-//			PositionActualData positionActual;
-//			PositionActualGet(&positionActual);
-
-//			pathSegmentDescriptor.SwitchingLocus[0] = positionActual.North;
-//			pathSegmentDescriptor.SwitchingLocus[1] = positionActual.East;
-//			pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down;
-//			pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-//			pathSegmentDescriptor.DesiredAcceleration = 0;
-//			pathSegmentDescriptor.Timeout = 0;
-//			pathSegmentDescriptor.NumberOfOrbits = 0;
-//			pathSegmentDescriptor.PathCurvature = 0;
-//			pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-//			PathSegmentDescriptorInstSet(0, &pathSegmentDescriptor);
-
+		if (pathplanner_active == false) {
 			// Update path manager
 			PathManagerStatusGet(&pathManagerStatus);
 			pathManagerStatus.ActiveSegment = 0;
@@ -345,7 +330,7 @@ static void pathManagerTask(void *parameters)
 
 
 		// Advance segment
-		if(advanceSegment_flag){
+		if (advanceSegment_flag) {
 			advanceSegment();
 		}
 		else if (lastSysTime-segmentTimer > pathSegmentDescriptor_current.Timeout*1000*portTICK_RATE_MS)
@@ -385,7 +370,7 @@ static void advanceSegment()
 	angularDistanceCompleted = 0;
 
 	// If the path is an arc, find the center and angular distance along arc
-	if (pathSegmentDescriptor_current.PathCurvature != 0 ){
+	if (pathSegmentDescriptor_current.PathCurvature != 0 ) {
 		// Determine if the arc has a center, and if so assign it to arcCenter_NE
 		arc_has_center = arcCenterFromTwoPointsAndRadiusAndArcRank(previousLocus->Position, pathSegmentDescriptor_current.SwitchingLocus,
 			1.0f/pathSegmentDescriptor_current.PathCurvature, arcCenter_NE,
@@ -396,7 +381,7 @@ static void advanceSegment()
 
 		// If the arc has a center, then set the initial position as the beginning of the arc, and calculate the angular
 		// distance to be traveled along the arc
-		if (arc_has_center == CENTER_FOUND){
+		if (arc_has_center == CENTER_FOUND) {
 			oldPosition_NE[0] = previousLocus->Position[0];
 			oldPosition_NE[1] = previousLocus->Position[1];
 
@@ -432,9 +417,9 @@ static bool checkGoalCondition()
 	// Note: The half-plane approach has difficulties when the plane and the two loci are close to colinear
 	// and reversing in direction. That is to say, a plane at P is supposed to go to A and then B:
 	//    B----------P------A
-	if(pathManagerSettings.SwitchingStrategy == PATHMANAGERSETTINGS_SWITCHINGSTRATEGY_HALFPLANE) {
+	if (pathManagerSettings.SwitchingStrategy == PATHMANAGERSETTINGS_SWITCHINGSTRATEGY_HALFPLANE) {
 		// Check if there is a switching locus after the present one
-		if (pathManagerStatus.ActiveSegment + 1 < UAVObjGetNumInstances(PathSegmentDescriptorHandle())){
+		if (pathManagerStatus.ActiveSegment + 1 < UAVObjGetNumInstances(PathSegmentDescriptorHandle())) {
 			// Calculate vector from past to preset switching locus
 			float *swl_past = previousLocus->Position;
 			float *swl_current = pathSegmentDescriptor_current.SwitchingLocus;
@@ -448,7 +433,7 @@ static bool checkGoalCondition()
 
 			// Line-line intersection. The halfplane frontier is the bisecting line between the arrival
 			// and departure vector.
-			if(pathSegmentDescriptor_current.PathCurvature == 0 && pathSegmentDescriptor_future.PathCurvature == 0){
+			if (pathSegmentDescriptor_current.PathCurvature == 0 && pathSegmentDescriptor_future.PathCurvature == 0) {
 				float *swl_future  = pathSegmentDescriptor_future.SwitchingLocus;
 
 				// Calculate vector from preset to future switching locus
@@ -468,7 +453,7 @@ static bool checkGoalCondition()
 			// occurs at the tangent of the circle. In the case that due to numerical error the vector and arc do
 			// not intersect, we will still test for crossing into the half plane defined of a line drawn between the arc's
 			// center and the closest point on the vector to the arc.
-			else if(pathSegmentDescriptor_current.PathCurvature == 0 && pathSegmentDescriptor_future.PathCurvature != 0)
+			else if (pathSegmentDescriptor_current.PathCurvature == 0 && pathSegmentDescriptor_future.PathCurvature != 0)
 			{
 				// Calculate vector tangent to arc at preset switching locus. This comes from geometry that that tangent to a circle
 				// is the perpendicular vector to the vector connecting the tangent point and the center of the circle. The vector R
@@ -508,7 +493,7 @@ static bool checkGoalCondition()
 			// intersection of an arc and a line. However, it seems reasonable to consider the halfplane
 			// occurring at the intersection between the arc and the vector. The halfplane's frontier
 			// is perpendicular to the tangent at the end of the arc.
-			else if(pathSegmentDescriptor_current.PathCurvature != 0 && pathSegmentDescriptor_future.PathCurvature == 0)
+			else if (pathSegmentDescriptor_current.PathCurvature != 0 && pathSegmentDescriptor_future.PathCurvature == 0)
 			{
 				// Cheat by remarking that the plane defined by the radius is perfectly defined by the angle made
 				// between the center and the end of the trajectory. So if the vehicle has traveled further than
@@ -543,14 +528,14 @@ static bool checkGoalCondition()
 			float p[2] = {positionActual.North - swl_current[0], positionActual.East - swl_current[1]};
 
 			// If we want to switch based on nominal time to locus, add the normalized q_current times the speed times the timing advace
-			if(pathManagerSettings.HalfPlaneAdvanceTiming != 0){
-				for (int i=0; i<2; i++){
+			if (pathManagerSettings.HalfPlaneAdvanceTiming != 0) {
+				for (int i=0; i<2; i++) {
 						p[i] += q_current[i]/q_current_mag * fixedWingAirspeeds.BestClimbRateSpeed * (pathManagerSettings.HalfPlaneAdvanceTiming/1000.0f);
 				}
 			}
 
 			// Finally test a.b > 0
-			if(p[0]*halfPlane[0] + p[1]*halfPlane[1] > 0){
+			if (p[0]*halfPlane[0] + p[1]*halfPlane[1] > 0) {
 				advanceSegment_flag = true;
 			}
 		}
@@ -602,7 +587,7 @@ static void checkOvershoot()
 			c[i] += q[i]/q_mag * fixedWingAirspeeds.BestClimbRateSpeed * 5;
 
 		// Perform a quick vector dot product to test if we've gone past the waypoint.
-		if ((p[0]-c[0])*q[0] + (p[1]-c[1])*q[1] > 0){
+		if ((p[0]-c[0])*q[0] + (p[1]-c[1])*q[1] > 0) {
 			//Whoops, we've really overflown our destination point, and haven't received any instructions.
 
 			//Inform the FSM

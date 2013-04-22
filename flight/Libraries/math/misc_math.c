@@ -104,7 +104,7 @@ CenterCalculationResult arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_p
 	// Work out how far to go along the perpendicular bisector. First check there is a solution.
 	d2 = radius * radius / (p_n * p_n + p_e * p_e) - 0.25f;
 	if (d2 < 0){
-		if (d2 > -radius*radius*0.01f*0.01f) // Make a 1% allowance for roundoff error
+		if (d2 > -powf(radius*0.01f,2)) // Make a 1% allowance for roundoff error
 			d2 = 0;
 		else {
 			center[0]=NAN;

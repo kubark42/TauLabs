@@ -173,7 +173,10 @@ int8_t updateFixedWingDesiredStabilization()
 	float headingActual_R = atan2f(velocityActual.East, velocityActual.North);
 
 	/**
-	 * Compute setpoints
+	 * Compute setpoints.
+	 */
+	/**
+	 * TODO: These setpoints only need to be calibrated once per locus update
 	 */
 	// Set desired calibrated airspeed, bounded by airframe limits
 /*
@@ -182,7 +185,7 @@ int8_t updateFixedWingDesiredStabilization()
 	calibratedAirspeedDesired = bound_min_max(pathDesired.EndingVelocity, fixedWingAirspeeds.StallSpeedDirty, fixedWingAirspeeds.AirSpeedMax);
 
 	// Set the desired true airspeed, using a simplified model that assumes STP atmospheric conditions. This isn't ideal, but we don't have a reliable source of temperature
-	float p =  STANDARD_AIR_SEA_LEVEL_PRESSURE * pow(1 - STANDARD_AIR_LAPSE_RATE*(-positionActual.Down)/STANDARD_AIR_TEMPERATURE, GRAVITY*STANDARD_AIR_MOLS2KG / (UNIVERSAL_GAS_CONSTANT*STANDARD_AIR_LAPSE_RATE));
+	float p =  STANDARD_AIR_SEA_LEVEL_PRESSURE * powf(1 - STANDARD_AIR_LAPSE_RATE*(-positionActual.Down)/STANDARD_AIR_TEMPERATURE, GRAVITY*STANDARD_AIR_MOLS2KG / (UNIVERSAL_GAS_CONSTANT*STANDARD_AIR_LAPSE_RATE));
 	float rho=p*STANDARD_AIR_MOLS2KG / (UNIVERSAL_GAS_CONSTANT*(STANDARD_AIR_TEMPERATURE - STANDARD_AIR_LAPSE_RATE*(-positionActual.Down)));
 	trueAirspeedDesired = calibratedAirspeedDesired	* sqrtf(STANDARD_AIR_DENSITY / rho);
 
