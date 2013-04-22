@@ -66,6 +66,7 @@ struct ControllerOutput {
 
 // Private variables
 static PathDesiredData pathDesired;
+static PathSegmentDescriptorData *pathSegmentDescriptor;
 static FixedWingPathFollowerSettingsData fixedwingpathfollowerSettings;
 static FixedWingAirspeedsData fixedWingAirspeeds;
 static uint16_t activeSegment;
@@ -103,6 +104,10 @@ void initializeFixedWingPathFollower()
 	// Allocate memory
 	integral = (struct Integral *) pvPortMalloc(sizeof(struct Integral));
 	memset(integral, 0, sizeof(struct Integral));
+
+	pathSegmentDescriptor = (PathSegmentDescriptorData *) pvPortMalloc(sizeof(PathSegmentDescriptorData));
+	memset(pathSegmentDescriptor, 0, sizeof(PathSegmentDescriptorData));
+
 
 	// Load all settings
 	SettingsUpdatedCb((UAVObjEvent *)NULL);
@@ -160,9 +165,6 @@ int8_t updateFixedWingDesiredStabilization()
 	PositionActualData positionActual;
 	PositionActualGet(&positionActual);
 
-	PathSegmentDescriptorData pathSegmentDescriptor;
-	PathSegmentDescriptorInstGet(activeSegment, &pathSegmentDescriptor);
-
 	// Current airspeed
 	AirspeedActualTrueAirspeedGet(&trueAirspeed);
 	AirspeedActualCalibratedAirspeedGet(&calibratedAirspeed);
@@ -174,6 +176,9 @@ int8_t updateFixedWingDesiredStabilization()
 	 * Compute setpoints
 	 */
 	// Set desired calibrated airspeed, bounded by airframe limits
+/*
+ *	calibratedAirspeedDesired = bound_min_max(pathSegmentDescriptor->FinalVelocity, fixedWingAirspeeds.StallSpeedDirty, fixedWingAirspeeds.AirSpeedMax);
+ */
 	calibratedAirspeedDesired = bound_min_max(pathDesired.EndingVelocity, fixedWingAirspeeds.StallSpeedDirty, fixedWingAirspeeds.AirSpeedMax);
 
 	// Set the desired true airspeed, using a simplified model that assumes STP atmospheric conditions. This isn't ideal, but we don't have a reliable source of temperature
@@ -182,10 +187,10 @@ int8_t updateFixedWingDesiredStabilization()
 	trueAirspeedDesired = calibratedAirspeedDesired	* sqrtf(STANDARD_AIR_DENSITY / rho);
 
 	// Set the desired altitude
-	altitudeDesired_NED = pathDesired.End[2];
+	altitudeDesired_NED = pathSegmentDescriptor->SwitchingLocus[2];
 
 	// Set the desired heading.
-	headingDesired_R = desiredTrackingHeading(&pathSegmentDescriptor, &positionActual, headingActual_R, trueAirspeedDesired, dT);
+	headingDesired_R = desiredTrackingHeading(pathSegmentDescriptor, &positionActual, headingActual_R, trueAirspeedDesired, dT);
 
 	/**
 	 * Compute setpoint errors
@@ -214,7 +219,7 @@ int8_t updateFixedWingDesiredStabilization()
 
 	// Compute altitude control
 	struct ControllerOutput totalEnergyControl;
-	totalEnergyController(&totalEnergyControl, trueAirspeedDesired, trueAirspeed, pathDesired.End[2], positionActual.Down, dT);
+	totalEnergyController(&totalEnergyControl, trueAirspeedDesired, trueAirspeed, altitudeDesired_NED, positionActual.Down, dT);
 
 	// Compute heading control
 	struct ControllerOutput headingControl;
@@ -293,54 +298,80 @@ float followOrbit(float c[3], float rho, bool direction, float p[3], float psi, 
 }
 
 void updateDestination(){
-	PathSegmentDescriptorData pathSegmentDescriptor;
+	PathSegmentDescriptorData pathSegmentDescriptor_old;
 
 	//VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
 	// BLAH, BLAH, BLAH. THIS SHOULDN'T BE USING PATHDESIRED UAVO
 	//----------------------------------------------
-	PathSegmentDescriptorInstGet(activeSegment-1, &pathSegmentDescriptor);
-	pathDesired.Start[0]=pathSegmentDescriptor.SwitchingLocus[0];
-	pathDesired.Start[1]=pathSegmentDescriptor.SwitchingLocus[1];
-	pathDesired.Start[2]=pathSegmentDescriptor.SwitchingLocus[2];
+	int8_t ret;
+	ret = PathSegmentDescriptorInstGet(activeSegment-1, &pathSegmentDescriptor_old);
+	if(ret != 0){
+			if (activeSegment == 0)
+			{
+				PositionActualData positionActual;
+				PositionActualGet(&positionActual);
 
-	PathSegmentDescriptorInstGet(activeSegment, &pathSegmentDescriptor);
+				pathDesired.Start[0]=positionActual.North;
+				pathDesired.Start[1]=positionActual.East;
+				pathDesired.Start[2]=positionActual.Down;
+
+				// TODO: Figure out if this can't happen in normal behavior. Consider adding a warning if so.
+			}
+			else{
+			//TODO: Set off a warning
+
+			return;
+			}
+	}
+	else{
+		pathDesired.Start[0]=pathSegmentDescriptor_old.SwitchingLocus[0];
+		pathDesired.Start[1]=pathSegmentDescriptor_old.SwitchingLocus[1];
+		pathDesired.Start[2]=pathSegmentDescriptor_old.SwitchingLocus[2];
+	}
+
+	ret = PathSegmentDescriptorInstGet(activeSegment, pathSegmentDescriptor);
+	if(ret != 0){
+			//TODO: Set off a warning
+
+			return;
+	}
 
 	// For a straight line use the switching locus as the vector endpoint...
-	if(pathSegmentDescriptor.PathCurvature == 0){
-		pathDesired.End[0]=pathSegmentDescriptor.SwitchingLocus[0];
-		pathDesired.End[1]=pathSegmentDescriptor.SwitchingLocus[1];
-		pathDesired.End[2]=pathSegmentDescriptor.SwitchingLocus[2];
+	if(pathSegmentDescriptor->PathCurvature == 0){
+		pathDesired.End[0]=pathSegmentDescriptor->SwitchingLocus[0];
+		pathDesired.End[1]=pathSegmentDescriptor->SwitchingLocus[1];
+		pathDesired.End[2]=pathSegmentDescriptor->SwitchingLocus[2];
 	}
 	else{ // ...but for an arc, use the switching loci to calculate the arc center
 		float oldPosition_NE[2] = {pathDesired.Start[0], pathDesired.Start[1]};
-		float newPosition_NE[2] = {pathSegmentDescriptor.SwitchingLocus[0], pathSegmentDescriptor.SwitchingLocus[1]};
+		float newPosition_NE[2] = {pathSegmentDescriptor->SwitchingLocus[0], pathSegmentDescriptor->SwitchingLocus[1]};
 		float arcCenter_XY[2];
 		bool ret;
-		ret = arcCenterFromTwoPointsAndRadiusAndArcRank(oldPosition_NE, newPosition_NE, 1.0f/pathSegmentDescriptor.PathCurvature, arcCenter_XY, pathSegmentDescriptor.PathCurvature > 0, pathSegmentDescriptor.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR);
+		ret = arcCenterFromTwoPointsAndRadiusAndArcRank(oldPosition_NE, newPosition_NE, 1.0f/pathSegmentDescriptor->PathCurvature, arcCenter_XY, pathSegmentDescriptor->PathCurvature > 0, pathSegmentDescriptor->ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR);
 
 		if (ret == CENTER_FOUND){
 			pathDesired.End[0]=arcCenter_XY[0];
 			pathDesired.End[1]=arcCenter_XY[1];
-			pathDesired.End[2]=pathSegmentDescriptor.SwitchingLocus[2];
+			pathDesired.End[2]=pathSegmentDescriptor->SwitchingLocus[2];
 		}
 		else {
 			// This is bad, but we have to handle it.
 			// Probably the path manager should advance to the next waypoint, but for now we'll circle over the point
-			pathDesired.End[0]=pathSegmentDescriptor.SwitchingLocus[0];
-			pathDesired.End[1]=pathSegmentDescriptor.SwitchingLocus[1];
-			pathDesired.End[2]=pathSegmentDescriptor.SwitchingLocus[2];
+			pathDesired.End[0]=pathSegmentDescriptor->SwitchingLocus[0];
+			pathDesired.End[1]=pathSegmentDescriptor->SwitchingLocus[1];
+			pathDesired.End[2]=pathSegmentDescriptor->SwitchingLocus[2];
 
 			// TODO: Set alarm warning
 			AlarmsSet(SYSTEMALARMS_ALARM_PATHFOLLOWER, SYSTEMALARMS_ALARM_WARNING);
 		}
 
 #define MAX_ROLL_FOR_ARC 15.0f	 //Assume that we want a maximum 15 degree bank angle. This should yield a nice, non-agressive turn
-#define MIN_RHO (powf(pathSegmentDescriptor.FinalVelocity,2)/(9.805f*tanf(fabs(MAX_ROLL_FOR_ARC*DEG2RAD))))
+#define MIN_RHO (powf(pathSegmentDescriptor->FinalVelocity,2)/(9.805f*tanf(fabs(MAX_ROLL_FOR_ARC*DEG2RAD))))
 		//Calculate radius, rho, using r*omega=v and omega = g/V_g * tan(phi)
-		rho = fabs(1.0f/pathSegmentDescriptor.PathCurvature) > MIN_RHO ? fabs(1.0f/pathSegmentDescriptor.PathCurvature) : MIN_RHO;
+		rho = fabs(1.0f/pathSegmentDescriptor->PathCurvature) > MIN_RHO ? fabs(1.0f/pathSegmentDescriptor->PathCurvature) : MIN_RHO;
 	}
 
-	pathDesired.EndingVelocity=pathSegmentDescriptor.FinalVelocity;
+	pathDesired.EndingVelocity=pathSegmentDescriptor->FinalVelocity;
 	PathDesiredSet(&pathDesired);
 	//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 	// BLAH, BLAH, BLAH. THIS SHOULDN'T BE USING PATHDESIRED
@@ -424,7 +455,7 @@ float desiredTrackingHeading(PathSegmentDescriptorData *pathSegmentDescriptor, P
 	float p[3]={positionActual->North, positionActual->East, positionActual->Down};
 	float *c = pathDesired.End;
 	float *r = pathDesired.Start;
-	float q[3] = {pathDesired.End[0]-pathDesired.Start[0], pathDesired.End[1]-pathDesired.Start[1], pathDesired.End[2]-pathDesired.Start[2]};
+	float q[3] = {c[0]-r[0], c[1]-r[1], c[2]-r[2]};
 
 	float k_path  = fixedwingpathfollowerSettings.VectorFollowingGain/trueAirspeedDesired; //Divide gain by airspeed so that the turn rate is independent of airspeed
 	float k_orbit = fixedwingpathfollowerSettings.OrbitFollowingGain/trueAirspeedDesired; //Divide gain by airspeed so that the turn rate is independent of airspeed

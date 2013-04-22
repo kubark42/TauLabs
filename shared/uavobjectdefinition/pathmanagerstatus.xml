@@ -1,15 +1,15 @@
 <xml>
 	<object name="PathManagerStatus" singleinstance="true" settings="false">
-		<description>Status of the current path mode  Can come from any @ref PathFollower module</description>
+		<description>Status of the path manager</description>
 
-		<field name="Status" units="" type="enum" elements="1" options="InProgress,Completed,TimedOut,Warning,Critical" defaultvalue="Completed"/>
+		<field name="Status" units="" type="enum" elements="1" options="InProgress,Completed,TimedOut,Overshoot,Warning,Critical" defaultvalue="Completed"/>
 		<field name="ActiveSegment" units="" type="uint8" elements="1"/>
 
 		<field name="StatusParameters" units="" type="float" elements="10"/>
 
 		<access gcs="readwrite" flight="readwrite"/>
 		<telemetrygcs acked="false" updatemode="manual" period="0"/>
-		<telemetryflight acked="false" updatemode="onchange" period="0"/>
+		<telemetryflight acked="false" updatemode="periodic" period="0"/>
 		<logging updatemode="onchange" period="0"/>
 	</object>
 </xml>

@@ -1,6 +1,6 @@
 <xml>
 	<object name="PathFollowerStatus" singleinstance="true" settings="false">
-		<description>Status of the current path mode  Can come from any @ref PathFollower module</description>
+		<description>Status of the current path follower. Can come from any @ref PathFollower module</description>
 
 		<field name="Status" units="" type="enum" elements="1" options="Succeeding,Failing,Idle"/>
 		<field name="FractionalProgress" units="" type="float" elements="1"/>

@@ -97,6 +97,7 @@ HEADERS += $$UAVOBJECT_SYNTHETICS/accels.h \
     $$UAVOBJECT_SYNTHETICS/pathmanagersettings.h \
     $$UAVOBJECT_SYNTHETICS/pathmanagerstatus.h \
     $$UAVOBJECT_SYNTHETICS/pathplannersettings.h \
+    $$UAVOBJECT_SYNTHETICS/pathplannerstatus.h \
     $$UAVOBJECT_SYNTHETICS/pathsegmentdescriptor.h \
     $$UAVOBJECT_SYNTHETICS/pathstatus.h \
     $$UAVOBJECT_SYNTHETICS/positionactual.h \
@@ -197,6 +198,7 @@ SOURCES += $$UAVOBJECT_SYNTHETICS/accels.cpp \
     $$UAVOBJECT_SYNTHETICS/pathmanagersettings.cpp \
     $$UAVOBJECT_SYNTHETICS/pathmanagerstatus.cpp \
     $$UAVOBJECT_SYNTHETICS/pathplannersettings.cpp \
+    $$UAVOBJECT_SYNTHETICS/pathplannerstatus.cpp \
     $$UAVOBJECT_SYNTHETICS/pathsegmentdescriptor.cpp \
     $$UAVOBJECT_SYNTHETICS/pathstatus.cpp \
     $$UAVOBJECT_SYNTHETICS/positionactual.cpp \

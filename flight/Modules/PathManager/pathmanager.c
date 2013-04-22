@@ -41,6 +41,7 @@
 
 #include "pathmanagerstatus.h"
 #include "pathmanagersettings.h"
+#include "pathplannerstatus.h"
 #include "pathsegmentdescriptor.h"
 #include "paths library.h"
 
@@ -50,7 +51,7 @@
 #define STACK_SIZE_BYTES 700
 #define TASK_PRIORITY (tskIDLE_PRIORITY+1)
 #define MAX_QUEUE_SIZE 2
-#define UPDATE_RATE_MS 100
+#define UPDATE_RATE_MS 100 // Cannot be greater than 200
 #define IDLE_UPDATE_RATE_MS (200-UPDATE_RATE_MS)
 #define OVERSHOOT_TIMER_MS 1000
 #define ANGULAR_PROXIMITY_THRESHOLD 30
@@ -181,15 +182,12 @@ static void pathManagerTask(void *parameters)
 		// Wait
 		vTaskDelayUntil(&lastSysTime, UPDATE_RATE_MS * portTICK_RATE_MS);
 
+#if defined PATH_PLANNER && 0// If there is no path planner, it's probably because memory is too scarce, such as on CC/CC3D. In that case, provide a return to home and a position hold
 		// Check flight mode
 		FlightStatusData flightStatus;
 		FlightStatusGet(&flightStatus);
 
-		PathManagerStatusGet(&pathManagerStatus);
-		pathManagerStatus.StatusParameters[5] = flightStatus.FlightMode;
-		PathManagerStatusSet(&pathManagerStatus);
 		switch (flightStatus.FlightMode) {
-#ifndef PATH_PLANNER // If there is no path planner, it's probably because memory is too scarce, such as on CC/CC3D. In that case, provide a return to home and a position hold
 			case FLIGHTSTATUS_FLIGHTMODE_RETURNTOHOME:
 
 				PathManagerStatusGet(&pathManagerStatus);
@@ -237,27 +235,34 @@ static void pathManagerTask(void *parameters)
 					example_program();
 				}
 				break;
-#else
-// In this case, there is an on-board path planner which is writing the variables.
-			case FLIGHTSTATUS_FLIGHTMODE_PATHPLANNER:
-				if(guidanceType != PATHPLANNER){
-					guidanceType = PATHPLANNER;
-					pathplanner_active = false;
-				}
-				break;
-#endif //PATH_PLANNER
 			default:
 				// When not running the path manager, short circuit and wait
 				pathplanner_active = false;
 				guidanceType = NOMANAGER;
 				vTaskDelay(IDLE_UPDATE_RATE_MS * portTICK_RATE_MS);
 
-				PathManagerStatusGet(&pathManagerStatus);
-				pathManagerStatus.StatusParameters[0] = rand();
-				PathManagerStatusSet(&pathManagerStatus);
-
 				continue;
 		}
+#else
+
+		PathPlannerStatusData pathPlannerStatus;
+		PathPlannerStatusGet(&pathPlannerStatus);
+
+		if(pathPlannerStatus.PathAvailability == PATHPLANNERSTATUS_PATHAVAILABILITY_PATHREADY)
+		{
+			if(guidanceType != PATHPLANNER){
+				guidanceType = PATHPLANNER;
+				pathplanner_active = false;
+			}
+		}
+		else{
+			pathplanner_active = false;
+			guidanceType = NOMANAGER;
+			vTaskDelay(IDLE_UPDATE_RATE_MS * portTICK_RATE_MS);
+			continue;
+		}
+
+#endif //PATH_PLANNER
 
 		PathManagerStatusGet(&pathManagerStatus);
 		pathManagerStatus.StatusParameters[1] = rand();
@@ -310,6 +315,22 @@ static void pathManagerTask(void *parameters)
 
 		// Check if the path_manager was just activated
 		if(pathplanner_active == false) {
+			// First locus is current vehicle position
+//			PositionActualData positionActual;
+//			PositionActualGet(&positionActual);
+
+//			pathSegmentDescriptor.SwitchingLocus[0] = positionActual.North;
+//			pathSegmentDescriptor.SwitchingLocus[1] = positionActual.East;
+//			pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down;
+//			pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
+//			pathSegmentDescriptor.DesiredAcceleration = 0;
+//			pathSegmentDescriptor.Timeout = 0;
+//			pathSegmentDescriptor.NumberOfOrbits = 0;
+//			pathSegmentDescriptor.PathCurvature = 0;
+//			pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
+//			PathSegmentDescriptorInstSet(0, &pathSegmentDescriptor);
+
+			// Update path manager
 			PathManagerStatusGet(&pathManagerStatus);
 			pathManagerStatus.ActiveSegment = 0;
 			pathManagerStatus.Status = PATHMANAGERSTATUS_STATUS_INPROGRESS;
@@ -358,7 +379,7 @@ static void advanceSegment()
 	PathManagerStatusSet(&pathManagerStatus);
 
 	// Load current segment into global memory.
-	PathSegmentDescriptorInstGet(pathManagerStatus.ActiveSegment, &pathSegmentDescriptor_current);
+	PathSegmentDescriptorInstGet(pathManagerStatus.ActiveSegment, &pathSegmentDescriptor_current);  // TODO: Check that an instance is successfully returned
 
 	// Reset angular distance
 	angularDistanceCompleted = 0;
@@ -423,9 +444,10 @@ static bool checkGoalCondition()
 			float q_future_mag;
 
 			PathSegmentDescriptorData pathSegmentDescriptor_future;
-			PathSegmentDescriptorInstGet(pathManagerStatus.ActiveSegment+1, &pathSegmentDescriptor_future);
+			PathSegmentDescriptorInstGet(pathManagerStatus.ActiveSegment+1, &pathSegmentDescriptor_future);  // TODO: Check that an instance is successfully returned
 
-			// Line-line intersection
+			// Line-line intersection. The halfplane frontier is the bisecting line between the arrival
+			// and departure vector.
 			if(pathSegmentDescriptor_current.PathCurvature == 0 && pathSegmentDescriptor_future.PathCurvature == 0){
 				float *swl_future  = pathSegmentDescriptor_future.SwitchingLocus;
 
@@ -584,7 +606,7 @@ static void checkOvershoot()
 			//Whoops, we've really overflown our destination point, and haven't received any instructions.
 
 			//Inform the FSM
-			pathManagerStatus.Status = PATHMANAGERSTATUS_STATUS_CRITICAL;
+			pathManagerStatus.Status = PATHMANAGERSTATUS_STATUS_OVERSHOOT;
 			PathManagerStatusSet(&pathManagerStatus);
 
 			//TODO: Declare an alarm
