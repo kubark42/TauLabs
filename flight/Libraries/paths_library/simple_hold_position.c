@@ -61,7 +61,7 @@ void simple_hold_position()
 	pathSegmentDescriptor.PathCurvature = 0;
 	pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
 	PathSegmentDescriptorInstSet(0, &pathSegmentDescriptor);
-	
+
 	// Orbit current position
 	pathSegmentDescriptor.SwitchingLocus[0] = positionActual.North + radius;
 	pathSegmentDescriptor.SwitchingLocus[1] = positionActual.East;
@@ -72,5 +72,5 @@ void simple_hold_position()
 	pathSegmentDescriptor.PathCurvature = 1/radius;
 	pathSegmentDescriptor.NumberOfOrbits = 1e8; //TODO: Define this really large floating-point value as a magic number
 	pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-	PathSegmentDescriptorInstSet(1, &pathSegmentDescriptor);	
+	PathSegmentDescriptorInstSet(1, &pathSegmentDescriptor);
 }

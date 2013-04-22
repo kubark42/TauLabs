@@ -45,8 +45,8 @@ void example_program()
 	PositionActualData positionActual;
 	PositionActualGet(&positionActual);
 
-    FixedWingAirspeedsData fixedWingAirspeeds;
-    FixedWingAirspeedsGet(&fixedWingAirspeeds);
+	FixedWingAirspeedsData fixedWingAirspeeds;
+	FixedWingAirspeedsGet(&fixedWingAirspeeds);
 
 	// First locus is current vehicle position
 	pathSegmentDescriptor.SwitchingLocus[0] = positionActual.North;
@@ -59,60 +59,70 @@ void example_program()
 	pathSegmentDescriptor.PathCurvature = 0;
 	pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
 	PathSegmentDescriptorInstSet(0, &pathSegmentDescriptor);
-	
+
 	pathSegmentDescriptor.SwitchingLocus[0] = 100;
 	pathSegmentDescriptor.SwitchingLocus[1] = 0;
 	pathSegmentDescriptor.SwitchingLocus[2] = -2450;
 	pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-	pathSegmentDescriptor.Timeout = 60;
-	pathSegmentDescriptor.NumberOfOrbits = 0;
+	pathSegmentDescriptor.DesiredAcceleration = 0;
 	pathSegmentDescriptor.PathCurvature = 0;
+	pathSegmentDescriptor.NumberOfOrbits = 0;
+	pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
+	pathSegmentDescriptor.Timeout = 60;
 	PathSegmentDescriptorInstSet(1, &pathSegmentDescriptor);
-	
+
 	pathSegmentDescriptor.SwitchingLocus[0] = 100;
 	pathSegmentDescriptor.SwitchingLocus[1] = 200;
 	pathSegmentDescriptor.SwitchingLocus[2] = -2450;
 	pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-	pathSegmentDescriptor.Timeout = 60;
-	pathSegmentDescriptor.NumberOfOrbits = 0;
+	pathSegmentDescriptor.DesiredAcceleration = 0;
 	pathSegmentDescriptor.PathCurvature = 0;
+	pathSegmentDescriptor.NumberOfOrbits = 0;
+	pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
+	pathSegmentDescriptor.Timeout = 60;
 	PathSegmentDescriptorInstSet(2, &pathSegmentDescriptor);
 
 	pathSegmentDescriptor.SwitchingLocus[0] = 100;
 	pathSegmentDescriptor.SwitchingLocus[1] = 200+120;
 	pathSegmentDescriptor.SwitchingLocus[2] = -2500;
 	pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-	pathSegmentDescriptor.Timeout = 60;
+	pathSegmentDescriptor.DesiredAcceleration = 0;
 	pathSegmentDescriptor.PathCurvature = 1/70.0f; // 70m radius
 	pathSegmentDescriptor.NumberOfOrbits = 1;
 	pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
+	pathSegmentDescriptor.Timeout = 60;
 	PathSegmentDescriptorInstSet(3, &pathSegmentDescriptor);
 
 	pathSegmentDescriptor.SwitchingLocus[0] = 100;
 	pathSegmentDescriptor.SwitchingLocus[1] = 0;
 	pathSegmentDescriptor.SwitchingLocus[2] = -2500;
 	pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-	pathSegmentDescriptor.Timeout = 60;
-	pathSegmentDescriptor.NumberOfOrbits = 0;
+	pathSegmentDescriptor.DesiredAcceleration = 0;
 	pathSegmentDescriptor.PathCurvature = 0;
+	pathSegmentDescriptor.NumberOfOrbits = 0;
+	pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
+	pathSegmentDescriptor.Timeout = 60;
 	PathSegmentDescriptorInstSet(4, &pathSegmentDescriptor);
 	
 	pathSegmentDescriptor.SwitchingLocus[0] = 600;
 	pathSegmentDescriptor.SwitchingLocus[1] = 0;
 	pathSegmentDescriptor.SwitchingLocus[2] = -2500;
 	pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-	pathSegmentDescriptor.Timeout = 60;
+	pathSegmentDescriptor.DesiredAcceleration = 0;
 	pathSegmentDescriptor.PathCurvature = 1/400.0f;
 	pathSegmentDescriptor.NumberOfOrbits = 0;
 	pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
+	pathSegmentDescriptor.Timeout = 60;
 	PathSegmentDescriptorInstSet(5, &pathSegmentDescriptor);
 	
 	pathSegmentDescriptor.SwitchingLocus[0] = 800;
 	pathSegmentDescriptor.SwitchingLocus[1] = 0;
 	pathSegmentDescriptor.SwitchingLocus[2] = -2500;
 	pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
-	pathSegmentDescriptor.Timeout = 60;
+	pathSegmentDescriptor.DesiredAcceleration = 0;
 	pathSegmentDescriptor.PathCurvature = 0;
 	pathSegmentDescriptor.NumberOfOrbits = 0;
+	pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
+	pathSegmentDescriptor.Timeout = 60;
 	PathSegmentDescriptorInstSet(6, &pathSegmentDescriptor);
 }
