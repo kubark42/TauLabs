@@ -70,6 +70,7 @@ static PathSegmentDescriptorData *pathSegmentDescriptor;
 static FixedWingPathFollowerSettingsData fixedwingpathfollowerSettings;
 static FixedWingAirspeedsData fixedWingAirspeeds;
 static uint16_t activeSegment;
+static uint8_t pathCounter;
 static float rho;
 static xQueueHandle pathManagerStatusQueue;
 
@@ -133,9 +134,15 @@ int8_t updateFixedWingDesiredStabilization()
 		PathManagerStatusData pathManagerStatusData;
 		PathManagerStatusGet(&pathManagerStatusData);
 
-		if (activeSegment != pathManagerStatusData.ActiveSegment)
+		// Fixme: This isn't a very elegant check. Since the manager can update it's state with new loci, but
+		// still have the original ActiveSegment, the pathcounter was introduced, which only resets when the
+		// path manager gets a new path. Since this pathcounter variable doesn't do anything else, it's a bit
+		// of a waste of space right now. Logically, the path planner should set this variable but since we
+		// can't be sure a path planner is running, it works better on the level of the path manager.
+		if (activeSegment != pathManagerStatusData.ActiveSegment || pathCounter != pathManagerStatusData.PathCounter)
 		{
 			activeSegment = pathManagerStatusData.ActiveSegment;
+			pathCounter = pathManagerStatusData.PathCounter;
 
 			updateDestination();
 		}

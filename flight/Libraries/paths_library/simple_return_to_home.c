@@ -65,8 +65,8 @@ void simple_return_to_home()
 	float approachTheta_rad = atan2f(pathSegmentDescriptor.SwitchingLocus[1], pathSegmentDescriptor.SwitchingLocus[0]);
 	
 	// Go straight back to home
-	pathSegmentDescriptor.SwitchingLocus[0] = cos(approachTheta_rad) * radius;
-	pathSegmentDescriptor.SwitchingLocus[1] = sin(approachTheta_rad) * radius;
+	pathSegmentDescriptor.SwitchingLocus[0] = cosf(approachTheta_rad) * radius;
+	pathSegmentDescriptor.SwitchingLocus[1] = sinf(approachTheta_rad) * radius;
 	pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down - 10;
 	pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 	pathSegmentDescriptor.DesiredAcceleration = 0;
@@ -77,8 +77,8 @@ void simple_return_to_home()
 	PathSegmentDescriptorInstSet(1, &pathSegmentDescriptor);
 	
 	// Orbit home
-	pathSegmentDescriptor.SwitchingLocus[0] = -cos(approachTheta_rad) * radius;
-	pathSegmentDescriptor.SwitchingLocus[1] = -sin(approachTheta_rad) * radius;
+	pathSegmentDescriptor.SwitchingLocus[0] = -cosf(approachTheta_rad) * radius;
+	pathSegmentDescriptor.SwitchingLocus[1] = -sinf(approachTheta_rad) * radius;
 	pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down - 10;
 	pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 	pathSegmentDescriptor.DesiredAcceleration = 0;

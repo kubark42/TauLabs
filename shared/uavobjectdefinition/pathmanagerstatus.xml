@@ -5,6 +5,8 @@
 		<field name="Status" units="" type="enum" elements="1" options="InProgress,Completed,TimedOut,Overshoot,Warning,Critical" defaultvalue="Completed"/>
 		<field name="ActiveSegment" units="" type="uint8" elements="1"/>
 
+		<field name="PathCounter" units="" type="uint8" elements="1"/>
+
 		<field name="StatusParameters" units="" type="float" elements="10"/>
 
 		<access gcs="readwrite" flight="readwrite"/>

@@ -56,8 +56,6 @@
 #define OVERSHOOT_TIMER_MS 1000
 #define ANGULAR_PROXIMITY_THRESHOLD 30
 
-#define sign(x) (x < 0 ? -1 : 1)
-
 // Private types
 enum guidanceTypes{NOMANAGER, RETURNHOME, HOLDPOSITION, PATHPLANNER};
 static struct PreviousLocus {
@@ -88,7 +86,6 @@ static void checkOvershoot();
 static void pathManagerTask(void *parameters);
 static void settingsUpdated(UAVObjEvent * ev);
 static void pathSegmentDescriptorsUpdated(UAVObjEvent * ev);
-static float updateArcMeasure(float oldPosition_NE[2], float newPosition_NE[2], float arcCenter_NE[2]);
 static void advanceSegment();
 /**
  * Module initialization
@@ -190,31 +187,16 @@ static void pathManagerTask(void *parameters)
 		switch (flightStatus.FlightMode) {
 			case FLIGHTSTATUS_FLIGHTMODE_RETURNTOHOME:
 
-				PathManagerStatusGet(&pathManagerStatus);
-				pathManagerStatus.StatusParameters[2] = rand();
-				PathManagerStatusSet(&pathManagerStatus);
-
 				if (guidanceType != RETURNHOME) {
 					guidanceType = RETURNHOME;
 					pathplanner_active = false;
 
-					PathManagerStatusGet(&pathManagerStatus);
-					pathManagerStatus.StatusParameters[3] = rand();
-					PathManagerStatusSet(&pathManagerStatus);
-
 					// Load pregenerated return to home program
 					simple_return_to_home();
-
-					PathManagerStatusGet(&pathManagerStatus);
-					pathManagerStatus.StatusParameters[4] = rand();
-					PathManagerStatusSet(&pathManagerStatus);
 
 				}
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD:
-				PathManagerStatusGet(&pathManagerStatus);
-				pathManagerStatus.StatusParameters[6] = rand();
-				PathManagerStatusSet(&pathManagerStatus);
 				if (guidanceType != HOLDPOSITION) {
 					guidanceType = HOLDPOSITION;
 					pathplanner_active = false;
@@ -224,9 +206,6 @@ static void pathManagerTask(void *parameters)
 				}
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_PATHPLANNER:
-				PathManagerStatusGet(&pathManagerStatus);
-				pathManagerStatus.StatusParameters[7] = rand();
-				PathManagerStatusSet(&pathManagerStatus);
 				if (guidanceType != PATHPLANNER) {
 					guidanceType = PATHPLANNER;
 					pathplanner_active = false;
@@ -263,10 +242,6 @@ static void pathManagerTask(void *parameters)
 		}
 
 #endif //PATH_PLANNER
-
-		PathManagerStatusGet(&pathManagerStatus);
-		pathManagerStatus.StatusParameters[1] = rand();
-		PathManagerStatusSet(&pathManagerStatus);
 
 		bool advanceSegment_flag = false;
 
@@ -316,8 +291,8 @@ static void pathManagerTask(void *parameters)
 		// Check if the path_manager was just activated
 		if (pathplanner_active == false) {
 			// Update path manager
-			PathManagerStatusGet(&pathManagerStatus);
-			pathManagerStatus.ActiveSegment = 0;
+			pathManagerStatus.ActiveSegment = 0; // This will get immediately incremented to 1 by advanceSegment()
+			pathManagerStatus.PathCounter++; // Incrementing this tells the path follower that there is a new path
 			pathManagerStatus.Status = PATHMANAGERSTATUS_STATUS_INPROGRESS;
 			PathManagerStatusSet(&pathManagerStatus);
 
@@ -446,7 +421,7 @@ static bool checkGoalCondition()
 			// "Small Unmanned Aircraft: Theory and Practice" provides no guidance for the perpendicular
 			// intersection of a line and an arc. However, it seems reasonable to consider the halfplane
 			// as occurring at the intersection between the vector and the arc, with the frontier defined
-			// as the half-angle between the arriving vector and the departing arc tangent, similar to in
+			// as the half-angle between the arriving vector and the departing arc tangent, similar to
 			// the line-line case.
 			//
 			// The nice part about this approach is that it works equally well for a tangent curve, as the intersection
@@ -502,6 +477,53 @@ static bool checkGoalCondition()
 					advanceSegment_flag = true;
 
 				return advanceSegment_flag;
+			}
+			// "Small Unmanned Aircraft: Theory and Practice" provides no guidance for the perpendicular
+			// intersection of two arcs. However, it seems reasonable to consider the halfplane
+			// occurring at the intersection between the two arcs. The halfplane's frontier is defined
+			// as the half-angle between the arriving arc tangent and the departing arc tangent, similar to
+			// the line-line case.
+			else if (pathSegmentDescriptor_current.PathCurvature != 0 && pathSegmentDescriptor_future.PathCurvature != 0)
+			{
+					// Cheat by remarking that the plane defined by the radius is perfectly defined by the angle made
+					// between the center and the end of the trajectory. So if the vehicle has traveled further than
+					// the required angular distance, it has crossed this
+					if (sign(pathSegmentDescriptor_current.PathCurvature) * (angularDistanceCompleted - angularDistanceToComplete) >= 0)
+						advanceSegment_flag = true;
+
+					return advanceSegment_flag;
+
+//					// Calculate vector tangent to arc at preset switching locus. This comes from geometry that that tangent to a circle
+//					// is the perpendicular vector to the vector connecting the tangent point and the center of the circle. The vector R
+//					// is tangent_point - arc_center, so the perpendicular to R is <-lambda*Ry,lambda*Rx>, where lambda = +-1.
+
+//					bool clockwise_arrival = pathSegmentDescriptor_current.PathCurvature > 0;
+//					bool minor_arrival = pathSegmentDescriptor_current.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
+//					int8_t lambda_arrival;
+
+//					bool clockwise_departure = pathSegmentDescriptor_future.PathCurvature > 0;
+//					bool minor_departure = pathSegmentDescriptor_future.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
+//					int8_t lambda_departure;
+
+//					if ((clockwise_arrival == true && minor_arrival == true) ||
+//							(clockwise_arrival == false && minor_arrival == false)) { //clockwise minor OR counterclockwise major
+//						lambda_arrival = 1;
+//					} else { //counterclockwise minor OR clockwise major
+//						lambda_arrival = -1;
+//					}
+
+//					if ((clockwise_departure == true && minor_departure == true) ||
+//							(clockwise_departure == false && minor_departure == false)) { //clockwise minor OR counterclockwise major
+//						lambda_departure = 1;
+//					} else { //counterclockwise minor OR clockwise major
+//						lambda_departure = -1;
+//					}
+
+//					// Vector perpendicular to the vector from arc center to tangent point
+//					q_future[0] = -lambda_departure*(swl_current[1] - arcCenter_NE[1]);
+//					q_future[1] = lambda_departure*(swl_current[0] - arcCenter_NE[0]);
+//					q_future[2] = 0;
+//					q_future_mag = VectorMagnitude(q_future); //Normalize
 			}
 			else{
 				// Shouldn't be able to get here. Something has gone wrong.
@@ -613,23 +635,6 @@ static void checkOvershoot()
 
 
 }
-
-//<<<UGH, This function is badly named. All it's doing is calculating the angle between two vectors>>>
-//Calculate the angle between two vectors, using simple vector calculus.
-static float updateArcMeasure(float oldPosition_NE[2], float newPosition_NE[2], float arcCenter_NE[2])
-{
-	float a[2] = {oldPosition_NE[0] - arcCenter_NE[0], oldPosition_NE[1] - arcCenter_NE[1]};
-	float b[2] = {newPosition_NE[0] - arcCenter_NE[0], newPosition_NE[1] - arcCenter_NE[1]};
-
-	// We cannot directly use the vector calculus formula for cos(theta) and sin(theta) because each
-	// is only defined on half the circle. Instead, we combine the two because tangent is defined across
-	// [-pi,pi]. Use the definition of the cross-product for 2-D vectors, a x b = |a||b| sin(theta), and
-	// the definition of the dot product, a.b = |a||b| cos(theta), and divide the first by the second,
-	// yielding a x b / (a.b) = sin(theta)/cos(theta) == tan(theta)
-	float theta = atan2f(a[0]*b[1] - a[1]*b[0],(a[0]*b[0] + a[1]*b[1]));
-	return theta;
-}
-
 
 /**
  * On changed path plan.

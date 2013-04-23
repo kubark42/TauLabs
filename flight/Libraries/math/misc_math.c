@@ -125,3 +125,39 @@ CenterCalculationResult arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_p
 
 	return CENTER_FOUND;
 }
+
+
+//<<<UGH, This function is badly named. All it's doing is calculating the angle between two vectors>>>
+/**
+ * @brief updateArcMeasure Measure angle between two points on a circle,
+ * @param oldPosition_NE
+ * @param newPosition_NE
+ * @param arcCenter_NE
+ * @return The angle between the two points on the circle
+ */
+float updateArcMeasure(float oldPosition_NE[2], float newPosition_NE[2], float arcCenter_NE[2])
+{
+	float a[2] = {oldPosition_NE[0] - arcCenter_NE[0], oldPosition_NE[1] - arcCenter_NE[1]};
+	float b[2] = {newPosition_NE[0] - arcCenter_NE[0], newPosition_NE[1] - arcCenter_NE[1]};
+
+	float theta = angle_between_2d_vectors(a, b);
+	return theta;
+}
+
+
+/**
+ * @brief angle_between_2d_vectors Using simple vector calculus, calculate the angle between two 2D vectors
+ * @param a
+ * @param b
+ * @return The angle between two vectors
+ */
+float angle_between_2d_vectors(float a[2], float b[2])
+{
+	// We cannot directly use the vector calculus formula for cos(theta) and sin(theta) because each
+	// is only unique on half the circle. Instead, we combine the two because tangent is unique across
+	// [-pi,pi]. Use the definition of the cross-product for 2-D vectors, a x b = |a||b| sin(theta), and
+	// the definition of the dot product, a.b = |a||b| cos(theta), and divide the first by the second,
+	// yielding a x b / (a.b) = sin(theta)/cos(theta) == tan(theta)
+	float theta = atan2f(a[0]*b[1] - a[1]*b[0],(a[0]*b[0] + a[1]*b[1]));
+	return theta;
+}

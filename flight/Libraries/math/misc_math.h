@@ -29,13 +29,23 @@
 
 #include <pios.h>
 
+typedef enum CenterCalculationResult {CENTER_FOUND, COINCIDENT_POINTS, INSUFFICIENT_RADIUS} CenterCalculationResult;
+
+//! This is but one definition of sign(.)
+#define sign(x) (x < 0 ? -1 : 1)
+
 //! Bound input value within range (plus or minus)
 float bound_sym(float val, float range);
 
 //! Bound input value between min and max
 float bound_min_max(float val, float min, float max);
 
-typedef enum CenterCalculationResult {CENTER_FOUND, COINCIDENT_POINTS, INSUFFICIENT_RADIUS} CenterCalculationResult;
 CenterCalculationResult arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_point, float *end_point, float radius, float *center, bool clockwise, bool minor);
+
+//! Measure angle between two points on a circle
+float updateArcMeasure(float oldPosition_NE[2], float newPosition_NE[2], float arcCenter_NE[2]);
+
+//! Measure angle between two 2d vectors
+float angle_between_2d_vectors(float a[2], float b[2]);
 
 #endif /* MISC_MATH_H */

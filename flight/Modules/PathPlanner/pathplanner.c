@@ -44,7 +44,7 @@
 
 // Private constants
 #define STACK_SIZE_BYTES 1024
-#define TASK_PRIORITY (tskIDLE_PRIORITY)
+#define TASK_PRIORITY (tskIDLE_PRIORITY+0)
 #define MAX_QUEUE_SIZE 2
 // It is difficult to cleanly define how often the path planner should run. Generally, it is an
 // iterative process, and so we would like to continue to refine the solution as long as there
@@ -84,6 +84,7 @@ static void createPathReturnToHome();
 static int8_t processWaypoints(PathPlannerSettingsPlannerAlgorithmOptions plannerAlgorithm);
 
 PathPlannerStates direct_path_planner();
+PathPlannerStates direct_path_planner_with_filleting();
 
 ////! Store which waypoint has actually been pushed into PathDesired
 //static int32_t active_waypoint = -1;
@@ -202,11 +203,16 @@ static void pathPlannerTask(void *parameters)
 
 					switch(pathPlannerSettings.PreprogrammedPath) {
 						case PATHPLANNERSETTINGS_PREPROGRAMMEDPATH_NONE:
-							// No path? In that case, burn some time and loop back to beginning. This is something that should be fixed as this takes the final form.
-							process_waypoints_flag = true;
-							guidanceType = NOMANAGER;
-							vTaskDelay(IDLE_UPDATE_RATE_MS * portTICK_RATE_MS);
-
+							if (UAVObjGetNumInstances(WaypointHandle()) > 1) {
+								pathPlannerStatus.PathAvailability = PATHPLANNERSTATUS_PATHAVAILABILITY_NONE;
+								PathPlannerStatusSet(&pathPlannerStatus);
+							}
+							else {
+								// No path? In that case, burn some time and loop back to beginning. This is something that should be fixed as this takes the final form.
+								process_waypoints_flag = true;
+								guidanceType = NOMANAGER;
+								vTaskDelay(IDLE_UPDATE_RATE_MS * portTICK_RATE_MS);
+							}
 							break;
 						case PATHPLANNERSETTINGS_PREPROGRAMMEDPATH_10M_BOX:
 							createPathBox();
@@ -281,8 +287,13 @@ int8_t processWaypoints(PathPlannerSettingsPlannerAlgorithmOptions plannerAlgori
 		}
 		break;
 		case PATHPLANNERSETTINGS_PLANNERALGORITHM_DIRECTWITHFILLETING:
+			{
+				PathPlannerStates ret;
+				ret = direct_path_planner_with_filleting();
+				return ret;
+			}
 		break;
-	default:
+		default:
 		break;
 	}
 
@@ -327,43 +338,28 @@ PathPlannerStates direct_path_planner()
 		WaypointData waypoint;
 		WaypointInstGet(i, &waypoint);
 
+		float curvature = 0;
+
 		bool path_is_circle = false;
 
 		// Velocity is independent of path
 		pathSegmentDescriptor.FinalVelocity = waypoint.Velocity;
 
 		// Determine if the path is a straight line or if it arcs
-		if (waypoint.Mode == WAYPOINT_MODE_CIRCLEPOSITIONRIGHT)
+		switch (waypoint.Mode)
 		{
-			path_is_circle = true;
-			pathSegmentDescriptor.NumberOfOrbits = 1e8;
-			pathSegmentDescriptor.PathCurvature = 1.0f/waypoint.ModeParameters;
-		}
-		else if (waypoint.Mode == WAYPOINT_MODE_FLYCIRCLERIGHT)
-		{
-			pathSegmentDescriptor.NumberOfOrbits = 0;
-			pathSegmentDescriptor.PathCurvature = 1.0f/waypoint.ModeParameters;
-		}
-		else if (waypoint.Mode == WAYPOINT_MODE_DRIVECIRCLERIGHT)
-		{
-			pathSegmentDescriptor.NumberOfOrbits = 0;
-			pathSegmentDescriptor.PathCurvature = 1.0f/waypoint.ModeParameters;
-		}
-		else if (waypoint.Mode == WAYPOINT_MODE_CIRCLEPOSITIONLEFT)
-		{
-			path_is_circle = true;
-			pathSegmentDescriptor.NumberOfOrbits = 1e8;
-			pathSegmentDescriptor.PathCurvature = -1.0f/waypoint.ModeParameters;
-		}
-		else if (waypoint.Mode == WAYPOINT_MODE_FLYCIRCLELEFT)
-		{
-			pathSegmentDescriptor.NumberOfOrbits = 0;
-			pathSegmentDescriptor.PathCurvature = -1.0f/waypoint.ModeParameters;
-		}
-		else if (waypoint.Mode == WAYPOINT_MODE_DRIVECIRCLELEFT)
-		{
-			pathSegmentDescriptor.NumberOfOrbits = 0;
-			pathSegmentDescriptor.PathCurvature = -1.0f/waypoint.ModeParameters;
+			case WAYPOINT_MODE_CIRCLEPOSITIONRIGHT:
+				path_is_circle = true;
+			case WAYPOINT_MODE_FLYCIRCLERIGHT:
+			case WAYPOINT_MODE_DRIVECIRCLERIGHT:
+				curvature = 1.0f/waypoint.ModeParameters;
+				break;
+			case WAYPOINT_MODE_CIRCLEPOSITIONLEFT:
+				path_is_circle = true;
+			case WAYPOINT_MODE_FLYCIRCLELEFT:
+			case WAYPOINT_MODE_DRIVECIRCLELEFT:
+				curvature = -1.0f/waypoint.ModeParameters;
+				break;
 		}
 
 		// In the case of pure circles, the given waypoint is for a circle center
@@ -372,6 +368,9 @@ PathPlannerStates direct_path_planner()
 			pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0];
 			pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1];
 			pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
+			pathSegmentDescriptor.PathCurvature = curvature;
+			pathSegmentDescriptor.NumberOfOrbits = 0;
+
 			pathSegmentDescriptor.Timeout = 60; // TODO: Calculate time
 
 			PathSegmentDescriptorInstSet(i+offset, &pathSegmentDescriptor);
@@ -379,12 +378,12 @@ PathPlannerStates direct_path_planner()
 		else{
 			//
 			PathSegmentDescriptorData pathSegmentDescriptor_old;
-			PathSegmentDescriptorInstGet(i-1, &pathSegmentDescriptor_old);
+			PathSegmentDescriptorInstGet(i-1+offset, &pathSegmentDescriptor_old);
 
 			PathManagerSettingsData pathManagerSettings;
 			PathManagerSettingsGet(&pathManagerSettings);
 
-			float radius = 1.0f/pathSegmentDescriptor.PathCurvature;
+			float radius = fabs(1.0f/curvature);
 
 			// Calculate the approach angle from the previous switching locus to the waypoint
 			float approachTheta_rad = atan2f(waypoint.Position[1] - pathSegmentDescriptor_old.SwitchingLocus[1], waypoint.Position[0] - pathSegmentDescriptor_old.SwitchingLocus[0]);
@@ -394,8 +393,8 @@ PathPlannerStates direct_path_planner()
 
 			if (d > pathManagerSettings.HalfPlaneAdvanceTiming * pathSegmentDescriptor.FinalVelocity) {
 				// Go straight to position
-				pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] + cos(approachTheta_rad)*radius;
-				pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] + sin(approachTheta_rad)*radius;
+				pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] - cosf(approachTheta_rad)*radius;
+				pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] - sinf(approachTheta_rad)*radius;
 				pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
 				pathSegmentDescriptor.PathCurvature = 0;
 				pathSegmentDescriptor.NumberOfOrbits = 0;
@@ -406,19 +405,19 @@ PathPlannerStates direct_path_planner()
 				offset++;
 
 				// Orbit position
-				PathSegmentDescriptorCreateInstance();
-				pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] -cos(approachTheta_rad) * radius;
-				pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] -sin(approachTheta_rad) * radius;
+				PathSegmentDescriptorCreateInstance(); //TODO: Check for successful creation of switching locus
+				pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] + cosf(approachTheta_rad) * radius;
+				pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] + sinf(approachTheta_rad) * radius;
 				pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
-				pathSegmentDescriptor.PathCurvature = -1.0f/waypoint.ModeParameters;
+				pathSegmentDescriptor.PathCurvature = curvature;
 				pathSegmentDescriptor.NumberOfOrbits = 1e8;
 				pathSegmentDescriptor.Timeout = 60; // TODO: Calculate timeout
 				PathSegmentDescriptorInstSet(i+offset, &pathSegmentDescriptor);
 			}
 			else {
 				// Enter directly into circle
-				pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] + cos(approachTheta_rad)*radius;
-				pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] + sin(approachTheta_rad)*radius;
+				pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] - cosf(approachTheta_rad)*radius;
+				pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] - sinf(approachTheta_rad)*radius;
 				pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
 				pathSegmentDescriptor.PathCurvature = 0;
 				pathSegmentDescriptor.NumberOfOrbits = 0;
@@ -429,11 +428,11 @@ PathPlannerStates direct_path_planner()
 				offset++;
 
 				// Orbit position
-				PathSegmentDescriptorCreateInstance();
-				pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] -cos(approachTheta_rad) * radius;
-				pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] -sin(approachTheta_rad) * radius;
+				PathSegmentDescriptorCreateInstance(); //TODO: Check for successful creation of switching locus
+				pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] + cosf(approachTheta_rad) * radius;
+				pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] + sinf(approachTheta_rad) * radius;
 				pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
-				pathSegmentDescriptor.PathCurvature = -1.0f/waypoint.ModeParameters;
+				pathSegmentDescriptor.PathCurvature = curvature;
 				pathSegmentDescriptor.NumberOfOrbits = 1e8;
 				pathSegmentDescriptor.Timeout = 60; // TODO: Calculate timeout
 				PathSegmentDescriptorInstSet(i+offset, &pathSegmentDescriptor);
@@ -444,6 +443,241 @@ PathPlannerStates direct_path_planner()
 	return PATH_PLANNER_SUCCESS;
 }
 
+
+PathPlannerStates direct_path_planner_with_filleting()
+{
+	// Check for memory before generating new path descriptors. This is a little harder
+	// since we don't know how many switching loci we'll need ahead of time. However, a
+	// rough guess is we'll need twice as many loci as we do waypoints
+	if(1) //There is enough memory
+	{
+		// Generate the path segment descriptors
+		for (int i=UAVObjGetNumInstances(PathSegmentDescriptorHandle()); i<UAVObjGetNumInstances(WaypointHandle())+1; i++) {
+			//TODO: Ensure there is enough memory before generating
+			PathSegmentDescriptorCreateInstance();
+		}
+	}
+	else
+		return PATH_PLANNER_INSUFFICIENT_MEMORY;
+
+	PathSegmentDescriptorData pathSegmentDescriptor;
+
+	PositionActualData positionActual;
+	PositionActualGet(&positionActual);
+
+	pathSegmentDescriptor.SwitchingLocus[0] = positionActual.North;
+	pathSegmentDescriptor.SwitchingLocus[1] = positionActual.East;
+	pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down;
+	pathSegmentDescriptor.FinalVelocity = 0;
+	pathSegmentDescriptor.DesiredAcceleration = 0;
+	pathSegmentDescriptor.Timeout = 0;
+	pathSegmentDescriptor.NumberOfOrbits = 0;
+	pathSegmentDescriptor.PathCurvature = 0;
+	pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
+	PathSegmentDescriptorInstSet(0, &pathSegmentDescriptor);
+
+	uint16_t offset = 1;
+
+	for(int i=0; i<UAVObjGetNumInstances(WaypointHandle()); i++) {
+		WaypointData waypoint;
+		WaypointInstGet(i, &waypoint);
+
+		float curvature = 0;
+
+		bool path_is_circle = false;
+
+		// Velocity is independent of path
+		pathSegmentDescriptor.FinalVelocity = waypoint.Velocity;
+
+		// Determine if the path is a straight line or if it arcs
+		switch (waypoint.Mode)
+		{
+			case WAYPOINT_MODE_CIRCLEPOSITIONRIGHT:
+				path_is_circle = true;
+			case WAYPOINT_MODE_FLYCIRCLERIGHT:
+			case WAYPOINT_MODE_DRIVECIRCLERIGHT:
+				curvature = 1.0f/waypoint.ModeParameters;
+				break;
+			case WAYPOINT_MODE_CIRCLEPOSITIONLEFT:
+				path_is_circle = true;
+			case WAYPOINT_MODE_FLYCIRCLELEFT:
+			case WAYPOINT_MODE_DRIVECIRCLELEFT:
+				curvature = -1.0f/waypoint.ModeParameters;
+				break;
+		}
+
+		// Only add fillets if the radius is greater than 0, and this is not the last waypoint
+		if (pathPlannerSettings.PreferredRadius>0 && i<UAVObjGetNumInstances(WaypointHandle())-1)
+		{
+			// Determine tangent direction of new segment.
+			PathSegmentDescriptorData pathSegmentDescriptor_old;
+			PathSegmentDescriptorData pathSegmentDescriptor_current;
+			PathSegmentDescriptorInstGet(i-1+offset, &pathSegmentDescriptor_old);
+
+			WaypointData waypoint_future;
+			WaypointInstGet(i+1, &waypoint_future);
+
+
+			float *swl_current = waypoint.Position;
+			float q_future[3];
+			float q_future_mag;
+			float q_current[3] = {swl_current[0] - swl_past[0], swl_current[1] - swl_past[1], 0};
+			float q_current_mag = VectorMagnitude(q_current); //Normalize
+			for (int i=0; i<3; i++)
+				q_current[i] = q_current/q_current_mag;
+
+
+
+			PathSegmentDescriptorData pathSegmentDescriptor_future;
+			PathSegmentDescriptorInstGet(pathManagerStatus.ActiveSegment+1, &pathSegmentDescriptor_future);  // TODO: Check that an instance is successfully returned
+
+			// In the case of line-line intersection lines, this is simply the direction of
+			// the new segment.
+			if (curvature == 0 && waypoint_future.ModeParameters == 0) { // Fixme: waypoint_future.ModeParameters needs to be replaced by waypoint_future.Mode. FOr this, we probably need a new function to handle the switch(waypoint.Mode)
+				float *swl_future  = waypoint_future.Position;
+
+				// Calculate vector from preset to future switching locus
+				q_future [0] = swl_future[0] - swl_current[0];
+				q_future [1] = swl_future[1] - swl_current[1];
+				q_future [2] = 0;
+				q_future_mag = VectorMagnitude(q_future); //Normalize
+
+				for (int i=0; i<3; i++)
+					q_future[i] = q_future/q_future_mag;
+
+			}
+
+			// Computer half-angle between current and future tangents.
+			float rho2 = angle_between_2d_vectors(q_current, q_future)/2;
+			float absRho2 = fabs(rho2);
+
+			// Distance from the waypoint to the fillet
+			float R = pathPlannerSettings.PreferredRadius;
+			float d = R/(sinf(rho2)) - R;
+
+			// If the angle is so acute that the fillet would be further away than the radius of a circle
+			// then instead of filleting the angle to the inside, circle around it to the outside
+			if (d > R){ // d>R actually simplifies to if rho>pi/3
+//					pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] - R/tanf(absRho2)*q_current[0];
+//					pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] - R/tanf(absRho2)*q_current[1];
+//					pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
+//					pathSegmentDescriptor.PathCurvature = 0;
+//					pathSegmentDescriptor.NumberOfOrbits = 0;
+//					PathSegmentDescriptorInstSet(i+offset, &pathSegmentDescriptor);
+
+//					offset++;
+//					PathSegmentDescriptorCreateInstance(); //TODO: Check for successful creation of switching locus
+
+//					pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] + R/tanf(absRho2)*q_future[0];
+//					pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] + R/tanf(absRho2)*q_future[1];
+//					pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
+//					pathSegmentDescriptor.PathCurvature = -sign(rho2)*1.0f/R;
+//					pathSegmentDescriptor.NumberOfOrbits = 0;
+//					PathSegmentDescriptorInstSet(i+offset, &pathSegmentDescriptor);
+			}
+			else {
+				pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] - R/tanf(absRho2)*q_current[0];
+				pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] - R/tanf(absRho2)*q_current[1];
+				pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
+				pathSegmentDescriptor.PathCurvature = 0;
+				pathSegmentDescriptor.NumberOfOrbits = 0;
+				PathSegmentDescriptorInstSet(i+offset, &pathSegmentDescriptor);
+
+				offset++;
+				PathSegmentDescriptorCreateInstance(); //TODO: Check for successful creation of switching locus
+
+				pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] + R/tanf(absRho2)*q_future[0];
+				pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] + R/tanf(absRho2)*q_future[1];
+				pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
+				pathSegmentDescriptor.PathCurvature = -sign(rho2)*1.0f/R;
+				pathSegmentDescriptor.NumberOfOrbits = 0;
+				PathSegmentDescriptorInstSet(i+offset, &pathSegmentDescriptor);
+			}
+
+
+		}
+
+/*		// In the case of pure circles, the given waypoint is for a circle center
+		// so we have to convert it into a pair of switching loci.
+		if ( !path_is_circle ) {
+			pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0];
+			pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1];
+			pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
+			pathSegmentDescriptor.PathCurvature = curvature;
+			pathSegmentDescriptor.NumberOfOrbits = 0;
+
+			pathSegmentDescriptor.Timeout = 60; // TODO: Calculate time
+
+			PathSegmentDescriptorInstSet(i+offset, &pathSegmentDescriptor);
+		}
+		else{
+			//
+			PathSegmentDescriptorData pathSegmentDescriptor_old;
+			PathSegmentDescriptorInstGet(i-1+offset, &pathSegmentDescriptor_old);
+
+			PathManagerSettingsData pathManagerSettings;
+			PathManagerSettingsGet(&pathManagerSettings);
+
+			float radius = fabs(1.0f/curvature);
+
+			// Calculate the approach angle from the previous switching locus to the waypoint
+			float approachTheta_rad = atan2f(waypoint.Position[1] - pathSegmentDescriptor_old.SwitchingLocus[1], waypoint.Position[0] - pathSegmentDescriptor_old.SwitchingLocus[0]);
+
+			// Calculate distance from previous waypoint to circle perimeter. (Distance to perimeter is distance to circle center minus radius)
+			float d = sqrt(powf(pathSegmentDescriptor.SwitchingLocus[0] - pathSegmentDescriptor_old.SwitchingLocus[0], 2) + powf(pathSegmentDescriptor.SwitchingLocus[1] - pathSegmentDescriptor_old.SwitchingLocus[1], 2)) - radius;
+
+			if (d > pathManagerSettings.HalfPlaneAdvanceTiming * pathSegmentDescriptor.FinalVelocity) {
+				// Go straight to position
+				pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] - cosf(approachTheta_rad)*radius;
+				pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] - sinf(approachTheta_rad)*radius;
+				pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
+				pathSegmentDescriptor.PathCurvature = 0;
+				pathSegmentDescriptor.NumberOfOrbits = 0;
+				pathSegmentDescriptor.Timeout = 60; // TODO: Calculate timeout
+				PathSegmentDescriptorInstSet(i+offset, &pathSegmentDescriptor);
+
+				// Increment offest counter
+				offset++;
+				PathSegmentDescriptorCreateInstance(); //TODO: Check for successful creation of switching locus
+
+				// Orbit position
+				pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] + cosf(approachTheta_rad) * radius;
+				pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] + sinf(approachTheta_rad) * radius;
+				pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
+				pathSegmentDescriptor.PathCurvature = curvature;
+				pathSegmentDescriptor.NumberOfOrbits = 1e8;
+				pathSegmentDescriptor.Timeout = 60; // TODO: Calculate timeout
+				PathSegmentDescriptorInstSet(i+offset, &pathSegmentDescriptor);
+			}
+			else {
+				// Enter directly into circle
+				pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] - cosf(approachTheta_rad)*radius;
+				pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] - sinf(approachTheta_rad)*radius;
+				pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
+				pathSegmentDescriptor.PathCurvature = 0;
+				pathSegmentDescriptor.NumberOfOrbits = 0;
+				pathSegmentDescriptor.Timeout = d; // TODO: Calculate timeout
+				PathSegmentDescriptorInstSet(i+offset, &pathSegmentDescriptor);
+
+				// Increment offest counter
+				offset++;
+				PathSegmentDescriptorCreateInstance(); //TODO: Check for successful creation of switching locus
+
+				// Orbit position
+				pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] + cosf(approachTheta_rad) * radius;
+				pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] + sinf(approachTheta_rad) * radius;
+				pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
+				pathSegmentDescriptor.PathCurvature = curvature;
+				pathSegmentDescriptor.NumberOfOrbits = 1e8;
+				pathSegmentDescriptor.Timeout = 60; // TODO: Calculate timeout
+				PathSegmentDescriptorInstSet(i+offset, &pathSegmentDescriptor);
+			}
+		}
+		*/
+	}
+
+	return PATH_PLANNER_SUCCESS;
+}
 
 /**
  * On changed waypoints, replan the path
@@ -475,13 +709,6 @@ void settingsUpdated(UAVObjEvent * ev) {
 			case PATHPLANNERSETTINGS_PREPROGRAMMEDPATH_LOGO:
 				createPathLogo();
 				break;
-			case PATHPLANNERSETTINGS_PREPROGRAMMEDPATH_RETURNTOHOME:
-				createPathReturnToHome();
-				break;
-			case PATHPLANNERSETTINGS_PREPROGRAMMEDPATH_HOLDPOSITION:
-				createPathHoldPosition();
-				break;
-
 		}
 	}
 }
@@ -498,6 +725,7 @@ static void createPathReturnToHome()
 	waypoint.Position[0] = 0;
 	waypoint.Position[1] = 0;
 	waypoint.Position[2] = positionActual.Down - 10;
+	waypoint.Velocity = 12;
 	waypoint.Mode = WAYPOINT_MODE_CIRCLEPOSITIONLEFT;
 	waypoint.ModeParameters = radius;
 	WaypointInstSet(0, &waypoint);
@@ -518,6 +746,7 @@ static void createPathHoldPosition()
 	waypoint.Position[0] = positionActual.North;
 	waypoint.Position[1] = positionActual.East;
 	waypoint.Position[2] = positionActual.Down - 10;
+	waypoint.Velocity = 12;
 	waypoint.Mode = WAYPOINT_MODE_CIRCLEPOSITIONRIGHT;
 	waypoint.ModeParameters = radius;
 	WaypointInstSet(0, &waypoint);
@@ -539,7 +768,8 @@ static void createPathBox()
 
 	// Draw O
 	WaypointData waypoint;
-	waypoint.Velocity = 12; // Since for now this isn't directional just set a mag
+	waypoint.ModeParameters = 0;
+	waypoint.Velocity = 12;
 	waypoint.Mode = WAYPOINT_MODE_FLYVECTOR;
 
 	waypoint.Position[0] = 0;
@@ -554,17 +784,21 @@ static void createPathBox()
 
 	waypoint.Position[0] = -25*scale;
 	waypoint.Position[1] = 25*scale;
-//	waypoint.Mode = WAYPOINT_MODE_FLYCIRCLELEFT;
+	waypoint.Mode = WAYPOINT_MODE_FLYCIRCLELEFT;
 	//waypoint.Mode = WAYPOINT_MODE_FLYCIRCLERIGHT;
-	waypoint.ModeParameters = 35;
+	waypoint.ModeParameters = 35*scale;
 	WaypointInstSet(2, &waypoint);
 
 	waypoint.Position[0] = -25*scale;
 	waypoint.Position[1] = -25*scale;
+	waypoint.Mode = WAYPOINT_MODE_FLYCIRCLERIGHT;
+	waypoint.ModeParameters = 35*scale;
 	WaypointInstSet(3, &waypoint);
 
 	waypoint.Position[0] = 25*scale;
 	waypoint.Position[1] = -25*scale;
+	waypoint.Mode = WAYPOINT_MODE_FLYVECTOR;
+	waypoint.ModeParameters = 0;
 	WaypointInstSet(4, &waypoint);
 
 	waypoint.Position[0] = 25*scale;
@@ -574,7 +808,7 @@ static void createPathBox()
 	waypoint.Position[0] = 0;
 	waypoint.Position[1] = 0;
 	waypoint.Mode = WAYPOINT_MODE_CIRCLEPOSITIONLEFT;
-	waypoint.ModeParameters = 35;
+	waypoint.ModeParameters = 35*scale;
 	WaypointInstSet(6, &waypoint);
 }
 
@@ -590,14 +824,17 @@ static void createPathLogo()
 	}
 
 
-	// Draw O
 	WaypointData waypoint;
 	waypoint.Velocity = 12; // Since for now this isn't directional just set a mag
+	waypoint.ModeParameters = 0;
+
+	// Draw O
 	for(uint32_t i = 0; i < 20; i++) {
 		waypoint.Position[1] = scale * 30 * cosf(i / 19.0 * 2 * PI);
 		waypoint.Position[0] = scale * 50 * sinf(i / 19.0 * 2 * PI);
 		waypoint.Position[2] = -2500;
 		waypoint.Mode = WAYPOINT_MODE_FLYVECTOR;
+		WaypointInstSet(i, &waypoint);
 	}
 
 	// Draw P
@@ -606,6 +843,7 @@ static void createPathLogo()
 		waypoint.Position[0] = scale * (25 + 25 * sinf(i / 10.0 * PI - PI / 2));
 		waypoint.Position[2] = -2500;
 		waypoint.Mode = WAYPOINT_MODE_FLYVECTOR;
+		WaypointInstSet(i, &waypoint);
 	}
 
 	waypoint.Position[1] = scale * 35;
