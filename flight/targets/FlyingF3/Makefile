@@ -116,6 +116,8 @@ endif
 
 SRC += $(FLIGHTLIB)/CoordinateConversions.c
 SRC += $(FLIGHTLIB)/paths.c
+SRC += $(FLIGHTLIB)/path_planners/direct.c
+SRC += $(FLIGHTLIB)/path_planners/direct_with_filleting.c
 SRC += $(FLIGHTLIB)/paths_library/example_program.c
 SRC += $(FLIGHTLIB)/paths_library/simple_return_to_home.c
 SRC += $(FLIGHTLIB)/paths_library/simple_hold_position.c

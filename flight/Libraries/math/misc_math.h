@@ -31,6 +31,10 @@
 
 typedef enum CenterCalculationResult {CENTER_FOUND, COINCIDENT_POINTS, INSUFFICIENT_RADIUS} CenterCalculationResult;
 
+// Max/Min macros.
+#define MAX(a, b)               ((a) > (b) ? (a) : (b))
+#define MIN(a, b)               ((a) < (b) ? (a) : (b))
+
 //! This is but one definition of sign(.)
 #define sign(x) (x < 0 ? -1 : 1)
 

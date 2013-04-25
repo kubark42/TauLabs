@@ -316,8 +316,7 @@ void updateDestination(){
 	int8_t ret;
 	ret = PathSegmentDescriptorInstGet(activeSegment-1, &pathSegmentDescriptor_old);
 	if(ret != 0){
-			if (activeSegment == 0)
-			{
+			if (activeSegment == 0) { // This means we're going to the first switching locus.
 				PositionActualData positionActual;
 				PositionActualGet(&positionActual);
 
@@ -380,6 +379,10 @@ void updateDestination(){
 		//Calculate radius, rho, using r*omega=v and omega = g/V_g * tan(phi)
 		rho = fabs(1.0f/pathSegmentDescriptor->PathCurvature) > MIN_RHO ? fabs(1.0f/pathSegmentDescriptor->PathCurvature) : MIN_RHO;
 	}
+
+	//-------------------------------------//
+	//FIXME: Inspect values for NaN or Inf.//
+	//-------------------------------------//
 
 	pathDesired.EndingVelocity=pathSegmentDescriptor->FinalVelocity;
 	PathDesiredSet(&pathDesired);
