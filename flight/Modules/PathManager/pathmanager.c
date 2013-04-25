@@ -323,6 +323,10 @@ static void pathManagerTask(void *parameters)
 }
 
 
+/**
+ * @brief advanceSegment FIXME: Currently, this will read as many PathSegmentDescriptor instances as there are, not as many
+ * as exist in the program. This condition occurs when a long program is replaced by a short one.
+ */
 static void advanceSegment()
 {
 	PathSegmentDescriptorData pathSegmentDescriptor;
@@ -348,11 +352,11 @@ static void advanceSegment()
 	if (pathSegmentDescriptor_current.PathCurvature != 0 ) {
 		// Determine if the arc has a center, and if so assign it to arcCenter_NE
 		arc_has_center = arcCenterFromTwoPointsAndRadiusAndArcRank(previousLocus->Position, pathSegmentDescriptor_current.SwitchingLocus,
-			1.0f/pathSegmentDescriptor_current.PathCurvature, arcCenter_NE,
-			pathSegmentDescriptor_current.PathCurvature > 0, pathSegmentDescriptor_current.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR);
+				1.0f/pathSegmentDescriptor_current.PathCurvature, arcCenter_NE,	pathSegmentDescriptor_current.PathCurvature > 0,
+				pathSegmentDescriptor_current.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR);
 
-//				pathManagerStatus.StatusParameters[8] = arcCenter_NE[0];
-//				pathManagerStatus.StatusParameters[9] = arcCenter_NE[1];
+//		pathManagerStatus.StatusParameters[8] = arcCenter_NE[0];
+//		pathManagerStatus.StatusParameters[9] = arcCenter_NE[1];
 
 		// If the arc has a center, then set the initial position as the beginning of the arc, and calculate the angular
 		// distance to be traveled along the arc
