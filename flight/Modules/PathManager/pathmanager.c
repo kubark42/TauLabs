@@ -43,7 +43,7 @@
 #include "pathmanagersettings.h"
 #include "pathplannerstatus.h"
 #include "pathsegmentdescriptor.h"
-#include "paths library.h"
+#include "paths_library.h"
 
 #include "CoordinateConversions.h"
 
@@ -181,7 +181,7 @@ static void pathManagerTask(void *parameters)
 		// Wait
 		vTaskDelayUntil(&lastSysTime, UPDATE_RATE_MS * portTICK_RATE_MS);
 
-#if defined PATH_PLANNER && 0// If there is no path planner, it's probably because memory is too scarce, such as on CC/CC3D. In that case, provide a return to home and a position hold
+#if defined PATH_PLANNER // If there is no path planner, it's probably because memory is too scarce, such as on CC/CC3D. In that case, provide a return to home and a position hold
 		// Check flight mode
 		FlightStatusData flightStatus;
 		FlightStatusGet(&flightStatus);
