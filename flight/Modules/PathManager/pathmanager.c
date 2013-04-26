@@ -412,194 +412,200 @@ static bool checkGoalCondition()
 	// Note: The half-plane approach has difficulties when the plane and the two loci are close to colinear
 	// and reversing in direction. That is to say, a plane at P is supposed to go to A and then B:
 	//    B----------P------A
-	if (pathManagerSettings.SwitchingStrategy == PATHMANAGERSETTINGS_SWITCHINGSTRATEGY_HALFPLANE) {
-		// Check if there is a switching locus after the present one
-		if (pathManagerStatus.ActiveSegment + 1 < UAVObjGetNumInstances(PathSegmentDescriptorHandle())) {
-			// Calculate vector from past to preset switching locus
-			float *swl_past = previousLocus->Position;
-			float *swl_current = pathSegmentDescriptor_current.SwitchingLocus;
-			float q_current[3] = {swl_current[0] - swl_past[0], swl_current[1] - swl_past[1], 0};
-			float q_current_mag = VectorMagnitude(q_current); //Normalize
-			float q_future[3];
-			float q_future_mag;
+	switch (pathManagerSettings.SwitchingStrategy) {
+		case PATHMANAGERSETTINGS_SWITCHINGSTRATEGY_HALFPLANE:
+		{
+			// Check if there is a switching locus after the present one
+			if (pathManagerStatus.ActiveSegment + 1 < UAVObjGetNumInstances(PathSegmentDescriptorHandle())) {
+				// Calculate vector from past to preset switching locus
+				float *swl_past = previousLocus->Position;
+				float *swl_current = pathSegmentDescriptor_current.SwitchingLocus;
+				float q_current[3] = {swl_current[0] - swl_past[0], swl_current[1] - swl_past[1], 0};
+				float q_current_mag = VectorMagnitude(q_current); //Normalize
+				float q_future[3];
+				float q_future_mag;
 
-			PathSegmentDescriptorData pathSegmentDescriptor_future;
-			PathSegmentDescriptorInstGet(pathManagerStatus.ActiveSegment+1, &pathSegmentDescriptor_future);  // TODO: Check that an instance is successfully returned
+				PathSegmentDescriptorData pathSegmentDescriptor_future;
+				PathSegmentDescriptorInstGet(pathManagerStatus.ActiveSegment+1, &pathSegmentDescriptor_future);  // TODO: Check that an instance is successfully returned
 
-			// Line-line intersection. The halfplane frontier is the bisecting line between the arrival
-			// and departure vector.
-			if (pathSegmentDescriptor_current.PathCurvature == 0 && pathSegmentDescriptor_future.PathCurvature == 0) {
-				float *swl_future  = pathSegmentDescriptor_future.SwitchingLocus;
+				// Line-line intersection. The halfplane frontier is the bisecting line between the arrival
+				// and departure vector.
+				if (pathSegmentDescriptor_current.PathCurvature == 0 && pathSegmentDescriptor_future.PathCurvature == 0) {
+					float *swl_future  = pathSegmentDescriptor_future.SwitchingLocus;
 
-				// Calculate vector from preset to future switching locus
-				q_future [0] = swl_future[0] - swl_current[0];
-				q_future [1] = swl_future[1] - swl_current[1];
-				q_future [2] = 0;
-				q_future_mag = VectorMagnitude(q_future); //Normalize
+					// Calculate vector from preset to future switching locus
+					q_future [0] = swl_future[0] - swl_current[0];
+					q_future [1] = swl_future[1] - swl_current[1];
+					q_future [2] = 0;
+					q_future_mag = VectorMagnitude(q_future); //Normalize
 
-			}
-			// "Small Unmanned Aircraft: Theory and Practice" provides no guidance for the perpendicular
-			// intersection of a line and an arc. However, it seems reasonable to consider the halfplane
-			// as occurring at the intersection between the vector and the arc, with the frontier defined
-			// as the half-angle between the arriving vector and the departing arc tangent, similar to
-			// the line-line case.
-			//
-			// The nice part about this approach is that it works equally well for a tangent curve, as the intersection
-			// occurs at the tangent of the circle. In the case that due to numerical error the vector and arc do
-			// not intersect, we will still test for crossing into the half plane defined of a line drawn between the arc's
-			// center and the closest point on the vector to the arc.
-			else if (pathSegmentDescriptor_current.PathCurvature == 0 && pathSegmentDescriptor_future.PathCurvature != 0)
-			{
-				// Calculate vector tangent to arc at preset switching locus. This comes from geometry that that tangent to a circle
-				// is the perpendicular vector to the vector connecting the tangent point and the center of the circle. The vector R
-				// is tangent_point - arc_center, so the perpendicular to R is <-lambda*Ry,lambda*Rx>, where lambda = +-1.
+				}
+				// "Small Unmanned Aircraft: Theory and Practice" provides no guidance for the perpendicular
+				// intersection of a line and an arc. However, it seems reasonable to consider the halfplane
+				// as occurring at the intersection between the vector and the arc, with the frontier defined
+				// as the half-angle between the arriving vector and the departing arc tangent, similar to
+				// the line-line case.
+				//
+				// The nice part about this approach is that it works equally well for a tangent curve, as the intersection
+				// occurs at the tangent of the circle. In the case that due to numerical error the vector and arc do
+				// not intersect, we will still test for crossing into the half plane defined of a line drawn between the arc's
+				// center and the closest point on the vector to the arc.
+				else if (pathSegmentDescriptor_current.PathCurvature == 0 && pathSegmentDescriptor_future.PathCurvature != 0)
+				{
+					// Calculate vector tangent to arc at preset switching locus. This comes from geometry that that tangent to a circle
+					// is the perpendicular vector to the vector connecting the tangent point and the center of the circle. The vector R
+					// is tangent_point - arc_center, so the perpendicular to R is <-lambda*Ry,lambda*Rx>, where lambda = +-1.
 
-				bool clockwise = pathSegmentDescriptor_future.PathCurvature > 0;
-				bool minor = pathSegmentDescriptor_future.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-				int8_t lambda;
+					bool clockwise = pathSegmentDescriptor_future.PathCurvature > 0;
+					bool minor = pathSegmentDescriptor_future.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
+					int8_t lambda;
 
-				if ((clockwise == true && minor == true) ||
-						(clockwise == false && minor == false)) { //clockwise minor OR counterclockwise major
-					lambda = 1;
-				} else { //counterclockwise minor OR clockwise major
-					lambda = -1;
+					if ((clockwise == true && minor == true) ||
+							(clockwise == false && minor == false)) { //clockwise minor OR counterclockwise major
+						lambda = 1;
+					} else { //counterclockwise minor OR clockwise major
+						lambda = -1;
+					}
+
+					// Vector perpendicular to the vector from arc center to tangent point
+					q_future[0] = -lambda*(swl_current[1] - arcCenter_NE[1]);
+					q_future[1] = lambda*(swl_current[0] - arcCenter_NE[0]);
+					q_future[2] = 0;
+					q_future_mag = VectorMagnitude(q_future); //Normalize
+
+
+//					pathManagerStatus.StatusParameters[1] = rand();
+//					pathManagerStatus.StatusParameters[2] = arcCenter_NE[0];
+//					pathManagerStatus.StatusParameters[3] = arcCenter_NE[1];
+//					pathManagerStatus.StatusParameters[4] = swl_past[0];
+//					pathManagerStatus.StatusParameters[5] = swl_past[1];
+//					pathManagerStatus.StatusParameters[6] = q_future[0]+.01*pathManagerStatus.ActiveSegment;
+//					pathManagerStatus.StatusParameters[7] = q_future[1]+.03;
+//					pathManagerStatus.StatusParameters[8] = q_current[0]+.02;
+//					pathManagerStatus.StatusParameters[9] = q_current[1]+.04;
+//					PathManagerStatusSet(&pathManagerStatus);
+
+				}
+				// "Small Unmanned Aircraft: Theory and Practice" provides no guidance for the perpendicular
+				// intersection of an arc and a line. However, it seems reasonable to consider the halfplane
+				// occurring at the intersection between the arc and the vector. The halfplane's frontier
+				// is perpendicular to the tangent at the end of the arc.
+				else if (pathSegmentDescriptor_current.PathCurvature != 0 && pathSegmentDescriptor_future.PathCurvature == 0)
+				{
+						// Cheat by remarking that the plane defined by the radius is perfectly defined by the angle made
+						// between the center and the end of the trajectory. So if the vehicle has traveled further than
+						// the required angular distance, it has crossed this
+						if (sign(pathSegmentDescriptor_current.PathCurvature) * (angularDistanceCompleted_D - angularDistanceToComplete_D) >= 0)
+							advanceSegment_flag = true;
+
+						return advanceSegment_flag;
+					}
+					// "Small Unmanned Aircraft: Theory and Practice" provides no guidance for the perpendicular
+					// intersection of two arcs. However, it seems reasonable to consider the halfplane
+					// occurring at the intersection between the two arcs. The halfplane's frontier is defined
+					// as the half-angle between the arriving arc tangent and the departing arc tangent, similar to
+					// the line-line case.
+					else if (pathSegmentDescriptor_current.PathCurvature != 0 && pathSegmentDescriptor_future.PathCurvature != 0)
+					{
+						// Cheat by remarking that the plane defined by the radius is perfectly defined by the angle made
+						// between the center and the end of the trajectory. So if the vehicle has traveled further than
+						// the required angular distance, it has crossed this
+						if (sign(pathSegmentDescriptor_current.PathCurvature) * (angularDistanceCompleted_D - angularDistanceToComplete_D) >= 0)
+							advanceSegment_flag = true;
+
+						return advanceSegment_flag;
+
+//						// Calculate vector tangent to arc at preset switching locus. This comes from geometry that that tangent to a circle
+//						// is the perpendicular vector to the vector connecting the tangent point and the center of the circle. The vector R
+//						// is tangent_point - arc_center, so the perpendicular to R is <-lambda*Ry,lambda*Rx>, where lambda = +-1.
+
+//						bool clockwise_arrival = pathSegmentDescriptor_current.PathCurvature > 0;
+//						bool minor_arrival = pathSegmentDescriptor_current.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
+//						int8_t lambda_arrival;
+
+//						bool clockwise_departure = pathSegmentDescriptor_future.PathCurvature > 0;
+//						bool minor_departure = pathSegmentDescriptor_future.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
+//						int8_t lambda_departure;
+
+//						if ((clockwise_arrival == true && minor_arrival == true) ||
+//								(clockwise_arrival == false && minor_arrival == false)) { //clockwise minor OR counterclockwise major
+//							lambda_arrival = 1;
+//						} else { //counterclockwise minor OR clockwise major
+//							lambda_arrival = -1;
+//						}
+
+//						if ((clockwise_departure == true && minor_departure == true) ||
+//								(clockwise_departure == false && minor_departure == false)) { //clockwise minor OR counterclockwise major
+//							lambda_departure = 1;
+//						} else { //counterclockwise minor OR clockwise major
+//							lambda_departure = -1;
+//						}
+
+//						// Vector perpendicular to the vector from arc center to tangent point
+//						q_future[0] = -lambda_departure*(swl_current[1] - arcCenter_NE[1]);
+//						q_future[1] = lambda_departure*(swl_current[0] - arcCenter_NE[0]);
+//						q_future[2] = 0;
+//						q_future_mag = VectorMagnitude(q_future); //Normalize
+				}
+				else{
+					// Shouldn't be able to get here. Something has gone wrong.
+					// TODO.
+					AlarmsSet(SYSTEMALARMS_ALARM_PATHMANAGER, SYSTEMALARMS_ALARM_CRITICAL);
+					return false;
 				}
 
-				// Vector perpendicular to the vector from arc center to tangent point
-				q_future[0] = -lambda*(swl_current[1] - arcCenter_NE[1]);
-				q_future[1] = lambda*(swl_current[0] - arcCenter_NE[0]);
-				q_future[2] = 0;
-				q_future_mag = VectorMagnitude(q_future); //Normalize
-
-
-//				pathManagerStatus.StatusParameters[1] = rand();
-//				pathManagerStatus.StatusParameters[2] = arcCenter_NE[0];
-//				pathManagerStatus.StatusParameters[3] = arcCenter_NE[1];
-//				pathManagerStatus.StatusParameters[4] = swl_past[0];
-//				pathManagerStatus.StatusParameters[5] = swl_past[1];
-//				pathManagerStatus.StatusParameters[6] = q_future[0]+.01*pathManagerStatus.ActiveSegment;
-//				pathManagerStatus.StatusParameters[7] = q_future[1]+.03;
-//				pathManagerStatus.StatusParameters[8] = q_current[0]+.02;
-//				pathManagerStatus.StatusParameters[9] = q_current[1]+.04;
-//				PathManagerStatusSet(&pathManagerStatus);
-
-			}
-			// "Small Unmanned Aircraft: Theory and Practice" provides no guidance for the perpendicular
-			// intersection of an arc and a line. However, it seems reasonable to consider the halfplane
-			// occurring at the intersection between the arc and the vector. The halfplane's frontier
-			// is perpendicular to the tangent at the end of the arc.
-			else if (pathSegmentDescriptor_current.PathCurvature != 0 && pathSegmentDescriptor_future.PathCurvature == 0)
-			{
-				// Cheat by remarking that the plane defined by the radius is perfectly defined by the angle made
-				// between the center and the end of the trajectory. So if the vehicle has traveled further than
-				// the required angular distance, it has crossed this
-				if (sign(pathSegmentDescriptor_current.PathCurvature) * (angularDistanceCompleted_D - angularDistanceToComplete_D) >= 0)
-					advanceSegment_flag = true;
-
-				return advanceSegment_flag;
-			}
-			// "Small Unmanned Aircraft: Theory and Practice" provides no guidance for the perpendicular
-			// intersection of two arcs. However, it seems reasonable to consider the halfplane
-			// occurring at the intersection between the two arcs. The halfplane's frontier is defined
-			// as the half-angle between the arriving arc tangent and the departing arc tangent, similar to
-			// the line-line case.
-			else if (pathSegmentDescriptor_current.PathCurvature != 0 && pathSegmentDescriptor_future.PathCurvature != 0)
-			{
-					// Cheat by remarking that the plane defined by the radius is perfectly defined by the angle made
-					// between the center and the end of the trajectory. So if the vehicle has traveled further than
-					// the required angular distance, it has crossed this
-					if (sign(pathSegmentDescriptor_current.PathCurvature) * (angularDistanceCompleted_D - angularDistanceToComplete_D) >= 0)
-						advanceSegment_flag = true;
-
-					return advanceSegment_flag;
-
-//					// Calculate vector tangent to arc at preset switching locus. This comes from geometry that that tangent to a circle
-//					// is the perpendicular vector to the vector connecting the tangent point and the center of the circle. The vector R
-//					// is tangent_point - arc_center, so the perpendicular to R is <-lambda*Ry,lambda*Rx>, where lambda = +-1.
-
-//					bool clockwise_arrival = pathSegmentDescriptor_current.PathCurvature > 0;
-//					bool minor_arrival = pathSegmentDescriptor_current.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-//					int8_t lambda_arrival;
-
-//					bool clockwise_departure = pathSegmentDescriptor_future.PathCurvature > 0;
-//					bool minor_departure = pathSegmentDescriptor_future.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-//					int8_t lambda_departure;
-
-//					if ((clockwise_arrival == true && minor_arrival == true) ||
-//							(clockwise_arrival == false && minor_arrival == false)) { //clockwise minor OR counterclockwise major
-//						lambda_arrival = 1;
-//					} else { //counterclockwise minor OR clockwise major
-//						lambda_arrival = -1;
-//					}
-
-//					if ((clockwise_departure == true && minor_departure == true) ||
-//							(clockwise_departure == false && minor_departure == false)) { //clockwise minor OR counterclockwise major
-//						lambda_departure = 1;
-//					} else { //counterclockwise minor OR clockwise major
-//						lambda_departure = -1;
-//					}
-
-//					// Vector perpendicular to the vector from arc center to tangent point
-//					q_future[0] = -lambda_departure*(swl_current[1] - arcCenter_NE[1]);
-//					q_future[1] = lambda_departure*(swl_current[0] - arcCenter_NE[0]);
-//					q_future[2] = 0;
-//					q_future_mag = VectorMagnitude(q_future); //Normalize
-			}
-			else{
-				// Shouldn't be able to get here. Something has gone wrong.
-				// TODO.
-				AlarmsSet(SYSTEMALARMS_ALARM_PATHMANAGER, SYSTEMALARMS_ALARM_CRITICAL);
-				return false;
-			}
-
-			// Compute the half-plane frontier as the line perpendicular to the sum of the approach and
-			// departure vectors. See Fig 11.1 in reference.
-			//
-			// We're going to take a litle mathematical shortcut, by utilizing the fact that we don't need the actual
-			// normalized normal vector, any normal vector will do. If a and b are vectors, then
-			// a/|a|+b/|b| = 1/(|a||b|)*(a*|b| + b*|a|), which points in the same direction as (a*|b| + b*|a|)
-			float halfPlane[3] = {q_future[0]*q_current_mag + q_current[0]*q_future_mag,
+				// Compute the half-plane frontier as the line perpendicular to the sum of the approach and
+				// departure vectors. See Fig 11.1 in reference.
+				//
+				// We're going to take a litle mathematical shortcut, by utilizing the fact that we don't need the actual
+				// normalized normal vector, any normal vector will do. If a and b are vectors, then
+				// a/|a|+b/|b| = 1/(|a||b|)*(a*|b| + b*|a|), which points in the same direction as (a*|b| + b*|a|)
+				float halfPlane[3] = {q_future[0]*q_current_mag + q_current[0]*q_future_mag,
 								q_future[1]*q_current_mag + q_current[1]*q_future_mag,
 								q_future[2]*q_current_mag + q_current[2]*q_future_mag};
 
-			// Test if the UAV is in the half plane, H. This is easy by taking advantage of simple vector
-			// calculus: a.b = |a||b|cos(theta), but since |a|,|b| >=0, then a.b > 0 if and only if
-			// cos(theta) > 0, which means that the UAV is in I or IV quadrants, i.e. is in the half plane.
-			PositionActualData positionActual;
-			PositionActualGet(&positionActual);
-			float p[2] = {positionActual.North - swl_current[0], positionActual.East - swl_current[1]};
+				// Test if the UAV is in the half plane, H. This is easy by taking advantage of simple vector
+				// calculus: a.b = |a||b|cos(theta), but since |a|,|b| >=0, then a.b > 0 if and only if
+				// cos(theta) > 0, which means that the UAV is in I or IV quadrants, i.e. is in the half plane.
+				PositionActualData positionActual;
+				PositionActualGet(&positionActual);
+				float p[2] = {positionActual.North - swl_current[0], positionActual.East - swl_current[1]};
 
-			// If we want to switch based on nominal time to locus, add the normalized q_current times the speed times the timing advace
-			if (pathManagerSettings.HalfPlaneAdvanceTiming != 0) {
-				for (int i=0; i<2; i++) {
-						p[i] += q_current[i]/q_current_mag * fixedWingAirspeeds.BestClimbRateSpeed * (pathManagerSettings.HalfPlaneAdvanceTiming/1000.0f);
+				// If we want to switch based on nominal time to locus, add the normalized q_current times the speed times the timing advace
+				if (pathManagerSettings.HalfPlaneAdvanceTiming != 0) {
+					for (int i=0; i<2; i++) {
+							p[i] += q_current[i]/q_current_mag * fixedWingAirspeeds.BestClimbRateSpeed * (pathManagerSettings.HalfPlaneAdvanceTiming/1000.0f);
+					}
+				}
+
+				// Finally test a.b > 0
+				if (p[0]*halfPlane[0] + p[1]*halfPlane[1] > 0) {
+					advanceSegment_flag = true;
 				}
 			}
+			else{ // Since there are no further switching loci, this must be the waypoint.
+				//Do nothing.
+			}
+		}
+		break;
+		// B-ball approach. This tests if the vehicle is within a threshold distance.
+		// From R. Beard and T. McLain, "Small Unmanned Aircraft: Theory and Practice", 2011, Section 11.1.
+		case PATHMANAGERSETTINGS_SWITCHINGSTRATEGY_BBALL:
+		{
+			// This method is less robust to error than the half-plane. It is cheaper and simpler, but those are it's only two advantages
+			PositionActualData positionActual;
+			PositionActualGet(&positionActual);
+			float d[3] = {positionActual.North - pathSegmentDescriptor_current.SwitchingLocus[0], positionActual.East - pathSegmentDescriptor_current.SwitchingLocus[1], 0};
 
-			// Finally test a.b > 0
-			if (p[0]*halfPlane[0] + p[1]*halfPlane[1] > 0) {
+			if (VectorMagnitude(d) < pathManagerSettings.BBallThresholdDistance)
+			{
 				advanceSegment_flag = true;
 			}
 		}
-		else{ // Since there are no further switching loci, this must be the waypoint.
-			//Do nothing.
-		}
-	}
-	// B-ball approach. This tests if the vehicle is within a threshold distance.
-	// From R. Beard and T. McLain, "Small Unmanned Aircraft: Theory and Practice", 2011, Section 11.1.
-	else if (pathManagerSettings.SwitchingStrategy == PATHMANAGERSETTINGS_SWITCHINGSTRATEGY_BBALL) {
-		// This method is less robust to error than the half-plane. It is cheaper and simpler, but those are it's only two advantages
-		PositionActualData positionActual;
-		PositionActualGet(&positionActual);
-		float d[3] = {positionActual.North - pathSegmentDescriptor_current.SwitchingLocus[0], positionActual.East - pathSegmentDescriptor_current.SwitchingLocus[1], 0};
-
-		if (VectorMagnitude(d) < pathManagerSettings.BBallThresholdDistance)
-		{
-			advanceSegment_flag = true;
-		}
-	}
-	else {
+		break;
+	default:
 		// TODO: This is bad to get here. Make sure it's not possible.
+		break;
 	}
 
 	return advanceSegment_flag;
