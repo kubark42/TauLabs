@@ -357,24 +357,23 @@ static void advanceSegment()
 				1.0f/pathSegmentDescriptor_current.PathCurvature, arcCenter_NE,	pathSegmentDescriptor_current.PathCurvature > 0,
 				pathSegmentDescriptor_current.ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR);
 
-//		pathManagerStatus.StatusParameters[8] = arcCenter_NE[0];
-//		pathManagerStatus.StatusParameters[9] = arcCenter_NE[1];
-
 		// If the arc has a center, then set the initial position as the beginning of the arc, and calculate the angular
 		// distance to be traveled along the arc
 		if (arc_has_center == CENTER_FOUND) {
 			oldPosition_NE[0] = previousLocus->Position[0];
 			oldPosition_NE[1] = previousLocus->Position[1];
 
-			float tmpAngle = updateArcMeasure(previousLocus->Position, pathSegmentDescriptor_current.SwitchingLocus, arcCenter_NE) * RAD2DEG;
-			if (sign(pathSegmentDescriptor_current.PathCurvature) * tmpAngle < 0)
+			float tmpAngle_D = updateArcMeasure(previousLocus->Position, pathSegmentDescriptor_current.SwitchingLocus, arcCenter_NE) * RAD2DEG;
+			if (sign(pathSegmentDescriptor_current.PathCurvature) * tmpAngle_D < 0)
 			{
-				tmpAngle = tmpAngle	+ 360*sign(pathSegmentDescriptor_current.PathCurvature);
+				tmpAngle_D = tmpAngle_D	+ 360*sign(pathSegmentDescriptor_current.PathCurvature);
 			}
-			angularDistanceToComplete_D = sign(pathSegmentDescriptor_current.PathCurvature) * pathSegmentDescriptor_current.NumberOfOrbits*360 + tmpAngle;
+			angularDistanceToComplete_D = sign(pathSegmentDescriptor_current.PathCurvature) * pathSegmentDescriptor_current.NumberOfOrbits*360 + tmpAngle_D;
 		}
 		else{
-			// TODO: This is really bad, and we need to handle these cases. We can probably handle them just by extending the vector until it reaches the arc center
+			// This is really bad, and is only possible if the path planner screws up, but we need to handle these cases nonetheless because
+			// the alternative might be to crash. The simplest way tof fix the problem is to increase the radius, but we can't do this
+			// because it is forbidden for two modules to write one UAVO.
 			angularDistanceToComplete_D = 0;
 		}
 	}
@@ -382,22 +381,21 @@ static void advanceSegment()
 		angularDistanceToComplete_D = 0;
 	}
 
-	// Calculate timout
+	// Calculate timout. This is where winds aloft should be taken into account
 	float s;
 	if (pathSegmentDescriptor_current.PathCurvature == 0) { // Straight line
 		s = sqrtf(powf(pathSegmentDescriptor_current.SwitchingLocus[0] - pathSegmentDescriptor_past.SwitchingLocus[0],2) +
 				powf(pathSegmentDescriptor_current.SwitchingLocus[1] - pathSegmentDescriptor_past.SwitchingLocus[1],2));
 	}
-	else { // Arc
+	else // Arc
 		s = angularDistanceToComplete_D * DEG2RAD * pathSegmentDescriptor_current.PathCurvature;
-	}
 
 	if (pathSegmentDescriptor_current.FinalVelocity > 0)
-		pathManagerStatus.Timeout = s/pathSegmentDescriptor_current.FinalVelocity;
+		pathManagerStatus.Timeout = s/((float)pathSegmentDescriptor_current.FinalVelocity);
 	else
-		pathManagerStatus.Timeout = -1; // This wraps around to 65535
-	PathManagerStatusSet(&pathManagerStatus);
+		pathManagerStatus.Timeout = 65535; // Set this to maximum possible value for variable type
 
+	PathManagerStatusSet(&pathManagerStatus);
 
 	// Reset timer
 	segmentTimer = xTaskGetTickCount();

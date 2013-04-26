@@ -352,10 +352,11 @@ void updateDestination(){
 		pathDesired.End[2]=pathSegmentDescriptor->SwitchingLocus[2];
 	}
 	else{ // ...but for an arc, use the switching loci to calculate the arc center
-		float oldPosition_NE[2] = {pathDesired.Start[0], pathDesired.Start[1]};
-		float newPosition_NE[2] = {pathSegmentDescriptor->SwitchingLocus[0], pathSegmentDescriptor->SwitchingLocus[1]};
+		float *oldPosition_NE = pathDesired.Start;
+		float *newPosition_NE = pathSegmentDescriptor->SwitchingLocus;
 		float arcCenter_XY[2];
 		bool ret;
+
 		ret = arcCenterFromTwoPointsAndRadiusAndArcRank(oldPosition_NE, newPosition_NE, 1.0f/pathSegmentDescriptor->PathCurvature, arcCenter_XY, pathSegmentDescriptor->PathCurvature > 0, pathSegmentDescriptor->ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR);
 
 		if (ret == CENTER_FOUND){
@@ -363,11 +364,11 @@ void updateDestination(){
 			pathDesired.End[1]=arcCenter_XY[1];
 			pathDesired.End[2]=pathSegmentDescriptor->SwitchingLocus[2];
 		}
-		else {
-			// This is bad, but we have to handle it.
-			// Probably the path manager should advance to the next waypoint, but for now we'll circle over the point
-			pathDesired.End[0]=pathSegmentDescriptor->SwitchingLocus[0];
-			pathDesired.End[1]=pathSegmentDescriptor->SwitchingLocus[1];
+		else { //---- This is bad, but we have to handle it.----///
+			// The path manager should catch this and handle it, but in case it doesn't we'll circle around the midpoint. This
+			// way we still maintain positive control, and will satisfy the path requirements, making sure we don't get stuck
+			pathDesired.End[0]=(oldPosition_NE[0] + newPosition_NE[0])/2.0f;
+			pathDesired.End[1]=(oldPosition_NE[1] + newPosition_NE[1])/2.0f;
 			pathDesired.End[2]=pathSegmentDescriptor->SwitchingLocus[2];
 
 			// TODO: Set alarm warning

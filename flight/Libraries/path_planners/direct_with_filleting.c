@@ -79,7 +79,6 @@ PathPlannerStates direct_path_planner_with_filleting(uint16_t numberOfWaypoints,
 		pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down;
 		pathSegmentDescriptor.FinalVelocity = 100;
 		pathSegmentDescriptor.DesiredAcceleration = 0;
-		pathSegmentDescriptor.Timeout = 0;
 		pathSegmentDescriptor.NumberOfOrbits = 0;
 		pathSegmentDescriptor.PathCurvature = 0;
 		pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
@@ -372,7 +371,6 @@ PathPlannerStates direct_path_planner_with_filleting(uint16_t numberOfWaypoints,
 				pathSegmentDescriptor.PathCurvature = -sign(theta)*1.0f/R;
 				pathSegmentDescriptor.NumberOfOrbits = 0;
 				pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-				pathSegmentDescriptor.Timeout = 61; // TODO: Calculate timeout
 				PathSegmentDescriptorInstSet(wptIdx+offset, &pathSegmentDescriptor);
 
 				offset++;
@@ -387,7 +385,6 @@ PathPlannerStates direct_path_planner_with_filleting(uint16_t numberOfWaypoints,
 				pathSegmentDescriptor.PathCurvature = sign(theta)*1.0f/R;
 				pathSegmentDescriptor.NumberOfOrbits = 0;
 				pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MAJOR;
-				pathSegmentDescriptor.Timeout = 62; // TODO: Calculate timeout
 				PathSegmentDescriptorInstSet(wptIdx+offset, &pathSegmentDescriptor);
 
 				offset++;
@@ -401,7 +398,6 @@ PathPlannerStates direct_path_planner_with_filleting(uint16_t numberOfWaypoints,
 				pathSegmentDescriptor.PathCurvature = -sign(theta)*1.0f/R;
 				pathSegmentDescriptor.NumberOfOrbits = 0;
 				pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-				pathSegmentDescriptor.Timeout = 63; // TODO: Calculate timeout
 				PathSegmentDescriptorInstSet(wptIdx+offset, &pathSegmentDescriptor);
 			}
 			else if (theta != 0) { // The two tangents have different directions
@@ -442,7 +438,6 @@ PathPlannerStates direct_path_planner_with_filleting(uint16_t numberOfWaypoints,
 				pathSegmentDescriptor.PathCurvature = sign(theta)*1.0f/R;
 				pathSegmentDescriptor.NumberOfOrbits = 0;
 				pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-				pathSegmentDescriptor.Timeout = 64; // TODO: Calculate timeout
 				PathSegmentDescriptorInstSet(wptIdx+offset, &pathSegmentDescriptor);
 			}
 			else { // In this case, the two tangents are colinear
@@ -508,9 +503,6 @@ static uint8_t addNonCircleToSwitchingLoci(float position[3], float finalVelocit
 	pathSegmentDescriptor.SwitchingLocus[1] = position[1];
 	pathSegmentDescriptor.SwitchingLocus[2] = position[2];
 	pathSegmentDescriptor.PathCurvature = curvature;
-
-	pathSegmentDescriptor.Timeout = 65; // TODO: Calculate time
-
 	PathSegmentDescriptorInstSet(index, &pathSegmentDescriptor);
 
 	return 0;
@@ -568,7 +560,6 @@ static uint8_t addCircleToSwitchingLoci(float circle_center[3], float finalVeloc
 		pathSegmentDescriptor.PathCurvature = 0;
 		pathSegmentDescriptor.NumberOfOrbits = 0;
 		pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-		pathSegmentDescriptor.Timeout = 66; // TODO: Calculate timeout
 		PathSegmentDescriptorInstSet(index, &pathSegmentDescriptor);
 
 		// Add instances if necessary
@@ -584,7 +575,6 @@ static uint8_t addCircleToSwitchingLoci(float circle_center[3], float finalVeloc
 		pathSegmentDescriptor.PathCurvature = -sign(curvature)/fillet_radius;
 		pathSegmentDescriptor.NumberOfOrbits = 0;
 		pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-		pathSegmentDescriptor.Timeout = 67; // TODO: Calculate timeout
 		PathSegmentDescriptorInstSet(index+offset, &pathSegmentDescriptor);
 
 		// Add instances if necessary
@@ -600,7 +590,6 @@ static uint8_t addCircleToSwitchingLoci(float circle_center[3], float finalVeloc
 		pathSegmentDescriptor.PathCurvature = curvature;
 		pathSegmentDescriptor.NumberOfOrbits = numberOfOrbits;
 		pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-		pathSegmentDescriptor.Timeout = 68; // TODO: Calculate timeout
 		PathSegmentDescriptorInstSet(index+offset, &pathSegmentDescriptor);
 	}
 	else {
@@ -627,7 +616,6 @@ static uint8_t addCircleToSwitchingLoci(float circle_center[3], float finalVeloc
 		pathSegmentDescriptor.PathCurvature = curvature*2.0f;
 		pathSegmentDescriptor.NumberOfOrbits = 0;
 		pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-		pathSegmentDescriptor.Timeout = 69; // TODO: Calculate timeout
 		PathSegmentDescriptorInstSet(index, &pathSegmentDescriptor);
 
 		// Add instances if necessary
@@ -643,7 +631,6 @@ static uint8_t addCircleToSwitchingLoci(float circle_center[3], float finalVeloc
 		pathSegmentDescriptor.PathCurvature = curvature;
 		pathSegmentDescriptor.NumberOfOrbits = numberOfOrbits;
 		pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
-		pathSegmentDescriptor.Timeout = 70; // TODO: Calculate timeout
 		PathSegmentDescriptorInstSet(index+offset, &pathSegmentDescriptor);
 	}
 

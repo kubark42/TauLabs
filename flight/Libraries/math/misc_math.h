@@ -44,7 +44,7 @@ float bound_sym(float val, float range);
 //! Bound input value between min and max
 float bound_min_max(float val, float min, float max);
 
-CenterCalculationResult arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_point, float *end_point, float radius, float *center, bool clockwise, bool minor);
+CenterCalculationResult arcCenterFromTwoPointsAndRadiusAndArcRank(float start_point[2],	float end_point[2], float radius, float center[2], bool clockwise, bool minor);
 
 //! Measure angle between two points on a circle
 float updateArcMeasure(float oldPosition_NE[2], float newPosition_NE[2], float arcCenter_NE[2]);

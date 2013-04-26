@@ -56,7 +56,6 @@ void simple_hold_position()
 	pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down;
 	pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 	pathSegmentDescriptor.DesiredAcceleration = 0;
-	pathSegmentDescriptor.Timeout = 0;
 	pathSegmentDescriptor.NumberOfOrbits = 0;
 	pathSegmentDescriptor.PathCurvature = 0;
 	pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
@@ -68,7 +67,6 @@ void simple_hold_position()
 	pathSegmentDescriptor.SwitchingLocus[2] = positionActual.Down - 10;
 	pathSegmentDescriptor.FinalVelocity = fixedWingAirspeeds.BestClimbRateSpeed;
 	pathSegmentDescriptor.DesiredAcceleration = 0;
-	pathSegmentDescriptor.Timeout = 60;
 	pathSegmentDescriptor.PathCurvature = 1/radius;
 	pathSegmentDescriptor.NumberOfOrbits = 1e8; //TODO: Define this really large floating-point value as a magic number
 	pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;

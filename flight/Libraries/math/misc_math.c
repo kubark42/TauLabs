@@ -68,13 +68,7 @@ float bound_sym(float val, float range)
  * @param[out] center Center of circle formed by two points, in North-East coordinates
  * @return
  */
-CenterCalculationResult arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_point,
-	                   float *end_point,
-	                   float radius,
-	                   float *center,
-					   bool clockwise,
-					   bool minor
-					   )
+CenterCalculationResult arcCenterFromTwoPointsAndRadiusAndArcRank(float start_point[2],	float end_point[2], float radius, float center[2], bool clockwise, bool minor)
 {
 	// Sanity check
 	if(fabs(start_point[0] - end_point[0]) < 1e-6 && fabs(start_point[1] - end_point[1]) < 1e-6){
