@@ -64,8 +64,6 @@ static xTaskHandle taskHandle;
 static xQueueHandle queue;
 static PathPlannerSettingsData pathPlannerSettings;
 PathPlannerStatusData pathPlannerStatus;
-//static WaypointActiveData waypointActive;
-//static WaypointData waypoint;
 static bool process_waypoints_flag;
 static bool module_enabled;
 static bool path_manager_status_updated;
@@ -164,7 +162,7 @@ static void pathPlannerTask(void *parameters)
 	PathPlannerSettingsConnectCallback(settingsUpdated);
 	settingsUpdated(PathPlannerSettingsHandle());
 
-	WaypointConnectCallback(waypointsUpdated);
+//	WaypointConnectCallback(waypointsUpdated);
 	WaypointActiveConnectCallback(waypointsUpdated);
 
 	PathManagerStatusConnectCallback(pathManagerStatusUpdated);
@@ -185,6 +183,7 @@ static void pathPlannerTask(void *parameters)
 					pathPlannerStatus.PathAvailability = PATHPLANNERSTATUS_PATHAVAILABILITY_NONE;
 					PathPlannerStatusSet(&pathPlannerStatus);
 					guidanceType = RETURNHOME;
+					process_waypoints_flag = true;
 				}
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD:
@@ -194,6 +193,7 @@ static void pathPlannerTask(void *parameters)
 					pathPlannerStatus.PathAvailability = PATHPLANNERSTATUS_PATHAVAILABILITY_NONE;
 					PathPlannerStatusSet(&pathPlannerStatus);
 					guidanceType = HOLDPOSITION;
+					process_waypoints_flag = true;
 				}
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_PATHPLANNER:
@@ -204,11 +204,14 @@ static void pathPlannerTask(void *parameters)
 						case PATHPLANNERSETTINGS_PREPROGRAMMEDPATH_NONE:
 							if (UAVObjGetNumInstances(WaypointHandle()) > 1) {
 								pathPlannerStatus.PathAvailability = PATHPLANNERSTATUS_PATHAVAILABILITY_NONE;
+								pathPlannerStatus.NumberOfWaypoints = UAVObjGetNumInstances(WaypointHandle()); //Fixme: This is dangerous, because waypoints, once created, cannot be destroyed. This means that a long program followed by a short one will lead to the wrong number of waypoints!
 								PathPlannerStatusSet(&pathPlannerStatus);
+
+								guidanceType = PATHPLANNER;
+								process_waypoints_flag = true;
 							}
 							else {
 								// No path? In that case, burn some time and loop back to beginning. This is something that should be fixed as this takes the final form.
-								process_waypoints_flag = true;
 								guidanceType = NOMANAGER;
 								vTaskDelay(IDLE_UPDATE_RATE_MS * portTICK_RATE_MS);
 							}
@@ -218,21 +221,22 @@ static void pathPlannerTask(void *parameters)
 
 							pathPlannerStatus.PathAvailability = PATHPLANNERSTATUS_PATHAVAILABILITY_NONE;
 							PathPlannerStatusSet(&pathPlannerStatus);
+							guidanceType = PATHPLANNER;
+							process_waypoints_flag = true;
 							break;
 						case PATHPLANNERSETTINGS_PREPROGRAMMEDPATH_LOGO:
 							createPathLogo();
 
 							pathPlannerStatus.PathAvailability = PATHPLANNERSTATUS_PATHAVAILABILITY_NONE;
 							PathPlannerStatusSet(&pathPlannerStatus);
+							guidanceType = PATHPLANNER;
+							process_waypoints_flag = true;
 							break;
 					}
-
-					guidanceType = PATHPLANNER;
 				}
 				break;
 			default:
 				// When not running the path manager, short circuit and wait
-				process_waypoints_flag = true;
 				guidanceType = NOMANAGER;
 
 				pathPlannerStatus.PathAvailability = PATHPLANNERSTATUS_PATHAVAILABILITY_NONE;
@@ -259,12 +263,15 @@ static void pathPlannerTask(void *parameters)
 					}
 					break;
 				case PATH_PLANNER_PROCESSING:
+					pathPlannerStatus.PathAvailability = PATHPLANNERSTATUS_PATHAVAILABILITY_PROCESSING;
 					break;
 				case PATH_PLANNER_STUCK:
+					pathPlannerStatus.PathAvailability = PATHPLANNERSTATUS_PATHAVAILABILITY_NOCONVERGENCE;
 					process_waypoints_flag = false;
 					// Need to inform the FlightDirector that the planner cannot find a solution to the path
 					break;
 				case PATH_PLANNER_INSUFFICIENT_MEMORY:
+					pathPlannerStatus.PathAvailability = PATHPLANNERSTATUS_PATHAVAILABILITY_OUTOFMEMORY;
 					process_waypoints_flag = false;
 					// Need to inform the FlightDirector that there isn't enough memory to continue. This could be because of refinement of the path, or because of too many waypoints
 					break;
@@ -447,9 +454,9 @@ static void createPathBox()
 
 static void createPathLogo()
 {
-	float scale = 2;
+	float scale = 5;
 
-	pathPlannerStatus.NumberOfWaypoints = 43;
+	pathPlannerStatus.NumberOfWaypoints = 42;
 	PathPlannerStatusSet(&pathPlannerStatus);
 
 	for (int i=UAVObjGetNumInstances(WaypointHandle()); i<pathPlannerStatus.NumberOfWaypoints; i++) {
@@ -483,44 +490,44 @@ static void createPathLogo()
 	waypoint.Position[0] = scale * -50;
 	waypoint.Position[2] = -2500;
 	waypoint.Mode = WAYPOINT_MODE_FLYVECTOR;
-	WaypointInstSet(36, &waypoint);
+	WaypointInstSet(35, &waypoint);
 
 	// Draw Box
 	waypoint.Position[1] = scale * 35;
 	waypoint.Position[0] = scale * -60;
 	waypoint.Position[2] = -2500;
 	waypoint.Mode = WAYPOINT_MODE_FLYVECTOR;
-	WaypointInstSet(37, &waypoint);
+	WaypointInstSet(36, &waypoint);
 
 	waypoint.Position[1] = scale * 85;
 	waypoint.Position[0] = scale * -60;
 	waypoint.Position[2] = -2500;
 	waypoint.Mode = WAYPOINT_MODE_FLYVECTOR;
-	WaypointInstSet(38, &waypoint);
+	WaypointInstSet(37, &waypoint);
 
 	waypoint.Position[1] = scale * 85;
+	waypoint.Position[0] = scale * 60;
+	waypoint.Position[2] = -2500;
+	waypoint.Mode = WAYPOINT_MODE_FLYVECTOR;
+	WaypointInstSet(38, &waypoint);
+
+	waypoint.Position[1] = scale * -40;
 	waypoint.Position[0] = scale * 60;
 	waypoint.Position[2] = -2500;
 	waypoint.Mode = WAYPOINT_MODE_FLYVECTOR;
 	WaypointInstSet(39, &waypoint);
 
 	waypoint.Position[1] = scale * -40;
-	waypoint.Position[0] = scale * 60;
-	waypoint.Position[2] = -2500;
-	waypoint.Mode = WAYPOINT_MODE_FLYVECTOR;
-	WaypointInstSet(40, &waypoint);
-
-	waypoint.Position[1] = scale * -40;
 	waypoint.Position[0] = scale * -60;
 	waypoint.Position[2] = -2500;
 	waypoint.Mode = WAYPOINT_MODE_FLYVECTOR;
-	WaypointInstSet(41, &waypoint);
+	WaypointInstSet(40, &waypoint);
 
 	waypoint.Position[1] = scale * 35;
 	waypoint.Position[0] = scale * -60;
 	waypoint.Position[2] = -2500;
 	waypoint.Mode = WAYPOINT_MODE_FLYVECTOR;
-	WaypointInstSet(42, &waypoint);
+	WaypointInstSet(41, &waypoint);
 }
 
 /**

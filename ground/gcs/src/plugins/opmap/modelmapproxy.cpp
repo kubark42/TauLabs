@@ -261,6 +261,7 @@ void ModelMapProxy::refreshOverlays()
                       model->data(model->index(x+1,FlightDataModel::MODE_PARAMS)).toFloat());
     }
         
+    return;
 
     /**
       * Path segment overlay

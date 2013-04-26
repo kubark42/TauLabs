@@ -4,7 +4,7 @@
 		<field name="NumberOfWaypoints" units="" type="uint16" elements="1"/>
 
 		<field name="ConvergenceStatus" units="" type="enum" elements="1" options="Reset,Converging,Converged" defaultvalue="Reset"/>
-		<field name="PathAvailability" units="" type="enum" elements="1" options="None,PathReady" defaultvalue="None"/>
+		<field name="PathAvailability" units="" type="enum" elements="1" options="None,Processing,PathReady,NoConvergence,OutOfMemory" defaultvalue="None"/>
 
 		<field name="StatusParameters" units="" type="float" elements="10"/>
 

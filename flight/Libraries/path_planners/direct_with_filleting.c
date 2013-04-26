@@ -309,9 +309,9 @@ PathPlannerStates direct_path_planner_with_filleting(uint16_t numberOfWaypoints,
 			// In any case, do not allow R to be 0
 			float R = fillet_radius; // TODO: Link airspeed to preferred radius
 			if (q_current_mag>0 && q_current_mag<fabs(R/tan(rho2)))
-				R = MIN(R, q_current_mag*fabs(tan(rho2)));
+				R = MIN(R, q_current_mag*fabs(tan(rho2))-0.1f); // Remove 10cm to make sure that the no two points overlap. This would be better if we solved it by removing the next point instead.
 			if (q_future_mag>0 && q_future_mag<fabs(R/tan(rho2)))
-				R = MIN(R, q_future_mag*fabs(tan(rho2)));
+				R = MIN(R, q_future_mag*fabs(tan(rho2))-0.1f);  // Remove 10cm to make sure that the no two points overlap. This would be better if we solved it by removing the next point instead.
 
 			// Perpendicular distance from the fillet to the waypoint
 			float d = R/(sinf(fabs(rho2))) - R;
@@ -331,12 +331,12 @@ PathPlannerStates direct_path_planner_with_filleting(uint16_t numberOfWaypoints,
 				// so we have to convert it into a pair of switching loci.
 				if ( !path_is_circle  ) {
 					uint8_t ret;
-					ret = addNonCircleToSwitchingLoci(f1, finalVelocity+.3, curvature, wptIdx+offset);
+					ret = addNonCircleToSwitchingLoci(f1, finalVelocity+.1, curvature, wptIdx+offset);
 					offset += ret;
 				}
 				else{
 					uint8_t ret;
-					ret = addCircleToSwitchingLoci(f1, finalVelocity+.4, curvature, numberOfOrbits, R, wptIdx+offset);
+					ret = addCircleToSwitchingLoci(f1, finalVelocity+.2, curvature, numberOfOrbits, R, wptIdx+offset);
 					offset += ret;
 				}
 
@@ -368,7 +368,7 @@ PathPlannerStates direct_path_planner_with_filleting(uint16_t numberOfWaypoints,
 				pathSegmentDescriptor.SwitchingLocus[0] = (waypoint.Position[0] + (f1[0] + R*cosf(eta)))/2;
 				pathSegmentDescriptor.SwitchingLocus[1] = (waypoint.Position[1] + (f1[1] + R*sinf(eta)))/2;
 				pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
-				pathSegmentDescriptor.FinalVelocity = finalVelocity;
+				pathSegmentDescriptor.FinalVelocity = finalVelocity+.3;
 				pathSegmentDescriptor.PathCurvature = -sign(theta)*1.0f/R;
 				pathSegmentDescriptor.NumberOfOrbits = 0;
 				pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
@@ -383,7 +383,7 @@ PathPlannerStates direct_path_planner_with_filleting(uint16_t numberOfWaypoints,
 				pathSegmentDescriptor.SwitchingLocus[0] = (waypoint.Position[0] + (f2[0] + R*cosf(sigma)))/2;
 				pathSegmentDescriptor.SwitchingLocus[1] = (waypoint.Position[1] + (f2[1] + R*sinf(sigma)))/2;
 				pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
-				pathSegmentDescriptor.FinalVelocity = finalVelocity;
+				pathSegmentDescriptor.FinalVelocity = finalVelocity+.4;
 				pathSegmentDescriptor.PathCurvature = sign(theta)*1.0f/R;
 				pathSegmentDescriptor.NumberOfOrbits = 0;
 				pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MAJOR;
@@ -397,7 +397,7 @@ PathPlannerStates direct_path_planner_with_filleting(uint16_t numberOfWaypoints,
 				pathSegmentDescriptor.SwitchingLocus[0] = f2[0];
 				pathSegmentDescriptor.SwitchingLocus[1] = f2[1];
 				pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
-				pathSegmentDescriptor.FinalVelocity = finalVelocity;
+				pathSegmentDescriptor.FinalVelocity = finalVelocity+.5;
 				pathSegmentDescriptor.PathCurvature = -sign(theta)*1.0f/R;
 				pathSegmentDescriptor.NumberOfOrbits = 0;
 				pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
@@ -417,12 +417,12 @@ PathPlannerStates direct_path_planner_with_filleting(uint16_t numberOfWaypoints,
 				// so we have to convert it into a pair of switching loci.
 				if ( !path_is_circle ) {
 					uint8_t ret;
-					ret = addNonCircleToSwitchingLoci(f1, finalVelocity+.5, curvature, wptIdx+offset);
+					ret = addNonCircleToSwitchingLoci(f1, finalVelocity+.6, curvature, wptIdx+offset);
 					offset += ret;
 				}
 				else{
 					uint8_t ret;
-					ret = addCircleToSwitchingLoci(f1, finalVelocity+.6, curvature, numberOfOrbits, R, wptIdx+offset);
+					ret = addCircleToSwitchingLoci(f1, finalVelocity+.7, curvature, numberOfOrbits, R, wptIdx+offset);
 					offset += ret;
 				}
 
@@ -438,7 +438,7 @@ PathPlannerStates direct_path_planner_with_filleting(uint16_t numberOfWaypoints,
 				pathSegmentDescriptor.SwitchingLocus[0] = waypoint.Position[0] + R/fabs(tanf(rho2))*q_future[0];
 				pathSegmentDescriptor.SwitchingLocus[1] = waypoint.Position[1] + R/fabs(tanf(rho2))*q_future[1];
 				pathSegmentDescriptor.SwitchingLocus[2] = waypoint.Position[2];
-				pathSegmentDescriptor.FinalVelocity = finalVelocity;
+				pathSegmentDescriptor.FinalVelocity = finalVelocity+.8;
 				pathSegmentDescriptor.PathCurvature = sign(theta)*1.0f/R;
 				pathSegmentDescriptor.NumberOfOrbits = 0;
 				pathSegmentDescriptor.ArcRank = PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR;
@@ -450,12 +450,12 @@ PathPlannerStates direct_path_planner_with_filleting(uint16_t numberOfWaypoints,
 				// so we have to convert it into a pair of switching loci.
 				if ( !path_is_circle ) {
 					uint8_t ret;
-					ret = addNonCircleToSwitchingLoci(waypoint.Position, finalVelocity+.7, curvature, wptIdx+offset);
+					ret = addNonCircleToSwitchingLoci(waypoint.Position, finalVelocity+.9, curvature, wptIdx+offset);
 					offset += ret;
 				}
 				else{
 					uint8_t ret;
-					ret = addCircleToSwitchingLoci(waypoint.Position, finalVelocity+.8, curvature, numberOfOrbits, R, wptIdx+offset);
+					ret = addCircleToSwitchingLoci(waypoint.Position, finalVelocity+1.0, curvature, numberOfOrbits, R, wptIdx+offset);
 					offset += ret;
 				}
 
@@ -467,12 +467,12 @@ PathPlannerStates direct_path_planner_with_filleting(uint16_t numberOfWaypoints,
 			// so we have to convert it into a pair of switching loci.
 			if ( !path_is_circle ) {
 				uint8_t ret;
-				ret = addNonCircleToSwitchingLoci(waypoint.Position, finalVelocity+.9, curvature, wptIdx+offset);
+				ret = addNonCircleToSwitchingLoci(waypoint.Position, finalVelocity+1.1, curvature, wptIdx+offset);
 				offset += ret;
 			}
 			else{
 				uint8_t ret;
-				ret = addCircleToSwitchingLoci(waypoint.Position, finalVelocity+1.0, curvature, numberOfOrbits, fillet_radius, wptIdx+offset);
+				ret = addCircleToSwitchingLoci(waypoint.Position, finalVelocity+1.2, curvature, numberOfOrbits, fillet_radius, wptIdx+offset);
 				offset += ret;
 			}
 		}
@@ -481,6 +481,15 @@ PathPlannerStates direct_path_planner_with_filleting(uint16_t numberOfWaypoints,
 	return PATH_PLANNER_SUCCESS;
 }
 
+
+/**
+ * @brief addNonCircleToSwitchingLoci
+ * @param position
+ * @param finalVelocity
+ * @param curvature
+ * @param index
+ * @return
+ */
 static uint8_t addNonCircleToSwitchingLoci(float position[3], float finalVelocity, float curvature, uint16_t index)
 {
 
@@ -595,6 +604,17 @@ static uint8_t addCircleToSwitchingLoci(float circle_center[3], float finalVeloc
 		PathSegmentDescriptorInstSet(index+offset, &pathSegmentDescriptor);
 	}
 	else {
+		// Since index 0 is always the vehicle's location, then if the vehicle is already inside the circle
+		// on the index 1, then we don't have any information to help determine from which way the vehicle
+		// will be approaching. In that case, use the vehicle velocity
+		if (index == 1){
+			VelocityActualData velocityActual;
+			VelocityActualGet(&velocityActual);
+
+			approachTheta_rad = atan2f(velocityActual.East, velocityActual.North);
+		}
+
+
 		// Add instances if necessary
 		if (index >= UAVObjGetNumInstances(PathSegmentDescriptorHandle()))
 			PathSegmentDescriptorCreateInstance(); //TODO: Check for successful creation of switching locus
