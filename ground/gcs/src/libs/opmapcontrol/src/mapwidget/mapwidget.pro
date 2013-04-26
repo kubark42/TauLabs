@@ -14,6 +14,7 @@ SOURCES += mapgraphicitem.cpp \
     homeitem.cpp \
     mapripform.cpp \
     mapripper.cpp \
+    pathsegmentitem.cpp \
     traillineitem.cpp \
     waypointline.cpp \
     waypointcircle.cpp \
@@ -42,6 +43,7 @@ HEADERS += mapgraphicitem.h \
     homeitem.h \
     mapripform.h \
     mapripper.h \
+    pathsegmentitem.h \
     traillineitem.h \
     waypointline.h \
     waypointcircle.h \

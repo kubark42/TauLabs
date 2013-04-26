@@ -178,6 +178,7 @@ private slots:
     void onShowCompassAct_toggled(bool show);
     void onShowDiagnostics_toggled(bool show);
     void onShowUAVInfo_toggled(bool show);
+    void onShowPathSegments_toggled(bool show);
     void onShowUAVAct_toggled(bool show);
     void onShowHomeAct_toggled(bool show);
     void onShowTrailLineAct_toggled(bool show);
@@ -252,6 +253,7 @@ private:
     QAction *showCompassAct;
     QAction *showDiagnostics;
     QAction *showUAVInfo;
+    QAction *showPathSegments;
     QAction *showHomeAct;
     QAction *showUAVAct;
     QAction *zoomInAct;

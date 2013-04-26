@@ -35,6 +35,7 @@
 #include "configuration.h"
 #include <QObject>
 #include <QtOpenGL/QGLWidget>
+#include "pathsegmentitem.h"
 #include "waypointitem.h"
 #include "QtSvg/QGraphicsSvgItem"
 #include "uavitem.h"
@@ -355,6 +356,108 @@ namespace mapcontrol
         */
         void WPRenumber(WayPointItem* item,int const& newnumber);
 
+
+        /////////////////////////// PATH SEGMENT /////////////////////////////
+        /**
+        * @brief Creates a new PathSegment on the center of the map
+        *
+        * @return PathSegmentItem a pointer to the PathSegment created
+        */
+        PathSegmentItem* PSCreate();
+        /**
+        * @brief Creates a new PathSegment
+        *
+        * @param item the PathSegment to create
+        */
+        void PSCreate(PathSegmentItem* item);
+//        /**
+//        * @brief Creates a new PathSegment
+//        *
+//        * @param coord the coordinates in LatLng of the WayPoint
+//        * @param altitude the Altitude of the WayPoint
+//        * @return PathSegmentItem a pointer to the WayPoint created
+//        */
+//        PathSegmentItem* PSCreate(internals::PointLatLng const& coord,int const& altitude);
+//        /**
+//        * @brief Creates a new WayPoint
+//        *
+//        * @param coord the coordinates in LatLng of the WayPoint
+//        * @param altitude the Altitude of the WayPoint
+//        * @param description the description of the WayPoint
+//        * @return PathSegmentItem a pointer to the WayPoint created
+//        */
+//        PathSegmentItem* PSCreate(internals::PointLatLng const& coord,int const& altitude, QString const& description);
+//        /**
+//        * @brief Creates a new WayPoint
+//        *
+//        * @param coord the offset in meters to the home position
+//        * @param altitude the Altitude of the WayPoint
+//        * @param description the description of the WayPoint
+//        * @return PathSegmentItem a pointer to the WayPoint created
+//        */
+//        PathSegmentItem *PSCreate(const distBearingAltitude &relativeCoord, const QString &description);
+        /**
+        * @brief Inserts a new WayPoint on the specified position
+        *
+        * @param position index of the WayPoint
+        * @return PathSegmentItem a pointer to the WayPoint created
+        */
+        PathSegmentItem* PSInsert(int const& position);
+        /**
+        * @brief Inserts a new WayPoint on the specified position
+        *
+        * @param item the WayPoint to Insert
+        * @param position index of the WayPoint
+        */
+        void PSInsert(PathSegmentItem* item,int const& position);
+        /**
+        * @brief Inserts a new WayPoint on the specified position
+        *
+        * @param coord the coordinates in LatLng of the WayPoint
+        * @param altitude the Altitude of the WayPoint
+        * @param position index of the WayPoint
+        * @return PathSegmentItem a pointer to the WayPoint Inserted
+        */
+        PathSegmentItem* PSInsert(internals::PointLatLng const& coord,int const& altitude,int const& position);
+        /**
+        * @brief Inserts a new WayPoint on the specified position
+        *
+        * @param coord the coordinates in LatLng of the WayPoint
+        * @param altitude the Altitude of the WayPoint
+        * @param description the description of the WayPoint
+        * @param position index of the WayPoint
+        * @return PathSegmentItem a pointer to the WayPoint Inserted
+        */
+        PathSegmentItem* PSInsert(internals::PointLatLng const& coord,int const& altitude, QString const& description,int const& position);
+        PathSegmentItem *PSInsert(const distBearingAltitude &relative, const QString &description, const int &position);
+
+        /**
+        * @brief Deletes the WayPoint
+        *
+        * @param item the WayPoint to delete
+        */
+        void PSDelete(PathSegmentItem* item);
+        /**
+        * @brief deletes all WayPoints
+        *
+        */
+        void PSDeleteAll();
+        /**
+        * @brief Returns the currently selected WayPoints
+        *
+        * @return @return QList<PathSegmentItem *>
+        */
+        QList<PathSegmentItem*> PSSelected();
+
+        /**
+        * @brief Renumbers the WayPoint and all others as needed
+        *
+        * @param item the WayPoint to renumber
+        * @param newnumber the WayPoint's new number
+        */
+        void PSRenumber(PathSegmentItem* item,int const& newnumber);
+
+        //////////////////////////////////////////////////////////////////////
         void SetShowCompass(bool const& value);
 
         void setOverlayOpacity(qreal value);
@@ -387,9 +490,14 @@ namespace mapcontrol
         void WPDelete(int number);
         WayPointItem *WPFind(int number);
         void setSelectedWP(QList<WayPointItem *> list);
+
+        void PSSetVisibleAll(bool value);
+        bool PSPresent();
+        void PSDelete(int number);
+        PathSegmentItem *PSFind(int number);
+        MapGraphicItem *map;
       private:
         internals::Core *core;
-        MapGraphicItem *map;
         QGraphicsScene mscene;
         bool useOpenGL;
         GeoCoderStatusCode x;
@@ -398,6 +506,7 @@ namespace mapcontrol
         internals::PointLatLng currentmouseposition;
         bool followmouse;
         void ConnectWP(WayPointItem* item);
+        void ConnectPS(PathSegmentItem* item);
         QGraphicsSvgItem *compass;
         bool showuav;
         bool showhome;
@@ -460,6 +569,41 @@ namespace mapcontrol
         *
         * @param number number of the Reached WayPoint
         */
+
+        ///////////////////// PATH SEGMENT //////////////////////
+        void PSNumberChanged(int const& oldnumber,int const& newnumber,PathSegmentItem* pathsegment);
+        /**
+        * @brief Fired when the description, altitude or coordinates of a PathSegment changed
+        *
+        * @param pathsegment a pointer to the PathSegment
+        */
+        void PSValuesChanged(PathSegmentItem* pathsegment);
+        /**
+        * @brief Fires when a new PathSegment is inserted
+        *
+        * @param number new PathSegment number
+        * @param pathsegment PathSegment inserted
+        */
+        void PSReached(PathSegmentItem* pathsegment);
+
+        void PSCreated(int const& number,PathSegmentItem* pathsegment);
+
+        /**
+               * @brief Fires when a new PathSegment is inserted
+               *
+               * @param number new PathSegment number
+               * @param pathsegment PathSegment inserted
+               */
+        void PSInserted(int const& number,PathSegmentItem* pathsegment);
+        /**
+        * @brief Fires When a PathSegment is deleted
+        *
+        * @param number number of the deleted PathSegment
+        */
+        void PSDeleted(int const& number,PathSegmentItem* pathsegment);
+
+        //////////////////////////////////////////////////////////
+
         void UAVReachedWayPoint(int const& waypointnumber,WayPointItem* waypoint);
         /**
         * @brief Fires When the UAV lives the safety bouble

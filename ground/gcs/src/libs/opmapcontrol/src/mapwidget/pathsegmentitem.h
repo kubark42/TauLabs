@@ -1,7 +1,7 @@
 /**
 ******************************************************************************
 *
-* @file       waypointitem.h
+* @file       pathsegmentitem.h
 * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2012.
 * @brief      A graphicsItem representing a WayPoint
 * @see        The GNU Public License (GPL) Version 3
@@ -24,8 +24,8 @@
 * with this program; if not, write to the Free Software Foundation, Inc.,
 * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
-#ifndef WAYPOINTITEM_H
-#define WAYPOINTITEM_H
+#ifndef PATHSEGMENTITEM_H
+#define PATHSEGMENTITEM_H
 
 #include <QGraphicsItem>
 #include <QPainter>
@@ -37,21 +37,23 @@
 
 namespace mapcontrol
 {
-struct distBearingAltitude
-{
-    double distance;
-    double bearing;
-    distBearingAltitude() : distance(0.0), bearing(0.0) { }
-    double bearingToDegrees(){return bearing*180/M_PI;}
-    void setBearingFromDegrees(double degrees){bearing=degrees*M_PI/180;}
-};
-class HomeItem;
+//struct distBearingAltitude
+//{
+//    double distance;
+//    double bearing;
+//    distBearingAltitude() : distance(0.0), bearing(0.0) { }
+//    double bearingToDegrees(){return bearing*180/M_PI;}
+//    void setBearingFromDegrees(double degrees){bearing=degrees*M_PI/180;}
+//};
+
+//class HomeItem;
+
 /**
-* @brief A QGraphicsItem representing a WayPoint
+* @brief A QGraphicsItem representing a path segment
 *
-* @class WayPointItem waypointitem.h "waypointitem.h"
+* @class PathSegmentItem pathsegmentitem.h "pathsegmentitem.h"
 */
-class WayPointItem:public QObject,public QGraphicsItem
+class PathSegmentItem:public QObject,public QGraphicsItem
 {
     Q_OBJECT
     Q_INTERFACES(QGraphicsItem)
@@ -66,8 +68,8 @@ public:
     * @param map pointer to map to use
     * @return
     */
-    WayPointItem(internals::PointLatLng const& coord,int const& altitude,MapGraphicItem* map,wptype type=absolute);
-    WayPointItem(MapGraphicItem* map,bool magicwaypoint);
+    PathSegmentItem(internals::PointLatLng const& coord,int const& altitude,MapGraphicItem* map,wptype type=absolute);
+    PathSegmentItem(MapGraphicItem* map,bool magicwaypoint);
     /**
     * @brief Constructor
     *
@@ -77,8 +79,10 @@ public:
     * @param map pointer to map to use
     * @return
     */
-    WayPointItem(internals::PointLatLng const& coord,int const& altitude,QString const& description,MapGraphicItem* map,wptype type=absolute);
-    WayPointItem(distBearingAltitude const& relativeCoord,QString const& description,MapGraphicItem* map);
+    PathSegmentItem(internals::PointLatLng const& coord,int const& altitude,QString const& description,MapGraphicItem* map,wptype type=absolute);
+    PathSegmentItem(distBearingAltitude const& relativeCoord,QString const& description,MapGraphicItem* map);
+
+    ~PathSegmentItem();
 
     /**
     * @brief Returns the WayPoint description
@@ -154,18 +158,20 @@ public:
     distBearingAltitude getRelativeCoord(){return relativeCoord;}
     int type() const;
     QRectF boundingRect() const;
-    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
-                QWidget *widget);
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
     void RefreshToolTip();
     QPixmap picture;
     QString customString(){return myCustomString;}
     void setCustomString(QString arg){myCustomString=arg;}
     void setFlag(GraphicsItemFlag flag, bool enabled);
-~WayPointItem();
+
 
     static int snumber;
     void setWPType(wptype type);
     wptype WPType(){return myType;}
+
+    float curvature;
+
 protected:
     void mouseMoveEvent ( QGraphicsSceneMouseEvent * event );
     void mousePressEvent ( QGraphicsSceneMouseEvent * event );
@@ -188,7 +194,6 @@ private:
     QGraphicsSimpleTextItem* numberI;
     QGraphicsRectItem* numberIBG;
     QTransform transf;
-    HomeItem * myHome;
     wptype myType;
     QString myCustomString;
 
@@ -198,7 +203,7 @@ public slots:
     *
     * @param number number of the WayPoint that was deleted
     */
-    void WPDeleted(int const& number,WayPointItem *waypoint);
+    void WPDeleted(int const& number,PathSegmentItem *waypoint);
     /**
     * @brief Called when a WayPoint is renumbered
     *
@@ -206,14 +211,14 @@ public slots:
     * @param newnumber the new WayPoint number
     * @param waypoint a pointer to the WayPoint renumbered
     */
-    void WPRenumbered(int const& oldnumber,int const& newnumber,WayPointItem* waypoint);
+    void WPRenumbered(int const& oldnumber,int const& newnumber,PathSegmentItem* waypoint);
     /**
     * @brief Called when a  WayPoint is inserted
     *
     * @param number the number of the  WayPoint
     * @param waypoint  a pointer to the WayPoint inserted
     */
-    void WPInserted(int const& number,WayPointItem* waypoint);
+    void WPInserted(int const& number,PathSegmentItem* waypoint);
 
     void onHomePositionChanged(internals::PointLatLng,float altitude);
     void RefreshPos();
@@ -226,7 +231,7 @@ signals:
     * @param newnumber this WayPoint new number
     * @param waypoint a pointer to this WayPoint
     */
-    void WPNumberChanged(int const& oldnumber,int const& newnumber,WayPointItem* waypoint);
+    void WPNumberChanged(int const& oldnumber,int const& newnumber,PathSegmentItem* waypoint);
 
     /**
     * @brief Fired when the description, altitude or coordinates change
@@ -239,13 +244,13 @@ signals:
     *
     * @param waypoint a pointer to this WayPoint
     */
-    void WPDropped(WayPointItem* waypoint);
+    void WPDropped(PathSegmentItem* waypoint);
 
-    void WPValuesChanged(WayPointItem* waypoint);
-    void waypointdoubleclick(WayPointItem* waypoint);
-    void localPositionChanged(QPointF point,WayPointItem* waypoint);
-    void manualCoordChange(WayPointItem *);
-    void aboutToBeDeleted(WayPointItem *);
+    void WPValuesChanged(PathSegmentItem* waypoint);
+    void waypointdoubleclick(PathSegmentItem* waypoint);
+    void localPositionChanged(QPointF point,PathSegmentItem* waypoint);
+    void manualCoordChange(PathSegmentItem *);
+    void aboutToBeDeleted(PathSegmentItem *);
 };
 }
-#endif // WAYPOINTITEM_H
+#endif // PATHSEGMENTITEM_H

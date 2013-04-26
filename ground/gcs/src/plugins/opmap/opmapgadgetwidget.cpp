@@ -421,6 +421,8 @@ void OPMapGadgetWidget::contextMenuEvent(QContextMenuEvent *event)
 
     contextMenu.addAction(showUAVInfo);
 
+    contextMenu.addAction(showPathSegments);
+
     contextMenu.addSeparator()->setText(tr("Zoom"));
 
     contextMenu.addAction(zoomInAct);
@@ -1257,7 +1259,7 @@ void OPMapGadgetWidget::createActions()
     copyMouseLonToClipAct->setStatusTip(tr("Copy the mouse longitude to the clipboard"));
     connect(copyMouseLonToClipAct, SIGNAL(triggered()), this, SLOT(onCopyMouseLonToClipAct_triggered()));
 
-    showCompassAct = new QAction(tr("Show compass"), this);
+    showCompassAct = new QAction(tr("Show Compass"), this);
     showCompassAct->setStatusTip(tr("Show/Hide the compass"));
     showCompassAct->setCheckable(true);
     showCompassAct->setChecked(true);
@@ -1274,6 +1276,13 @@ void OPMapGadgetWidget::createActions()
     showUAVInfo->setCheckable(true);
     showUAVInfo->setChecked(false);
     connect(showUAVInfo, SIGNAL(toggled(bool)), this, SLOT(onShowUAVInfo_toggled(bool)));
+
+    showPathSegments = new QAction(tr("Show Path Segments"), this);
+    showPathSegments->setStatusTip(tr("Show/Hide the path segments"));
+    showPathSegments->setCheckable(true);
+    showPathSegments->setChecked(false);
+    connect(showPathSegments, SIGNAL(toggled(bool)), this, SLOT(onShowPathSegments_toggled(bool)));
+
 
     showHomeAct = new QAction(tr("Show Home"), this);
     showHomeAct->setStatusTip(tr("Show/Hide the Home location"));
@@ -1575,6 +1584,15 @@ void OPMapGadgetWidget::onShowUAVInfo_toggled(bool show)
 
     m_map->UAV->SetShowUAVInfo(show);
 }
+
+void OPMapGadgetWidget::onShowPathSegments_toggled(bool show)
+{
+    if (!m_widget || !m_map)
+        return;
+
+    m_map->UAV->SetShowUAVInfo(show);
+}
+
 
 void OPMapGadgetWidget::onShowHomeAct_toggled(bool show)
 {

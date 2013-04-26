@@ -143,7 +143,7 @@ namespace mapcontrol
 
     WayPointCircle * OPMapWidget::WPCircleCreate(WayPointItem *center, WayPointItem *radius, bool clockwise,QColor color)
     {
-        if(!center|!radius)
+        if(!center || !radius)
             return NULL;
         WayPointCircle* ret= new WayPointCircle(center,radius,clockwise,map,color);
         ret->setOpacity(overlayOpacity);
@@ -152,7 +152,7 @@ namespace mapcontrol
 
     WayPointCircle *OPMapWidget::WPCircleCreate(HomeItem *center, WayPointItem *radius, bool clockwise,QColor color)
     {
-        if(!center|!radius)
+        if(!center || !radius)
             return NULL;
         WayPointCircle* ret= new WayPointCircle(center,radius,clockwise,map,color);
         ret->setOpacity(overlayOpacity);
@@ -247,7 +247,15 @@ namespace mapcontrol
         p=map->mapFromParent(p);
         currentmouseposition=map->FromLocalToLatLng(p.x(),p.y());
     }
+
     ////////////////WAYPOINT////////////////////////
+    WayPointItem* OPMapWidget::magicWPCreate()
+    {
+        WayPointItem* item=new WayPointItem(map,true);
+        item->SetShowNumber(false);
+        item->setParentItem(map);
+        return item;
+    }
     WayPointItem* OPMapWidget::WPCreate()
     {
         WayPointItem* item=new WayPointItem(this->CurrentPosition(),0,map);
@@ -255,13 +263,6 @@ namespace mapcontrol
         item->setParentItem(map);
         int position=item->Number();
         emit WPCreated(position,item);
-        return item;
-    }
-    WayPointItem* OPMapWidget::magicWPCreate()
-    {
-        WayPointItem* item=new WayPointItem(map,true);
-        item->SetShowNumber(false);
-        item->setParentItem(map);
         return item;
     }
     void OPMapWidget::WPCreate(WayPointItem* item)
@@ -439,22 +440,6 @@ namespace mapcontrol
         }
         return false;
     }
-
-    void OPMapWidget::deleteAllOverlays()
-    {
-        foreach(QGraphicsItem* i,map->childItems())
-        {
-            WayPointLine* w=qgraphicsitem_cast<WayPointLine*>(i);
-            if(w)
-                w->deleteLater();
-            else
-            {
-                WayPointCircle* ww=qgraphicsitem_cast<WayPointCircle*>(i);
-                if(ww)
-                    ww->deleteLater();
-            }
-        }
-    }
     QList<WayPointItem*> OPMapWidget::WPSelected()
     {
         QList<WayPointItem*> list;
@@ -480,6 +465,240 @@ namespace mapcontrol
         connect(this,SIGNAL(WPNumberChanged(int,int,WayPointItem*)),item,SLOT(WPRenumbered(int,int,WayPointItem*)),Qt::DirectConnection);
         connect(this,SIGNAL(WPDeleted(int,WayPointItem*)),item,SLOT(WPDeleted(int,WayPointItem*)),Qt::DirectConnection);
     }
+
+    ////////////////PATH SEGMENTS////////////////////////
+    PathSegmentItem* OPMapWidget::PSCreate()
+    {
+        PathSegmentItem* item=new PathSegmentItem(this->CurrentPosition(),0,map);
+        ConnectPS(item);
+        item->setParentItem(map);
+        int position=item->Number();
+        emit PSCreated(position,item);
+        return item;
+    }
+    void OPMapWidget::PSCreate(PathSegmentItem* item)
+    {
+        ConnectPS(item);
+        item->setParentItem(map);
+        int position=item->Number();
+        emit PSCreated(position,item);
+        setOverlayOpacity(overlayOpacity);
+    }
+//    PathSegmentItem* OPMapWidget::PSCreate(internals::PointLatLng const& coord,int const& altitude)
+//    {
+//        PathSegmentItem* item=new PathSegmentItem(coord,altitude,map);
+//        ConnectPS(item);
+//        item->setParentItem(map);
+//        int position=item->Number();
+//        emit PSCreated(position,item);
+//        setOverlayOpacity(overlayOpacity);
+//        return item;
+//    }
+//    PathSegmentItem* OPMapWidget::PSCreate(internals::PointLatLng const& coord,int const& altitude, QString const& description)
+//    {
+//        PathSegmentItem* item=new PathSegmentItem(coord,altitude,description,map);
+//        ConnectPS(item);
+//        item->setParentItem(map);
+//        int position=item->Number();
+//        emit PSCreated(position,item);
+//        setOverlayOpacity(overlayOpacity);
+//        return item;
+//    }
+//    PathSegmentItem* OPMapWidget::PSCreate(const distBearingAltitude &relativeCoord, const QString &description)
+//    {
+//        PathSegmentItem* item=new PathSegmentItem(relativeCoord,description,map);
+//        ConnectPS(item);
+//        item->setParentItem(map);
+//        int position=item->Number();
+//        emit PSCreated(position,item);
+//        setOverlayOpacity(overlayOpacity);
+//        return item;
+//    }
+    PathSegmentItem* OPMapWidget::PSInsert(const int &position)
+    {
+        PathSegmentItem* item=new PathSegmentItem(this->CurrentPosition(),0,map);
+        item->SetNumber(position);
+        ConnectPS(item);
+        item->setParentItem(map);
+        emit PSInserted(position,item);
+        setOverlayOpacity(overlayOpacity);
+        return item;
+    }
+    void OPMapWidget::PSInsert(PathSegmentItem* item,const int &position)
+    {
+        item->SetNumber(position);
+        ConnectPS(item);
+        item->setParentItem(map);
+        emit PSInserted(position,item);
+        setOverlayOpacity(overlayOpacity);
+    }
+    PathSegmentItem* OPMapWidget::PSInsert(internals::PointLatLng const& coord,int const& altitude,const int &position)
+    {
+        PathSegmentItem* item=new PathSegmentItem(coord,altitude,map);
+        item->SetNumber(position);
+        ConnectPS(item);
+        item->setParentItem(map);
+        emit PSInserted(position,item);
+        setOverlayOpacity(overlayOpacity);
+        return item;
+    }
+    PathSegmentItem* OPMapWidget::PSInsert(internals::PointLatLng const& coord,int const& altitude, QString const& description,const int &position)
+    {
+        internals::PointLatLng mcoord;
+        bool reloc=false;
+        if(mcoord==internals::PointLatLng(0,0))
+        {
+            mcoord=CurrentPosition();
+            reloc=true;
+        }
+        else
+            mcoord=coord;
+        PathSegmentItem* item=new PathSegmentItem(mcoord,altitude,description,map);
+        item->SetNumber(position);
+        ConnectPS(item);
+        item->setParentItem(map);
+        emit PSInserted(position,item);
+        if(reloc)
+            emit PSValuesChanged(item);
+        setOverlayOpacity(overlayOpacity);
+        return item;
+    }
+    PathSegmentItem* OPMapWidget::PSInsert(distBearingAltitude const& relative, QString const& description,const int &position)
+    {
+        PathSegmentItem* item=new PathSegmentItem(relative,description,map);
+        item->SetNumber(position);
+        ConnectPS(item);
+        item->setParentItem(map);
+        emit PSInserted(position,item);
+        setOverlayOpacity(overlayOpacity);
+        return item;
+    }
+    void OPMapWidget::PSDelete(PathSegmentItem *item)
+    {
+        emit PSDeleted(item->Number(),item);
+        delete item;
+    }
+    void OPMapWidget::PSDelete(int number)
+    {
+        foreach(QGraphicsItem* i,map->childItems())
+        {
+            PathSegmentItem* w=qgraphicsitem_cast<PathSegmentItem*>(i);
+            if(w)
+            {
+                if(w->Number()==number)
+                {
+                    emit PSDeleted(w->Number(),w);
+                    delete w;
+                    return;
+                }
+            }
+        }
+    }
+    PathSegmentItem * OPMapWidget::PSFind(int number)
+    {
+        foreach(QGraphicsItem* i,map->childItems())
+        {
+            PathSegmentItem* w=qgraphicsitem_cast<PathSegmentItem*>(i);
+            if(w)
+            {
+                if(w->Number()==number)
+                {
+                    return w;
+                }
+            }
+        }
+        return NULL;
+    }
+    void OPMapWidget::PSSetVisibleAll(bool value)
+    {
+        foreach(QGraphicsItem* i,map->childItems())
+        {
+            PathSegmentItem* w=qgraphicsitem_cast<PathSegmentItem*>(i);
+            if(w)
+            {
+                if(w->Number()!=-1)
+                    w->setVisible(value);
+            }
+        }
+    }
+    void OPMapWidget::PSDeleteAll()
+    {
+        foreach(QGraphicsItem* i,map->childItems())
+        {
+            PathSegmentItem* w=qgraphicsitem_cast<PathSegmentItem*>(i);
+            if(w)
+            {
+                if(w->Number()!=-1)
+                {
+                    emit PSDeleted(w->Number(),w);
+                    delete w;
+                }
+            }
+        }
+    }
+    bool OPMapWidget::PSPresent()
+    {
+        foreach(QGraphicsItem* i,map->childItems())
+        {
+            PathSegmentItem* w=qgraphicsitem_cast<PathSegmentItem*>(i);
+            if(w)
+            {
+                if(w->Number()!=-1)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    QList<PathSegmentItem*> OPMapWidget::PSSelected()
+    {
+        QList<PathSegmentItem*> list;
+        foreach(QGraphicsItem* i,mscene.selectedItems())
+        {
+            PathSegmentItem* w=qgraphicsitem_cast<PathSegmentItem*>(i);
+            if(w)
+                list.append(w);
+        }
+        return list;
+    }
+    void OPMapWidget::PSRenumber(PathSegmentItem *item, const int &newnumber)
+    {
+        item->SetNumber(newnumber);
+    }
+
+    void OPMapWidget::ConnectPS(PathSegmentItem *item)
+    {
+        connect(item,SIGNAL(PSNumberChanged(int,int,PathSegmentItem*)),this,SIGNAL(PSNumberChanged(int,int,PathSegmentItem*)),Qt::DirectConnection);
+        connect(item,SIGNAL(PSValuesChanged(PathSegmentItem*)),this,SIGNAL(PSValuesChanged(PathSegmentItem*)),Qt::DirectConnection);
+        connect(item,SIGNAL(manualCoordChange(PathSegmentItem*)),this,SIGNAL(PSManualCoordChange(PathSegmentItem*)),Qt::DirectConnection);
+        connect(this,SIGNAL(PSInserted(int,PathSegmentItem*)),item,SLOT(PSInserted(int,PathSegmentItem*)),Qt::DirectConnection);
+        connect(this,SIGNAL(PSNumberChanged(int,int,PathSegmentItem*)),item,SLOT(PSRenumbered(int,int,PathSegmentItem*)),Qt::DirectConnection);
+        connect(this,SIGNAL(PSDeleted(int,PathSegmentItem*)),item,SLOT(PSDeleted(int,PathSegmentItem*)),Qt::DirectConnection);
+    }
+
+
+    ////////////////////// OVERLAY FUNCTIONS ///////////////////////////
+    void OPMapWidget::deleteAllOverlays()
+    {
+        foreach(QGraphicsItem* i,map->childItems())
+        {
+            WayPointLine* w=qgraphicsitem_cast<WayPointLine*>(i);
+            if(w)
+                w->deleteLater();
+            else
+            {
+                WayPointCircle* ww=qgraphicsitem_cast<WayPointCircle*>(i);
+                if(ww)
+                    ww->deleteLater();
+            }
+        }
+    }
+    //////////////////////////////////////////////
+
+    /**
+     * @brief OPMapWidget::diagRefresh Refresh map diagnostics printout
+     */
     void OPMapWidget::diagRefresh()
     {
         if(showDiag)
@@ -503,7 +722,6 @@ namespace mapcontrol
         }
     }
 
-    //////////////////////////////////////////////
     void OPMapWidget::SetShowCompass(const bool &value)
     {
         if(value && !compass)

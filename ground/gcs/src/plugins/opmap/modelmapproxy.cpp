@@ -28,6 +28,12 @@
 #include "modelmapproxy.h"
 #include "../pathplanner/waypointdialog.h"
 
+#include "pathsegmentdescriptor.h"
+#include "homelocation.h"
+#include "extensionsystem/pluginmanager.h"
+#include "uavobjectmanager.h"
+#include "utils/coordinateconversions.h"
+
 ModelMapProxy::ModelMapProxy(QObject *parent,OPMapWidget *map, FlightDataModel *model,QItemSelectionModel * selectionModel):QObject(parent),myMap(map),model(model),selection(selectionModel)
 {
     connect(model,SIGNAL(rowsInserted(const QModelIndex&,int,int)),this,SLOT(rowsInserted(const QModelIndex&,int,int)));
@@ -122,7 +128,7 @@ ModelMapProxy::overlayType ModelMapProxy::overlayTranslate(int type)
 /**
  * @brief ModelMapProxy::createOverlay Create a graphical path component
  * @param from The starting location
- * @param to The ending location (for circles the radius) which is a HomeItem
+ * @param to The ending location (for circles the radius) which is a WayPointItem
  * @param type The type of path component
  * @param color
  */
@@ -184,6 +190,45 @@ void ModelMapProxy::createOverlay(WayPointItem *from, HomeItem *to, ModelMapProx
 }
 
 /**
+ * @brief ModelMapProxy::createOverlay Create a graphical path component
+ * @param from The starting location
+ * @param to The ending location (for circles the radius) which is a HomeItem
+ * @param type The type of path component
+ * @param color
+ */
+void ModelMapProxy::createOverlay(PathSegmentItem *past, PathSegmentItem *present, overlayType type, QColor color)
+{
+    if(past==NULL || present==NULL || past==present)
+        return;
+
+    WayPointItem from(past->Coord(), past->Altitude(), myMap->map);
+    WayPointItem to(present->Coord(), present->Altitude(), myMap->map);
+
+
+    switch(type)
+    {
+    case OVERLAY_LINE:
+        myMap->WPLineCreate(&from, &to, color);
+        break;
+    case OVERLAY_CIRCLE_RIGHT:
+//        myMap->WPCircleCreate(to,from,true,color);
+        break;
+    case OVERLAY_CIRCLE_LEFT:
+//        myMap->WPCircleCreate(to,from,false,color);
+        break;
+    case OVERLAY_CURVE_RIGHT:
+        myMap->WPCurveCreate(&from, &to, 1.0/present->curvature, true,  color);
+        break;
+    case OVERLAY_CURVE_LEFT:
+        myMap->WPCurveCreate(&from, &to, 1.0/present->curvature, false, color);
+        break;
+    default:
+        break;
+    }
+}
+
+
+/**
  * @brief ModelMapProxy::refreshOverlays Update the information from the model and
  * redraw all the components
  */
@@ -196,6 +241,9 @@ void ModelMapProxy::refreshOverlays()
     WayPointItem *wp_next = NULL;
     overlayType wp_next_overlay;
 
+    /**
+      * Waypoint overlay
+      */
     // Get first waypoint type before stepping through path
     wp_current = findWayPointNumber(0);
     overlayType wp_current_overlay = overlayTranslate(model->data(model->index(0,FlightDataModel::MODE),Qt::UserRole).toInt());
@@ -205,16 +253,89 @@ void ModelMapProxy::refreshOverlays()
     {
         wp_current = findWayPointNumber(x);
 
+        // Determine if overlay is line or arc
         wp_next_overlay = overlayTranslate(model->data(model->index(x+1,FlightDataModel::MODE),Qt::UserRole).toInt());
 
         wp_next = findWayPointNumber(x+1);
         createOverlay(wp_current, wp_next, wp_next_overlay, Qt::green,
                       model->data(model->index(x+1,FlightDataModel::MODE_PARAMS)).toFloat());
     }
+        
+
+    /**
+      * Path segment overlay
+      */
+    ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
+    Q_ASSERT(pm != NULL);
+    UAVObjectManager* objManager = pm->getObject<UAVObjectManager>();
+    Q_ASSERT(objManager != NULL);
+
+    HomeLocation *homeLocation = HomeLocation::GetInstance(objManager);
+    HomeLocation::DataFields homeLocationData = homeLocation->getData();
+
+
+
+    int numberOfSegments = objManager->getNumInstances("PathSegmentDescriptor");
+
+    // The first switching locus is the UAV's location when the path planning began,
+    // so we start at the second locus
+    for(int i=1; i<numberOfSegments; i++)
+    {
+
+
+        PathSegmentDescriptor *pathSegmentDescriptor_past = PathSegmentDescriptor::GetInstance(objManager, i-1);
+        PathSegmentDescriptor *pathSegmentDescriptor_present = PathSegmentDescriptor::GetInstance(objManager, i);
+
+
+        double NED[3];
+        double LLA[3];
+        double Home_LLA[3]={homeLocationData.Latitude, homeLocationData.Longitude, homeLocationData.Altitude};
+
+
+
+        for (int i=0; i<3; i++)
+            NED[i]= pathSegmentDescriptor_past->getSwitchingLocus(i);
+        Utils::CoordinateConversions().NED2LLA_HomeLLA(Home_LLA, NED, LLA);
+        internals::PointLatLng coord_past(LLA[0],LLA[1]);
+        int altitude_past = LLA[2];
+
+        for (int i=0; i<3; i++)
+            NED[i]= pathSegmentDescriptor_present->getSwitchingLocus(i);
+        Utils::CoordinateConversions().NED2LLA_HomeLLA(Home_LLA, NED, LLA);
+        internals::PointLatLng coord_present(LLA[0],LLA[1]);
+        int altitude_present = LLA[2];
+
+        PathSegmentItem *ps_past = new PathSegmentItem(coord_past, altitude_past, myMap->map); //findPathSegmentNumber(i-1);
+        PathSegmentItem *ps_current =  new PathSegmentItem(coord_present, altitude_present, myMap->map); // findPathSegmentNumber(i);
+
+        ps_past->curvature = pathSegmentDescriptor_past->getPathCurvature();
+        ps_current->curvature = pathSegmentDescriptor_present->getPathCurvature();
+
+        // Determine if overlay is line or arc
+        overlayType ps_overlay;
+        if (ps_current->curvature == 0)
+            ps_overlay = OVERLAY_LINE;
+        else if (ps_current->curvature > 0)
+            ps_overlay = OVERLAY_CURVE_RIGHT;
+        else
+            ps_overlay = OVERLAY_CURVE_LEFT;
+
+        createOverlay(ps_past, ps_current, ps_overlay, Qt::red);
+
+
+    }
+//        ps_current = findWayPointNumber(x);
+
+//        ps_next_overlay = overlayTranslate(model->data(model->index(x+1,FlightDataModel::MODE),Qt::UserRole).toInt());
+
+//        ps_next = findWayPointNumber(x+1);
+//        createOverlay(ps_current, ps_next, ps_next_overlay, Qt::green,
+//                      model->data(model->index(x+1,FlightDataModel::MODE_PARAMS)).toFloat());
+//    }
 }
 
 /**
- * @brief ModelMapProxy::findWayPointNumber Return the graphial icon for the requested waypoint
+ * @brief ModelMapProxy::findWayPointNumber Return the graphical icon for the requested waypoint
  * @param number The waypoint number
  * @return The pointer to the graphical item or NULL
  */
@@ -224,6 +345,19 @@ WayPointItem *ModelMapProxy::findWayPointNumber(int number)
         return NULL;
     return myMap->WPFind(number);
 }
+
+/**
+ * @brief ModelMapProxy::findPathSegmentNumber Return the graphical icon for the requested path segment
+ * @param number The path segment index
+ * @return The pointer to the graphical item or NULL
+ */
+PathSegmentItem* ModelMapProxy::findPathSegmentNumber(int number)
+{
+    if(number<0)
+        return NULL;
+    return myMap->PSFind(number);
+}
+
 
 /**
  * @brief ModelMapProxy::rowsRemoved Called whenever a row is removed from the model

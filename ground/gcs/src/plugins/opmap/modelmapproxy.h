@@ -28,6 +28,7 @@
 #define MODELMAPPROXY_H
 #include <QWidget>
 #include "opmapcontrol/opmapcontrol.h"
+#include "pathsegmentdescriptor.h"
 #include "waypoint.h"
 #include "QMutexLocker"
 #include "QPointer"
@@ -51,6 +52,9 @@ public:
 
     //! Get the handle to a waypoint graphical item
     WayPointItem *findWayPointNumber(int number);
+
+    //! Get the handle to a path segment graphical item
+    PathSegmentItem *findPathSegmentNumber(int number);
 
     //! When a waypoint is created graphically, insert into the end of the model
     void createWayPoint(internals::PointLatLng coord);
@@ -81,8 +85,9 @@ private slots:
     void selectedWPChanged(QList<WayPointItem*>);
 private:
     overlayType overlayTranslate(int type);
+    void createOverlay(PathSegmentItem *from, PathSegmentItem *to, overlayType type, QColor color);
     void createOverlay(WayPointItem *from, WayPointItem * to, overlayType type, QColor color, double radius);
-    void createOverlay(WayPointItem *from, HomeItem *to, ModelMapProxy::overlayType type, QColor color);
+    void createOverlay(WayPointItem *from, HomeItem *to, overlayType type, QColor color);
     OPMapWidget * myMap;
     FlightDataModel *model;
     void refreshOverlays();
