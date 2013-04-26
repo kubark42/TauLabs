@@ -25,8 +25,9 @@
  */
 
 #include "pios.h"
-
-#include "uavobjectmanager.h"
+#include "physical_constants.h"
+#include "CoordinateConversions.h"
+#include "misc_math.h"
 
 #include "path_planners.h"
 
@@ -35,13 +36,10 @@
 #include "positionactual.h"
 #include "waypoint.h"
 
-#include "CoordinateConversions.h"
-#include "misc_math.h"
 
 // Private functions
 static uint8_t addNonCircleToSwitchingLoci(float position[3], float finalVelocity, float curvature, uint16_t index);
 static uint8_t addCircleToSwitchingLoci(float position[3], float finalVelocity, float curvature, float numberOfOrbits, uint16_t index);
-
 
 PathPlannerStates direct_path_planner(uint16_t numberOfWaypoints)
 {

@@ -300,6 +300,7 @@ PathPlannerStates processWaypoints(PathPlannerSettingsPlannerAlgorithmOptions al
 		}
 		break;
 		default:
+			// TODO: Some kind of error here
 		break;
 	}
 

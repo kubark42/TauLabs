@@ -73,8 +73,8 @@ static PathManagerSettingsData pathManagerSettings;
 static PathManagerStatusData pathManagerStatus;
 static PathSegmentDescriptorData pathSegmentDescriptor_current;
 static portTickType segmentTimer;
-static float angularDistanceToComplete;
-static float angularDistanceCompleted;
+static float angularDistanceToComplete_D;
+static float angularDistanceCompleted_D;
 static float oldPosition_NE[2];
 static float arcCenter_NE[2];
 static uint8_t guidanceType = NOMANAGER;
@@ -87,6 +87,8 @@ static void pathManagerTask(void *parameters);
 static void settingsUpdated(UAVObjEvent * ev);
 static void pathSegmentDescriptorsUpdated(UAVObjEvent * ev);
 static void advanceSegment();
+//static float arcLengthAlongPath(PathSegmentDescriptorData *start, PathSegmentDescriptorData *end);
+
 /**
  * Module initialization
  */
@@ -251,7 +253,7 @@ static void pathManagerTask(void *parameters)
 			PositionActualGet(&positionActual);
 			float newPosition_NE[2] = {positionActual.North, positionActual.East};
 			if (arc_has_center == CENTER_FOUND) {
-				angularDistanceCompleted  += updateArcMeasure(oldPosition_NE, newPosition_NE, arcCenter_NE) * RAD2DEG;
+				angularDistanceCompleted_D  += updateArcMeasure(oldPosition_NE, newPosition_NE, arcCenter_NE) * RAD2DEG;
 
 				oldPosition_NE[0] = newPosition_NE[0];
 				oldPosition_NE[1] = newPosition_NE[1];
@@ -265,26 +267,26 @@ static void pathManagerTask(void *parameters)
 
 				float referenceTheta = updateArcMeasure(previousLocus->Position, newPosition_NE, arcCenter_NE) * RAD2DEG;
 
-				while(referenceTheta-angularDistanceCompleted < -180) {
+				while(referenceTheta-angularDistanceCompleted_D < -180) {
 					referenceTheta += 360;
 				}
-				while(referenceTheta-angularDistanceCompleted > 180) {
+				while(referenceTheta-angularDistanceCompleted_D > 180) {
 					referenceTheta -= 360;
 				}
 
-				angularDistanceCompleted = referenceTheta;
+				angularDistanceCompleted_D = referenceTheta;
 			}
 		}
 
-		pathManagerStatus.StatusParameters[0] = angularDistanceCompleted;
-		pathManagerStatus.StatusParameters[1] = angularDistanceToComplete;
+		pathManagerStatus.StatusParameters[0] = angularDistanceCompleted_D;
+		pathManagerStatus.StatusParameters[1] = angularDistanceToComplete_D;
 		PathManagerStatusSet(&pathManagerStatus);
 
 		// If the vehicle is sufficiently close to the goal, check if it has achieved the goal
 		// of the active path segment. Sufficiently close is chosen to be an arbitrary angular
 		// distance, as this is robust and sufficient to describe all paths, including infinite
 		// straight lines and infinite number of orbits about a point.
-		if ( sign(pathSegmentDescriptor_current.PathCurvature) * (angularDistanceToComplete - angularDistanceCompleted) < ANGULAR_PROXIMITY_THRESHOLD)
+		if ( sign(pathSegmentDescriptor_current.PathCurvature) * (angularDistanceToComplete_D - angularDistanceCompleted_D) < ANGULAR_PROXIMITY_THRESHOLD)
 			advanceSegment_flag = checkGoalCondition();
 
 
@@ -308,7 +310,7 @@ static void pathManagerTask(void *parameters)
 		if (advanceSegment_flag) {
 			advanceSegment();
 		}
-		else if (lastSysTime-segmentTimer > pathSegmentDescriptor_current.Timeout*1000*portTICK_RATE_MS)
+		else if (lastSysTime-segmentTimer > pathManagerStatus.Timeout*1000*portTICK_RATE_MS)
 		{	// Check if we have timed out
 			// TODO: Handle the buffer overflow in xTaskGetTickCount
 			pathManagerStatus.Status = PATHMANAGERSTATUS_STATUS_TIMEDOUT;
@@ -329,13 +331,13 @@ static void pathManagerTask(void *parameters)
  */
 static void advanceSegment()
 {
-	PathSegmentDescriptorData pathSegmentDescriptor;
-	PathSegmentDescriptorInstGet(pathManagerStatus.ActiveSegment, &pathSegmentDescriptor);
+	PathSegmentDescriptorData pathSegmentDescriptor_past;
+	PathSegmentDescriptorInstGet(pathManagerStatus.ActiveSegment, &pathSegmentDescriptor_past);
 
-	previousLocus->Position[0] = pathSegmentDescriptor.SwitchingLocus[0];
-	previousLocus->Position[1] = pathSegmentDescriptor.SwitchingLocus[1];
-	previousLocus->Position[2] = pathSegmentDescriptor.SwitchingLocus[2];
-	previousLocus->Velocity = pathSegmentDescriptor.FinalVelocity;
+	previousLocus->Position[0] = pathSegmentDescriptor_past.SwitchingLocus[0];
+	previousLocus->Position[1] = pathSegmentDescriptor_past.SwitchingLocus[1];
+	previousLocus->Position[2] = pathSegmentDescriptor_past.SwitchingLocus[2];
+	previousLocus->Velocity = pathSegmentDescriptor_past.FinalVelocity;
 
 	// Advance segment
 	pathManagerStatus.ActiveSegment++;
@@ -346,7 +348,7 @@ static void advanceSegment()
 	PathSegmentDescriptorInstGet(pathManagerStatus.ActiveSegment, &pathSegmentDescriptor_current);  // TODO: Check that an instance is successfully returned
 
 	// Reset angular distance
-	angularDistanceCompleted = 0;
+	angularDistanceCompleted_D = 0;
 
 	// If the path is an arc, find the center and angular distance along arc
 	if (pathSegmentDescriptor_current.PathCurvature != 0 ) {
@@ -369,16 +371,33 @@ static void advanceSegment()
 			{
 				tmpAngle = tmpAngle	+ 360*sign(pathSegmentDescriptor_current.PathCurvature);
 			}
-			angularDistanceToComplete = sign(pathSegmentDescriptor_current.PathCurvature) * pathSegmentDescriptor_current.NumberOfOrbits*360 + tmpAngle;
+			angularDistanceToComplete_D = sign(pathSegmentDescriptor_current.PathCurvature) * pathSegmentDescriptor_current.NumberOfOrbits*360 + tmpAngle;
 		}
 		else{
 			// TODO: This is really bad, and we need to handle these cases. We can probably handle them just by extending the vector until it reaches the arc center
-			angularDistanceToComplete = 0;
+			angularDistanceToComplete_D = 0;
 		}
 	}
 	else{
-		angularDistanceToComplete = 0;
+		angularDistanceToComplete_D = 0;
 	}
+
+	// Calculate timout
+	float s;
+	if (pathSegmentDescriptor_current.PathCurvature == 0) { // Straight line
+		s = sqrtf(powf(pathSegmentDescriptor_current.SwitchingLocus[0] - pathSegmentDescriptor_past.SwitchingLocus[0],2) +
+				powf(pathSegmentDescriptor_current.SwitchingLocus[1] - pathSegmentDescriptor_past.SwitchingLocus[1],2));
+	}
+	else { // Arc
+		s = angularDistanceToComplete_D * DEG2RAD * pathSegmentDescriptor_current.PathCurvature;
+	}
+
+	if (pathSegmentDescriptor_current.FinalVelocity > 0)
+		pathManagerStatus.Timeout = s/pathSegmentDescriptor_current.FinalVelocity;
+	else
+		pathManagerStatus.Timeout = -1; // This wraps around to 65535
+	PathManagerStatusSet(&pathManagerStatus);
+
 
 	// Reset timer
 	segmentTimer = xTaskGetTickCount();
@@ -477,7 +496,7 @@ static bool checkGoalCondition()
 				// Cheat by remarking that the plane defined by the radius is perfectly defined by the angle made
 				// between the center and the end of the trajectory. So if the vehicle has traveled further than
 				// the required angular distance, it has crossed this
-				if (sign(pathSegmentDescriptor_current.PathCurvature) * (angularDistanceCompleted - angularDistanceToComplete) >= 0)
+				if (sign(pathSegmentDescriptor_current.PathCurvature) * (angularDistanceCompleted_D - angularDistanceToComplete_D) >= 0)
 					advanceSegment_flag = true;
 
 				return advanceSegment_flag;
@@ -492,7 +511,7 @@ static bool checkGoalCondition()
 					// Cheat by remarking that the plane defined by the radius is perfectly defined by the angle made
 					// between the center and the end of the trajectory. So if the vehicle has traveled further than
 					// the required angular distance, it has crossed this
-					if (sign(pathSegmentDescriptor_current.PathCurvature) * (angularDistanceCompleted - angularDistanceToComplete) >= 0)
+					if (sign(pathSegmentDescriptor_current.PathCurvature) * (angularDistanceCompleted_D - angularDistanceToComplete_D) >= 0)
 						advanceSegment_flag = true;
 
 					return advanceSegment_flag;
@@ -636,9 +655,35 @@ static void checkOvershoot()
 
 	pathManagerStatus.StatusParameters[9] = rand();
 	PathManagerStatusSet(&pathManagerStatus);
-
-
 }
+
+
+///**
+// * @brief arcLengthAlongPath
+// * @param start
+// * @param end
+// * @return
+// */
+//static float arcLengthAlongPath(PathSegmentDescriptorData *start, PathSegmentDescriptorData *end)
+//{
+//	float s;
+
+//	// The chord is just the distance between the two points
+//	float chord = sqrtf(powf(end->SwitchingLocus[0]-start->SwitchingLocus[0],2) + powf(end->SwitchingLocus[1]-start->SwitchingLocus[1],2));
+
+//	if (end->PathCurvature == 0)
+//		s = chord; // Straight line.
+//	else { // Arc
+//		// Knowing the half-chord and the radius, use right triangles to calculate the half-angle between the two points.
+//		float theta = asin(chord/2*end->PathCurvature)*2; // This value is guaranteed to always be positive
+//		if (end->ArcRank == PATHSEGMENTDESCRIPTOR_ARCRANK_MINOR)
+//			s = (theta + 2*PI*end->NumberOfOrbits)/end->PathCurvature;
+//		else
+//			s = ((2*PI-theta) + 2*PI*end->NumberOfOrbits)/end->PathCurvature;
+//	}
+//	return s;
+//}
+
 
 /**
  * On changed path plan.

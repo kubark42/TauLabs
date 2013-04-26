@@ -619,15 +619,6 @@ static uint8_t addCircleToSwitchingLoci(float circle_center[3], float finalVeloc
 		if (index >= UAVObjGetNumInstances(PathSegmentDescriptorHandle()))
 			PathSegmentDescriptorCreateInstance(); //TODO: Check for successful creation of switching locus
 
-pathPlannerStatus.StatusParameters[4] = circle_center[0] - sign(curvature)*radius*sinf(approachTheta_rad);
-pathPlannerStatus.StatusParameters[5] = circle_center[1] + sign(curvature)*radius*cosf(approachTheta_rad);
-pathPlannerStatus.StatusParameters[6] = index;
-pathPlannerStatus.StatusParameters[7] = offset;
-pathPlannerStatus.StatusParameters[8] = rand();
-//pathPlannerStatus.StatusParameters[9] = index;
-PathPlannerStatusSet(&pathPlannerStatus);
-
-
 		// Form fillet
 		pathSegmentDescriptor.SwitchingLocus[0] = circle_center[0] - sign(curvature)*radius*sinf(approachTheta_rad);
 		pathSegmentDescriptor.SwitchingLocus[1] = circle_center[1] + sign(curvature)*radius*cosf(approachTheta_rad);

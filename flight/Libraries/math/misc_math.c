@@ -129,7 +129,7 @@ CenterCalculationResult arcCenterFromTwoPointsAndRadiusAndArcRank(float *start_p
 
 //<<<UGH, This function is badly named. All it's doing is calculating the angle between two vectors>>>
 /**
- * @brief updateArcMeasure Measure angle between two points on a circle,
+ * @brief updateArcMeasure Measure angle between two points on a circle
  * @param oldPosition_NE
  * @param newPosition_NE
  * @param arcCenter_NE
