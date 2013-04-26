@@ -36,7 +36,7 @@ DEBUG ?= NO
 
 # @endgroup Compile Options
 
-PATH_PLANNER ?= NO
+USE_PATHPLANNER ?= YES
 
 # List of modules to include
 MODULES = Sensors
@@ -48,19 +48,24 @@ MODULES += Stabilization
 MODULES += FirmwareIAP
 MODULES += Telemetry
 
+# List of optional modules to include
 OPTMODULES += GPS
 OPTMODULES += CameraStab
 OPTMODULES += Autotune
 OPTMODULES += TxPID
 OPTMODULES += GenericI2CSensor
 OPTMODULES += AltitudeHold
-OPTMODULES += PathPlanner
 OPTMODULES += PathManager
 OPTMODULES += VtolPathFollower
 OPTMODULES += PathFollower
 OPTMODULES += VibrationAnalysis
 #OPTMODULES += Battery
 #OPTMODULES += ComUsbBridge
+
+ifeq ($(USE_PATHPLANNER), YES)
+OPTMODULES += PathPlanner
+endif
+
 
 # Paths
 OPSYSTEM = ./System

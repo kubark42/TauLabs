@@ -177,11 +177,10 @@ static void pathManagerTask(void *parameters)
 	// Main thread loop
 	while (1)
 	{
-
 		// Wait
 		vTaskDelayUntil(&lastSysTime, UPDATE_RATE_MS * portTICK_RATE_MS);
 
-#if defined PATH_PLANNER // If there is no path planner, it's probably because memory is too scarce, such as on CC/CC3D. In that case, provide a return to home and a position hold
+#if !defined PATH_PLANNER // If there is no path planner, it's probably because memory is too scarce, such as on CC/CC3D. In that case, provide a return to home and a position hold
 		// Check flight mode
 		FlightStatusData flightStatus;
 		FlightStatusGet(&flightStatus);
@@ -265,16 +264,16 @@ static void pathManagerTask(void *parameters)
 			if ((theta_roundoff_trim_count++ & 0x8F) == 0) {
 				theta_roundoff_trim_count = 0;
 
-				float referenceTheta = updateArcMeasure(previousLocus->Position, newPosition_NE, arcCenter_NE) * RAD2DEG;
+				float referenceTheta_D = updateArcMeasure(previousLocus->Position, newPosition_NE, arcCenter_NE) * RAD2DEG;
 
-				while(referenceTheta-angularDistanceCompleted_D < -180) {
-					referenceTheta += 360;
+				while(referenceTheta_D-angularDistanceCompleted_D < -180) {
+					referenceTheta_D += 360;
 				}
-				while(referenceTheta-angularDistanceCompleted_D > 180) {
-					referenceTheta -= 360;
+				while(referenceTheta_D-angularDistanceCompleted_D > 180) {
+					referenceTheta_D -= 360;
 				}
 
-				angularDistanceCompleted_D = referenceTheta;
+				angularDistanceCompleted_D = referenceTheta_D;
 			}
 		}
 
