@@ -76,6 +76,7 @@ static void settingsUpdated(UAVObjEvent * ev);
 static void waypointsUpdated(UAVObjEvent * ev);
 static void pathManagerStatusUpdated(UAVObjEvent * ev);
 static void createPathBox();
+static void createPathStar();
 static void createPathLogo();
 static void createPathHoldPosition();
 static void createPathReturnToHome();
@@ -224,6 +225,14 @@ static void pathPlannerTask(void *parameters)
 							guidanceType = PATHPLANNER;
 							process_waypoints_flag = true;
 							break;
+						case PATHPLANNERSETTINGS_PREPROGRAMMEDPATH_STAR:
+							createPathStar();
+
+							pathPlannerStatus.PathAvailability = PATHPLANNERSTATUS_PATHAVAILABILITY_NONE;
+							PathPlannerStatusSet(&pathPlannerStatus);
+							guidanceType = PATHPLANNER;
+							process_waypoints_flag = true;
+							break;
 						case PATHPLANNERSETTINGS_PREPROGRAMMEDPATH_LOGO:
 							createPathLogo();
 
@@ -319,7 +328,7 @@ static void waypointsUpdated(UAVObjEvent * ev)
 }
 
 /**
- * When the PathStatus is updated indicate a new one is available to consume
+ * When the PathManagerStatus is updated indicate a new one is available to consume
  */
 static void pathManagerStatusUpdated(UAVObjEvent * ev)
 {
@@ -338,13 +347,15 @@ void settingsUpdated(UAVObjEvent * ev)
 			case PATHPLANNERSETTINGS_PREPROGRAMMEDPATH_10M_BOX:
 				createPathBox();
 				break;
+			case PATHPLANNERSETTINGS_PREPROGRAMMEDPATH_STAR:
+				createPathStar();
+				break;
 			case PATHPLANNERSETTINGS_PREPROGRAMMEDPATH_LOGO:
 				createPathLogo();
 				break;
 		}
 	}
 }
-
 
 /******************
  ******************
@@ -403,9 +414,8 @@ static void createPathBox()
 		WaypointCreateInstance();
 	}
 
-	// Draw O
 	WaypointData waypoint;
-	waypoint.Velocity = 12 + ((rand()%20)/10.0f-.95f)*0;
+	waypoint.Velocity = 12;
 
 	waypoint.Position[0] = 0;
 	waypoint.Position[1] = 0;
@@ -450,6 +460,52 @@ static void createPathBox()
 	waypoint.Mode = WAYPOINT_MODE_CIRCLEPOSITIONLEFT;
 	waypoint.ModeParameters = 25*scale/4; // Half the size of the box
 	WaypointInstSet(6, &waypoint);
+}
+
+
+static void createPathStar()
+{
+	float scale = 8;
+
+	float theta = 0;
+	float step = 72*2*DEG2RAD; //This is the angular distance required to advance by two sides of a pentagram
+
+	pathPlannerStatus.NumberOfWaypoints = 8;
+	PathPlannerStatusSet(&pathPlannerStatus);
+
+	for (int i=UAVObjGetNumInstances(WaypointHandle()); i<pathPlannerStatus.NumberOfWaypoints; i++) {
+		WaypointCreateInstance();
+	}
+
+	WaypointData waypoint;
+	waypoint.Velocity = 12; // Since for now this isn't directional just set a mag
+
+	// Start at home
+	waypoint.Position[0] = 0;
+	waypoint.Position[1] = 0;
+	waypoint.Position[2] = -50;
+	waypoint.Mode = WAYPOINT_MODE_FLYVECTOR;
+	waypoint.ModeParameters = 0;
+	WaypointInstSet(0, &waypoint);
+
+	// Make five sides of star, plus one extra path to get to the start of the star
+	for (int i=1; i<7; i++) {
+		waypoint.Position[0] = 25*scale*cosf(theta);
+		waypoint.Position[1] = 25*scale*sinf(theta);
+		waypoint.Position[2] = -50;
+		waypoint.Mode = WAYPOINT_MODE_FLYVECTOR;
+		waypoint.ModeParameters = 0;
+		WaypointInstSet(i, &waypoint);
+
+		theta += step;
+	}
+
+	// Finish at home
+	waypoint.Position[0] = 0;
+	waypoint.Position[1] = 0;
+	waypoint.Mode = WAYPOINT_MODE_CIRCLEPOSITIONRIGHT;
+	waypoint.ModeParameters = 25*scale; // Half the size of the box
+	WaypointInstSet(7, &waypoint);
 }
 
 
