@@ -51,6 +51,7 @@ float bound_sym(float val, float range)
 	return (bound_min_max(val, -range, range));
 }
 
+
 /**
  * Circular modulus [degrees].  Compute the equivalent angle between [-180,180]
  * for the input angle.  This is useful taking the difference between
@@ -100,7 +101,7 @@ float circular_modulus_rad(float err)
 
 
 /**
- *@brief Compute the center of curvature of the arc, by calculating the intersection
+ * @brief Compute the center of curvature of the arc, by calculating the intersection
  * of the two circles of radius R around the two points. Inspired by
  * http://www.mathworks.com/matlabcentral/newsreader/view_thread/255121
  * @param[in] start_point Starting point, in North-East coordinates
