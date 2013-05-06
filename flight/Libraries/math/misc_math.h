@@ -1,7 +1,7 @@
 /**
  ******************************************************************************
  * @file       math_misc.h
- * @author     PhoenixPilot, http://github.com/PhoenixPilot, Copyright (C) 2012
+ * @author     Tau Labs, http://www.taulabs.org, Copyright (C) 2013
  * @addtogroup OpenPilot Math Utilities
  * @{
  * @addtogroup MiscellaneousMath Math Various mathematical routines
@@ -46,6 +46,7 @@ float bound_min_max(float val, float min, float max);
 
 //! Circular modulus
 float circular_modulus_deg(float err);
+float circular_modulus_rad(float err);
 
 CenterCalculationResult find_arc_center(float start_point[2], float end_point[2], float radius, float center[2], bool clockwise, bool minor);
 
