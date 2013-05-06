@@ -55,7 +55,7 @@ ENABLE_AUX_UART ?= NO
 
 # @endgroup Compile Options
 
-NAVIGATION ?= NO
+NAVIGATION ?= YES
 
 # @startgroup  Optional modules
 # @groupbrief Optional module and driver defaults
@@ -103,8 +103,10 @@ endif
 
 # List of mandatory modules to include
 ifeq ($(NAVIGATION), YES)
+#MODULES += Attitude/coptercontrol
 MODULES += State/coptercontrol
-MODULES += PathFollower
+OPTMODULES += PathFollower
+OPTMODULES += PathManager
 CFLAGS += -DNAVIGATION
 else
 MODULES += Attitude/coptercontrol
@@ -223,8 +225,12 @@ SRC += $(OPUAVSYNTHDIR)/baroaltitude.c
 SRC += $(OPUAVSYNTHDIR)/txpidsettings.c
 SRC += $(OPUAVSYNTHDIR)/fixedwingairspeeds.c
 SRC += $(OPUAVSYNTHDIR)/fixedwingpathfollowerstatus.c
-SRC += $(OPUAVSYNTHDIR)/fixedwingpathfollowersettingscc.c
+SRC += $(OPUAVSYNTHDIR)/fixedwingpathfollowersettings.c
 SRC += $(OPUAVSYNTHDIR)/pathstatus.c
+SRC += $(OPUAVSYNTHDIR)/pathfollowerstatus.c
+SRC += $(OPUAVSYNTHDIR)/pathmanagersettings.c
+SRC += $(OPUAVSYNTHDIR)/pathmanagerstatus.c
+SRC += $(OPUAVSYNTHDIR)/pathsegmentdescriptor.c
 SRC += $(OPUAVSYNTHDIR)/pathdesired.c
 SRC += $(OPUAVSYNTHDIR)/homelocation.c
 SRC += $(OPUAVSYNTHDIR)/positionactual.c
@@ -291,9 +297,17 @@ ifeq ($(NAVIGATION), YES)
 SRC += $(STATEESTIMATIONLIB)/ccc.c
 SRC += $(STATEESTIMATIONLIB)/premerlani_gps.c
 SRC += $(STATEESTIMATIONLIB)/premerlani_dcm.c
+SRC += $(FLIGHTLIB)/paths_library/example_program.c
+SRC += $(FLIGHTLIB)/paths_library/simple_return_to_home.c
+SRC += $(FLIGHTLIB)/paths_library/simple_hold_position.c
+SRC += $(FLIGHTLIB)/path_followers/constant_radius_arc/simple_arc.c
+SRC += $(FLIGHTLIB)/path_followers/constant_radius_arc/roll_limited_arc.c
+SRC += $(FLIGHTLIB)/path_followers/straight_line/simple_line.c
+SRC += $(FLIGHTLIB)/path_followers/straight_line/roll_limited_line.c
 endif
 SRC += $(MATHLIB)/sin_lookup.c
 SRC += $(MATHLIB)/misc_math.c
+SRC += $(MATHLIB)/atmospheric_math.c
 SRC += $(MATHLIB)/pid.c
 
 ## CMSIS for STM32

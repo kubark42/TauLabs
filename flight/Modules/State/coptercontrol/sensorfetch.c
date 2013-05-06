@@ -60,13 +60,80 @@
 // Private variables
 
 // Private functions
+static void update_temperature_comp(float *temp_bias, float temperature, SensorSettingsData *sensorSettings);
+
+///**
+// * Get an update from the sensors
+// * @param[in] attitudeRaw Populate the UAVO instead of saving right here
+// * @return 0 if successfull, -1 if not
+// */
+//static int32_t updateSensors(AccelsData * accelsData, GyrosData * gyrosData)
+//{
+//	struct pios_adxl345_data accel_data;
+//	float gyro[4];
+
+//	// Only wait the time for two nominal updates before setting an alarm
+//	if(xQueueReceive(gyro_queue, (void * const) gyro, UPDATE_RATE * 2) == errQUEUE_EMPTY) {
+//		AlarmsSet(SYSTEMALARMS_ALARM_ATTITUDE, SYSTEMALARMS_ALARM_ERROR);
+//		return -1;
+//	}
+
+//	// Do not read raw sensor data in simulation mode
+//	if (GyrosReadOnly() || AccelsReadOnly())
+//		return 0;
+
+//	// No accel data available
+//	if(PIOS_ADXL345_FifoElements() == 0)
+//		return -1;
+
+//	// Convert the ADC data into the standard normalized format
+//	struct pios_sensor_gyro_data gyros;
+//	gyros.temperature = gyro[0];
+//	gyros.x = -(gyro[1] - GYRO_NEUTRAL) * IDG_GYRO_GAIN;
+//	gyros.y = (gyro[2] - GYRO_NEUTRAL) * IDG_GYRO_GAIN;
+//	gyros.z = -(gyro[3] - GYRO_NEUTRAL) * IDG_GYRO_GAIN;
+
+//	// Convert the ADXL345 data into the standard normalized format
+//	int32_t x = 0;
+//	int32_t y = 0;
+//	int32_t z = 0;
+//	uint8_t i = 0;
+//	uint8_t samples_remaining;
+//	do {
+//		i++;
+//		samples_remaining = PIOS_ADXL345_Read(&accel_data);
+//		x +=  accel_data.x;
+//		y += -accel_data.y;
+//		z += -accel_data.z;
+//	} while ( (i < 32) && (samples_remaining > 0) );
+
+//	struct pios_sensor_accel_data accels;
+
+//	accels.x = ((float) x / i) * ADXL345_ACCEL_SCALE;
+//	accels.y = ((float) y / i) * ADXL345_ACCEL_SCALE;
+//	accels.z = ((float) z / i) * ADXL345_ACCEL_SCALE;
+
+//	// Apply rotation / calibration and assign to the UAVO
+//	update_gyros(&gyros, gyrosData);
+//	update_accels(&accels, accelsData);
+
+//	update_trimming(accelsData);
+
+
+
+//	GyrosSet(gyrosData);
+//	AccelsSet(accelsData);
+
+//	return 0;
+//}
+
 
 /**
  * Get an update from the sensors
  * @param[in] attitudeRaw Populate the UAVO instead of saving right here
  * @return 0 if successfull, -1 if not
  */
-int8_t getSensorsCC(float *prelim_accels, float *prelim_gyros, xQueueHandle * gyro_queue, GlobalAttitudeVariables *glblAtt, GyrosBiasData *gyrosBias, SensorSettingsData *inertialSensorSettings)
+int8_t getSensorsCC(float *prelim_accels, float *prelim_gyros, xQueueHandle * gyro_queue, GlobalAttitudeVariables *glblAtt, GyrosBiasData *gyrosBias, SensorSettingsData *sensorSettings)
 {
 	struct pios_adxl345_data accel_data;
 	float gyro[4];
@@ -88,9 +155,9 @@ int8_t getSensorsCC(float *prelim_accels, float *prelim_gyros, xQueueHandle * gy
 
 	// Scale ADC data into deg/s. First sample is temperature, so ignore.
 	// Rotate data from internal gryoscope sensor frame into board sensor frame
-	prelim_gyros[0] = -(gyro[1] - GYRO_NEUTRAL_BIAS) * 0.42f * inertialSensorSettings->GyroScale[SENSORSETTINGS_GYROSCALE_X];
-	prelim_gyros[1] =  (gyro[2] - GYRO_NEUTRAL_BIAS) * 0.42f * inertialSensorSettings->GyroScale[SENSORSETTINGS_GYROSCALE_Y];
-	prelim_gyros[2] = -(gyro[3] - GYRO_NEUTRAL_BIAS) * 0.42f * inertialSensorSettings->GyroScale[SENSORSETTINGS_GYROSCALE_Z];
+	prelim_gyros[0] = -(gyro[1] - GYRO_NEUTRAL_BIAS) * 0.42f * sensorSettings->GyroScale[SENSORSETTINGS_GYROSCALE_X];
+	prelim_gyros[1] =  (gyro[2] - GYRO_NEUTRAL_BIAS) * 0.42f * sensorSettings->GyroScale[SENSORSETTINGS_GYROSCALE_Y];
+	prelim_gyros[2] = -(gyro[3] - GYRO_NEUTRAL_BIAS) * 0.42f * sensorSettings->GyroScale[SENSORSETTINGS_GYROSCALE_Z];
 
 	// When this is enabled remove estimate of bias
 	if (glblAtt->bias_correct_gyro) {
@@ -116,55 +183,150 @@ int8_t getSensorsCC(float *prelim_accels, float *prelim_gyros, xQueueHandle * gy
 	} while ((i < 32) && (samples_remaining > 0));	//<-- i=32 being hardcoded means that if the accelerometer ADC sample rate is increased, we could wind up never being able to empty the buffer
 
 	// Apply scaling and bias correction in sensor frame
-	prelim_accels[0] = (float)x / i * ACCEL_SCALE * inertialSensorSettings->AccelScale[0] - inertialSensorSettings->AccelBias[0];
-	prelim_accels[1] = (float)y / i * ACCEL_SCALE * inertialSensorSettings->AccelScale[1] - inertialSensorSettings->AccelBias[1];
-	prelim_accels[2] = (float)z / i * ACCEL_SCALE * inertialSensorSettings->AccelScale[2] - inertialSensorSettings->AccelBias[2];
+	prelim_accels[0] = (float)x / i * ACCEL_SCALE * sensorSettings->AccelScale[0] - sensorSettings->AccelBias[0];
+	prelim_accels[1] = (float)y / i * ACCEL_SCALE * sensorSettings->AccelScale[1] - sensorSettings->AccelBias[1];
+	prelim_accels[2] = (float)z / i * ACCEL_SCALE * sensorSettings->AccelScale[2] - sensorSettings->AccelBias[2];
 
 	return 0;
 }
+
+
+
+///**
+// * Get an update from the sensors
+// * @param[in] attitudeRaw Populate the UAVO instead of saving right here
+// * @return 0 if successfull, -1 if not
+// */
+//static int32_t updateSensorsCC3D(AccelsData * accelsData, GyrosData * gyrosData)
+//{
+//	struct pios_sensor_gyro_data gyros;
+//	struct pios_sensor_accel_data accels;
+//	xQueueHandle queue;
+
+//	queue = PIOS_SENSORS_GetQueue(PIOS_SENSOR_GYRO);
+//	if(queue == NULL || xQueueReceive(queue, (void *) &gyros, 4) == errQUEUE_EMPTY) {
+//		return-1;
+//	}
+
+//	// As it says below, because the rest of the code expects the accel to be ready when
+//	// the gyro is we must block here too
+//	queue = PIOS_SENSORS_GetQueue(PIOS_SENSOR_ACCEL);
+//	if(queue == NULL || xQueueReceive(queue, (void *) &accels, 1) == errQUEUE_EMPTY) {
+//		return -1;
+//	}
+//	else
+//		update_accels(&accels, accelsData);
+
+//	// Update gyros after the accels since the rest of the code expects
+//	// the accels to be available first
+//	update_gyros(&gyros, gyrosData);
+
+//	update_trimming(accelsData);
+
+//	GyrosSet(gyrosData);
+//	AccelsSet(accelsData);
+
+//	return 0;
+//}
+
 
 /**
  * Get an update from the sensors
  * @param[in] attitudeRaw Populate the UAVO instead of saving right here
  * @return 0 if successfull, -1 if not
  */
-int8_t getSensorsCC3D(float *prelim_accels, float *prelim_gyros, GlobalAttitudeVariables *glblAtt, GyrosBiasData *gyrosBias, SensorSettingsData *inertialSensorSettings)
+int8_t getSensorsCC3D(float *prelim_accels, float *prelim_gyros, GlobalAttitudeVariables *glblAtt, GyrosBiasData *gyrosBias, SensorSettingsData *sensorSettings)
 {
-	struct pios_mpu6000_data mpu6000_data;
-#if defined(PIOS_INCLUDE_MPU6000)
+	//Data in struct is already rotated from internal gryoscope sensor frame into board sensor frame
+	struct pios_sensor_gyro_data gyros;
+	struct pios_sensor_accel_data accels;
 
-	xQueueHandle queue = PIOS_MPU6000_GetQueue();
+	xQueueHandle queue;
 
-	if (xQueueReceive(queue, (void *)&mpu6000_data, SENSOR_PERIOD) ==
-	    errQUEUE_EMPTY)
-		return -1;	// Error, no data
+	queue = PIOS_SENSORS_GetQueue(PIOS_SENSOR_GYRO);
+	if(queue == NULL || xQueueReceive(queue, (void *) &gyros, 4) == errQUEUE_EMPTY) {
+		return -1;	// Error, no gyroscope data
+	}
 
-	//Rotated data from internal gryoscope sensor frame into board sensor frame
-	prelim_gyros[0] = mpu6000_data.gyro_x * PIOS_MPU6000_GetScale() * inertialSensorSettings->GyroScale[SENSORSETTINGS_GYROSCALE_X];
-	prelim_gyros[1] = mpu6000_data.gyro_y * PIOS_MPU6000_GetScale() * inertialSensorSettings->GyroScale[SENSORSETTINGS_GYROSCALE_Y];
-	prelim_gyros[2] = mpu6000_data.gyro_z * PIOS_MPU6000_GetScale() * inertialSensorSettings->GyroScale[SENSORSETTINGS_GYROSCALE_Z];
+	// As it says below, because the rest of the code expects the accel to be ready when
+	// the gyro is we must block here too
+	queue = PIOS_SENSORS_GetQueue(PIOS_SENSOR_ACCEL);
+	if(queue == NULL || xQueueReceive(queue, (void *) &accels, 1) == errQUEUE_EMPTY) {
+		return -1;	// Error, no accelerometer data
+	}
+
+	//Apply gyroscope scaling and bias correction in board frame
+	prelim_gyros[0] = gyros.x * sensorSettings->GyroScale[SENSORSETTINGS_GYROSCALE_X];
+	prelim_gyros[1] = gyros.y * sensorSettings->GyroScale[SENSORSETTINGS_GYROSCALE_Y];
+	prelim_gyros[2] = gyros.z * sensorSettings->GyroScale[SENSORSETTINGS_GYROSCALE_Z];
 	
+	// Update the bias due to the temperature
+	static float gyro_temp_bias[3] = {0,0,0};
+	update_temperature_comp(gyro_temp_bias, gyros.temperature, sensorSettings);
+
 	// When this is enabled remove estimate of bias
 	if (glblAtt->bias_correct_gyro) {
-		prelim_gyros[0] -= gyrosBias->x;
-		prelim_gyros[1] -= gyrosBias->y;
-		prelim_gyros[2] -= gyrosBias->z;
+		// Do not apply drift correction integral component here. Apply only biases in the board frame
+		prelim_gyros[0] -= gyro_temp_bias[0] + gyrosBias->x;
+		prelim_gyros[1] -= gyro_temp_bias[1] + gyrosBias->y;
+		prelim_gyros[2] -= gyro_temp_bias[2] + gyrosBias->z;
 	}
 	
-	//Rotated data from internal accelerometer sensor frame into board sensor frame
-	//Apply scaling and bias correction in sensor frame
-	prelim_accels[0] = mpu6000_data.accel_x * PIOS_MPU6000_GetAccelScale() * inertialSensorSettings->AccelScale[0] - inertialSensorSettings->AccelBias[0];
-	prelim_accels[1] = mpu6000_data.accel_y * PIOS_MPU6000_GetAccelScale() * inertialSensorSettings->AccelScale[1] - inertialSensorSettings->AccelBias[1];
-	prelim_accels[2] = mpu6000_data.accel_z * PIOS_MPU6000_GetAccelScale() * inertialSensorSettings->AccelScale[2] - inertialSensorSettings->AccelBias[2];
+	//Apply accelerometer scaling and bias correction in board frame
+	prelim_accels[0] = accels.x * sensorSettings->AccelScale[0] - sensorSettings->AccelBias[0];
+	prelim_accels[1] = accels.y * sensorSettings->AccelScale[1] - sensorSettings->AccelBias[1];
+	prelim_accels[2] = accels.z * sensorSettings->AccelScale[2] - sensorSettings->AccelBias[2];
 
-	prelim_gyros[3] = 35.0f + ((float)mpu6000_data.temperature + 512.0f) / 340.0f;	//Temperature sensor has a 35deg bias. //WHY? AS PER DOCS?
-	prelim_accels[3] = 35.0f + ((float)mpu6000_data.temperature + 512.0f) / 340.0f;
-#endif
+	// Fetch temperature reading
+	prelim_gyros[3] = gyros.temperature;
+	prelim_accels[3] = accels.temperature;
 
 	return 0;
 }
 
+
 /**
- * @}
- * @}
+ * Compute the bias expected from temperature variation for each gyro
+ * channel
  */
+static void update_temperature_comp(float *temp_bias, float temperature, SensorSettingsData *sensorSettings)
+{
+	static int temp_counter = 0;
+	static float temp_accum = 0;
+
+	static const float TEMP_MIN = -10;
+	static const float TEMP_MAX = 60;
+
+	if (temperature < TEMP_MIN)
+		temperature = TEMP_MIN;
+	if (temperature > TEMP_MAX)
+		temperature = TEMP_MAX;
+
+	if (temp_counter < 500) {
+		temp_accum += temperature;
+		temp_counter ++;
+	} else {
+		float t = temp_accum / temp_counter;
+		temp_accum = 0;
+		temp_counter = 0;
+
+		// Compute a third order polynomial for each chanel after each 500 samples
+		temp_bias[0] = sensorSettings->Xbd_GyroTempCoeff[0] +
+		               sensorSettings->Xbd_GyroTempCoeff[1] * t +
+		               sensorSettings->Xbd_GyroTempCoeff[2] * powf(t,2) +
+		               sensorSettings->Xbd_GyroTempCoeff[3] * powf(t,3);
+		temp_bias[1] = sensorSettings->Ybd_GyroTempCoeff[0] +
+		               sensorSettings->Ybd_GyroTempCoeff[1] * t +
+		               sensorSettings->Ybd_GyroTempCoeff[2] * powf(t,2) +
+		               sensorSettings->Ybd_GyroTempCoeff[3] * powf(t,3);
+		temp_bias[2] = sensorSettings->Zbd_GyroTempCoeff[0] +
+		               sensorSettings->Zbd_GyroTempCoeff[1] * t +
+		               sensorSettings->Zbd_GyroTempCoeff[2] * powf(t,2) +
+		               sensorSettings->Zbd_GyroTempCoeff[3] * powf(t,3);
+	}
+}
+
+///**
+// * @}
+// * @}
+// */

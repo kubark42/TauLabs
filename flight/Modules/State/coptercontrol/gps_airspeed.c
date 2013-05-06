@@ -103,8 +103,7 @@ void gps_airspeed_initialize(void)
  *  where "f" is the fuselage vector in earth coordinates.
  *  We then solve for |V| = |V_gps_2-V_gps_1|/ |f_2 - f1|.
  */
-void gps_airspeed_update(const GPSVelocityData * gpsVelData,
-			 float staticAirDensity)
+void gps_airspeed_update(const GPSVelocityData * gpsVelocity, float altitude_NED, AirParameters *air)
 {
 	float Rbe[3][3];
 	compute_rbe(Rbe);
@@ -119,23 +118,16 @@ void gps_airspeed_update(const GPSVelocityData * gpsVelData,
 	if (fabs(cosDiff) < cos(5.0f * DEG2RAD)) {
 		float gps_airspeed;
 
-		GPSVelocityData gpsVelData;
-		GPSVelocityGet(&gpsVelData);
-
         //Calculate the norm^2 of the difference between the two GPS vectors
-		float normDiffGPS2 =
-		    powf(gpsVelData.North - gps->gpsVelOld_N,
-			 2.0f) + powf(gpsVelData.East - gps->gpsVelOld_E,
-				      2.0f) + powf(gpsVelData.Down -
-						   gps->gpsVelOld_D, 2.0f);
+		float normDiffGPS2 = powf(gpsVelocity->North - gps->gpsVelOld_N, 2.0f) +
+				powf(gpsVelocity->East - gps->gpsVelOld_E, 2.0f) +
+				powf(gpsVelocity->Down - gps->gpsVelOld_D, 2.0f);
 
         //Calculate the norm^2 of the difference between the two fuselage
         //vectors
-		float normDiffAttitude2 =
-		    powf(Rbe[0][0] - gps->RbeCol1_old[0],
-			 2.0f) + powf(Rbe[0][1] - gps->RbeCol1_old[1],
-				      2.0f) + powf(Rbe[0][2] -
-						   gps->RbeCol1_old[2], 2.0f);
+		float normDiffAttitude2 =  powf(Rbe[0][0] - gps->RbeCol1_old[0], 2.0f) +
+				powf(Rbe[0][1] - gps->RbeCol1_old[1], 2.0f) +
+				powf(Rbe[0][2] - gps->RbeCol1_old[2], 2.0f);
 
 		//Airspeed magnitude is the ratio between the two difference norms
 		gps_airspeed = sqrtf(normDiffGPS2 / normDiffAttitude2);
@@ -144,22 +136,20 @@ void gps_airspeed_update(const GPSVelocityData * gpsVelData,
         //only be positive, so only need to check upper limit)
 		if (gps_airspeed < 300) {	//NEED TO SATURATE, BUT NOT VERY GOOD TO SATURATE LIKE THIS. PROBABLY SHOULD THROW OUT ANY READINGS THAT ARE TOO FAR OUTSIDE THE CURRENT SPEED
 			//Save old variables for next pass
-			gps->gpsVelOld_N = gpsVelData.North;
-			gps->gpsVelOld_E = gpsVelData.East;
-			gps->gpsVelOld_D = gpsVelData.Down;
+			gps->gpsVelOld_N = gpsVelocity->North;
+			gps->gpsVelOld_E = gpsVelocity->East;
+			gps->gpsVelOld_D = gpsVelocity->Down;
 
 			gps->RbeCol1_old[0] = Rbe[0][0];
 			gps->RbeCol1_old[1] = Rbe[0][1];
 			gps->RbeCol1_old[2] = Rbe[0][2];
 
 			//Low pass filter
-			const float alpha = .2;
+			const float alpha = .2; //Fixme: Shouldn't be hard coded
 			float gps_airspeed_old;
 			AirspeedActualTrueAirspeedGet(&gps_airspeed_old);
 
-			gps_airspeed =
-			    gps_airspeed * alpha + (1 -
-						    alpha) * gps_airspeed_old;
+			gps_airspeed = gps_airspeed * alpha + (1 - alpha) * gps_airspeed_old;
 
 			// Do not update airspeed data in simulation mode
 			if (!AirspeedActualReadOnly()) {
@@ -167,11 +157,8 @@ void gps_airspeed_update(const GPSVelocityData * gpsVelData,
 
                 //Calculate calibrated airspeed,
                 //http://en.wikipedia.org/wiki/True_airspeed
-				gps_airspeed *=
-				    sqrtf(staticAirDensity /
-					  STANDARD_AIR_DENSITY);
-				AirspeedActualCalibratedAirspeedSet
-				    (&gps_airspeed);
+				float calibrated_airspeed = tas2cas(gps_airspeed, -altitude_NED, air);
+				AirspeedActualCalibratedAirspeedSet(&calibrated_airspeed);
 			}
 		} else {
 			// Do not update airspeed data in simulation mode

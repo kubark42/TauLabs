@@ -57,6 +57,8 @@
 // Private variables
 
 // Private functions
+//! Apply smoothing to sensor values
+static inline void apply_accel_filter(float *filtered, const float *raw, GlobalAttitudeVariables *glblAtt);
 
 /*
  * Correct sensor drift, using the 3C approach by J. Cotton
@@ -64,13 +66,23 @@
 void CottonComplementaryCorrection(float *accels, float *gyros, const float delT, GlobalAttitudeVariables *glblAtt, float *accel_err_b)
 {
 	float grav_b[3];
-	
-	// Rotate normalized gravity reference vector to body frame and cross with measured acceleration
+	static float accels_filtered[3] = {0,0,0};
+	static float grav_filtered_b[3] = {0,0,0};
+
+	// Apply smoothing to accel values, to reduce vibration noise before main calculations.
+	apply_accel_filter(accels_filtered, accels, glblAtt);
+
+	// Rotate normalized gravity reference vector to body frame
 	grav_b[0] = -(2 * (glblAtt->q[1] * glblAtt->q[3] - glblAtt->q[0] * glblAtt->q[2]));
 	grav_b[1] = -(2 * (glblAtt->q[2] * glblAtt->q[3] + glblAtt->q[0] * glblAtt->q[1]));
 	grav_b[2] = -(glblAtt->q[0] * glblAtt->q[0] - glblAtt->q[1] * glblAtt->q[1] -
 					  glblAtt->q[2] * glblAtt->q[2] + glblAtt->q[3] * glblAtt->q[3]);
-	CrossProduct((const float *)accels, (const float *)grav_b, accel_err_b);
+
+	// Apply same filtering to the rotated attitude to match delays
+	apply_accel_filter(grav_filtered_b, grav_b, glblAtt);
+
+	// Cross with measured acceleration
+	CrossProduct((const float *)accels, (const float *)grav_filtered_b, accel_err_b);
 	
 	// Account for accel magnitude
 	float accel_mag = VectorMagnitude(accels);
@@ -95,6 +107,27 @@ void CottonComplementaryCorrection(float *accels, float *gyros, const float delT
 	gyros[1] += accel_err_b[1] * glblAtt->accelKp / delT;
 	gyros[2] += accel_err_b[2] * glblAtt->accelKp / delT;
 }
+
+
+/**
+ * @brief apply_accel_filter
+ * @param[in] raw
+ * @param[out] filtered
+ */
+static inline void apply_accel_filter(float *filtered, const float *raw, GlobalAttitudeVariables *glblAtt)
+{
+	if(glblAtt->accel_filter_enabled) {
+		filtered[0] = filtered[0] * glblAtt->accel_alpha + raw[0] * (1 - glblAtt->accel_alpha);
+		filtered[1] = filtered[1] * glblAtt->accel_alpha + raw[1] * (1 - glblAtt->accel_alpha);
+		filtered[2] = filtered[2] * glblAtt->accel_alpha + raw[2] * (1 - glblAtt->accel_alpha);
+	}
+	else {
+		filtered[0] = raw[0];
+		filtered[1] = raw[1];
+		filtered[2] = raw[2];
+	}
+}
+
 
 /**
  * @}

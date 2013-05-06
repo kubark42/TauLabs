@@ -63,6 +63,12 @@ struct GlobalAttitudeVariables {
 	float trim_accels[3];
 	//! Counter of how many accel samples have been accumulated
 	int32_t trim_samples;
+	//! Low-pass filter for accelerometers
+	float accel_alpha;
+	//! Flag for turning on accelerometer LPF
+	bool accel_filter_enabled;
+	//!
+	bool accumulating_gyro;
 };
 
 typedef struct GlobalAttitudeVariables GlobalAttitudeVariables;
