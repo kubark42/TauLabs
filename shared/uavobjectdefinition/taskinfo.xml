@@ -16,8 +16,9 @@
 			<elementname>Airspeed</elementname>
 			<elementname>Stabilization</elementname>
 			<elementname>AltitudeHold</elementname>
-			<elementname>PathPlanner</elementname>
 			<elementname>PathFollower</elementname>
+			<elementname>PathManager</elementname>
+			<elementname>PathPlanner</elementname>
 			<elementname>FlightPlan</elementname>
 			<elementname>Com2UsbBridge</elementname>
 			<elementname>Usb2ComBridge</elementname>
@@ -47,8 +48,9 @@
 			<elementname>Airspeed</elementname>
 			<elementname>Stabilization</elementname>
 			<elementname>AltitudeHold</elementname>
-			<elementname>PathPlanner</elementname>
 			<elementname>PathFollower</elementname>
+			<elementname>PathManager</elementname>
+			<elementname>PathPlanner</elementname>
 			<elementname>FlightPlan</elementname>
 			<elementname>Com2UsbBridge</elementname>
 			<elementname>Usb2ComBridge</elementname>
@@ -82,8 +84,9 @@
 			<elementname>Airspeed</elementname>
 			<elementname>Stabilization</elementname>
 			<elementname>AltitudeHold</elementname>
-			<elementname>PathPlanner</elementname>
 			<elementname>PathFollower</elementname>
+			<elementname>PathManager</elementname>
+			<elementname>PathPlanner</elementname>
 			<elementname>FlightPlan</elementname>
 			<elementname>Com2UsbBridge</elementname>
 			<elementname>Usb2ComBridge</elementname>
