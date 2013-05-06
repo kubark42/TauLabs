@@ -127,6 +127,10 @@ endif
 SRC += $(FLIGHTLIB)/CoordinateConversions.c
 SRC += $(FLIGHTLIB)/path_planners/direct.c
 SRC += $(FLIGHTLIB)/path_planners/direct_with_filleting.c
+SRC += $(FLIGHTLIB)/path_followers/constant_radius_arc/simple_arc.c
+SRC += $(FLIGHTLIB)/path_followers/constant_radius_arc/roll_limited_arc.c
+SRC += $(FLIGHTLIB)/path_followers/straight_line/simple_line.c
+SRC += $(FLIGHTLIB)/path_followers/straight_line/roll_limited_line.c
 SRC += $(FLIGHTLIB)/paths_library/example_program.c
 SRC += $(FLIGHTLIB)/paths_library/simple_return_to_home.c
 SRC += $(FLIGHTLIB)/paths_library/simple_hold_position.c
@@ -137,6 +141,7 @@ SRC += $(FLIGHTLIB)/taskmonitor.c
 SRC += $(FLIGHTLIB)/sanitycheck.c
 SRC += $(MATHLIB)/sin_lookup.c
 SRC += $(MATHLIB)/misc_math.c
+SRC += $(MATHLIB)/atmospheric_math.c
 SRC += $(MATHLIB)/pid.c
 
 ## PIOS Hardware (STM32F30x)
