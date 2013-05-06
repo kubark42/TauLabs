@@ -1,8 +1,8 @@
 /**
  ******************************************************************************
  * @file       math_misc.c
- * @author     Tau Labs, http://github.com/TauLabs, Copyright (C) 2012-2013
- * @addtogroup TauLabsMath Math Utilities
+ * @author     Tau Labs, http://www.taulabs.org, Copyright (C) 2013
+ * @addtogroup OpenPilot Math Utilities
  * @{
  * @addtogroup MiscellaneousMath Math Various mathematical routines
  * @{
@@ -46,6 +46,7 @@ float bound_sym(float val, float range)
 {
 	return (bound_min_max(val, -range, range));
 }
+
 
 /**
  * Circular modulus [degrees].  Compute the equivalent angle between [-180,180]
@@ -96,7 +97,7 @@ float circular_modulus_rad(float err)
 
 
 /**
- *@brief Compute the center of curvature of the arc, by calculating the intersection
+ * @brief Compute the center of curvature of the arc, by calculating the intersection
  * of the two circles of radius R around the two points. Inspired by
  * http://www.mathworks.com/matlabcentral/newsreader/view_thread/255121
  * @param[in] start_point Starting point, in North-East coordinates
