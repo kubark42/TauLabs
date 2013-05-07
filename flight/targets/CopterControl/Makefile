@@ -104,7 +104,7 @@ endif
 # List of mandatory modules to include
 ifeq ($(NAVIGATION), YES)
 #MODULES += Attitude/coptercontrol
-MODULES += State/coptercontrol
+MODULES += State/minimal_power
 OPTMODULES += PathFollower
 OPTMODULES += PathManager
 CFLAGS += -DNAVIGATION
