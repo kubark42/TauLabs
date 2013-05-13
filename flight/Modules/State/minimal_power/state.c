@@ -267,7 +267,7 @@ static void StateTask(void *parameters)
 			getSensorsCC(prelim_accels, prelim_gyros, &gyro_queue, glblAtt, &gyrosBias, &sensorSettings);
 		}
 
-		int8_t groundTemperature = round(prelim_accels[3]);
+		int8_t groundTemperature = roundf(prelim_accels[3]);
 
 		HomeLocationGroundTemperatureSet(&groundTemperature);
 	}
