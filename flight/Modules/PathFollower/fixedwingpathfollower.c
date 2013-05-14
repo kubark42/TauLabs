@@ -34,7 +34,6 @@
 #include "fixedwingairspeeds.h"
 #include "fixedwingpathfollowersettings.h"
 #include "homelocation.h"
-#include "manualcontrol.h"
 #include "modulesettings.h"
 #include "positionactual.h"
 #include "stabilizationdesired.h" // object that will be updated by the module
