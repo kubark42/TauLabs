@@ -58,7 +58,7 @@
 
 // Private functions
 //! Apply smoothing to sensor values
-static inline void apply_accel_filter(float *filtered, const float *raw, GlobalAttitudeVariables *glblAtt);
+static inline void apply_accel_filter(float *filtered, const float *raw, float accel_alpha, bool accel_filter_enabled);
 
 /*
  * Correct sensor drift, using the 3C approach by J. Cotton
@@ -70,22 +70,22 @@ void CottonComplementaryCorrection(float *accels, float *gyros, const float delT
 	static float grav_filtered_b[3] = {0,0,0};
 
 	// Apply smoothing to accel values, to reduce vibration noise before main calculations.
-	apply_accel_filter(accels_filtered, accels, glblAtt);
+	apply_accel_filter(accels_filtered, accels, glblAtt->accel_alpha, glblAtt->accel_filter_enabled);
 
 	// Rotate normalized gravity reference vector to body frame
-	grav_b[0] = -(2 * (glblAtt->q[1] * glblAtt->q[3] - glblAtt->q[0] * glblAtt->q[2]));
-	grav_b[1] = -(2 * (glblAtt->q[2] * glblAtt->q[3] + glblAtt->q[0] * glblAtt->q[1]));
+	grav_b[0] = -(2.0f * (glblAtt->q[1] * glblAtt->q[3] - glblAtt->q[0] * glblAtt->q[2]));
+	grav_b[1] = -(2.0f * (glblAtt->q[2] * glblAtt->q[3] + glblAtt->q[0] * glblAtt->q[1]));
 	grav_b[2] = -(glblAtt->q[0] * glblAtt->q[0] - glblAtt->q[1] * glblAtt->q[1] -
 					  glblAtt->q[2] * glblAtt->q[2] + glblAtt->q[3] * glblAtt->q[3]);
 
 	// Apply same filtering to the rotated attitude to match delays
-	apply_accel_filter(grav_filtered_b, grav_b, glblAtt);
+	apply_accel_filter(grav_filtered_b, grav_b, glblAtt->accel_alpha, glblAtt->accel_filter_enabled);
 
 	// Cross with measured acceleration
-	CrossProduct((const float *)accels, (const float *)grav_filtered_b, accel_err_b);
+	CrossProduct((const float *)accels_filtered, (const float *)grav_filtered_b, accel_err_b);
 	
 	// Account for accel magnitude
-	float accel_mag = VectorMagnitude(accels);
+	float accel_mag = VectorMagnitude(accels_filtered);
 	if (accel_mag < 1.0e-3f)
 		return;
 	
@@ -114,12 +114,12 @@ void CottonComplementaryCorrection(float *accels, float *gyros, const float delT
  * @param[in] raw
  * @param[out] filtered
  */
-static inline void apply_accel_filter(float *filtered, const float *raw, GlobalAttitudeVariables *glblAtt)
+static inline void apply_accel_filter(float *filtered, const float *raw, float accel_alpha, bool accel_filter_enabled)
 {
-	if(glblAtt->accel_filter_enabled) {
-		filtered[0] = filtered[0] * glblAtt->accel_alpha + raw[0] * (1 - glblAtt->accel_alpha);
-		filtered[1] = filtered[1] * glblAtt->accel_alpha + raw[1] * (1 - glblAtt->accel_alpha);
-		filtered[2] = filtered[2] * glblAtt->accel_alpha + raw[2] * (1 - glblAtt->accel_alpha);
+	if(accel_filter_enabled) {
+		filtered[0] = filtered[0] * accel_alpha + raw[0] * (1 - accel_alpha);
+		filtered[1] = filtered[1] * accel_alpha + raw[1] * (1 - accel_alpha);
+		filtered[2] = filtered[2] * accel_alpha + raw[2] * (1 - accel_alpha);
 	}
 	else {
 		filtered[0] = raw[0];

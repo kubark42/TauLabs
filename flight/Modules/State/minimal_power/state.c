@@ -288,8 +288,10 @@ static void StateTask(void *parameters)
 
 		// Calibrate gyroscopes
 		if (complimentary_filter_status == CF_POWERON) {
-			complimentary_filter_status = (xTaskGetTickCount() > 1000) ?
-				CF_INITIALIZING : CF_POWERON;
+			// Do nothing during first second after boot, allowing vehicle and
+			// sensors to stabilize.
+			if (xTaskGetTickCount() > 1000)
+				complimentary_filter_status = CF_INITIALIZING;
 
 		} else if(complimentary_filter_status == CF_INITIALIZING &&
 			(xTaskGetTickCount() < 7000) &&
@@ -347,7 +349,6 @@ static void StateTask(void *parameters)
 				glblAtt->accumulating_gyro = false;
 				arming_count = 0;
 			}
-
 
 			// Indicate normal mode to prevent rerunning this code
 			complimentary_filter_status = CF_NORMAL;
