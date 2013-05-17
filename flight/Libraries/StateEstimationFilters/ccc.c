@@ -8,6 +8,7 @@
  *
  * @file       ccc.c
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
+ * @author     Tau Labs, http://www.taulabs.org Copyright (C) 2013.
  * @brief      Module to handle all comms to the AHRS on a periodic basis.
  *
  * @see        The GNU Public License (GPL) Version 3
@@ -41,7 +42,7 @@
  */
 
 #include "pios.h"
-#include "ccc.h"
+#include "inc/ccc.h"
 #include <pios_board_info.h>
 #include "CoordinateConversions.h"
 
@@ -104,12 +105,12 @@ void CottonComplementaryCorrection(float accels[3], float gyros[3], const float 
 	accel_err_b[2] /= (accel_mag * grav_b_mag);
 	
 	// Accumulate integral of error.  Scale here so that units are (deg/s) but accelKi has units of s
-	glblAtt->gyro_correct_int[0] += accel_err_b[0] * glblAtt->accelKi;
-	glblAtt->gyro_correct_int[1] += accel_err_b[1] * glblAtt->accelKi;
+	glblAtt->gyro_correct_int[0] -= accel_err_b[0] * glblAtt->accelKi;
+	glblAtt->gyro_correct_int[1] -= accel_err_b[1] * glblAtt->accelKi;
 	
 	// Because most crafts wont get enough information from gravity to zero yaw gyro, we try
 	// and make it average zero (weakly)
-	glblAtt->gyro_correct_int[2] += -gyros[2] * glblAtt->yawBiasRate;
+	glblAtt->gyro_correct_int[2] -= -gyros[2] * glblAtt->yawBiasRate;
 	
 	// In this step, correct rates based on proportional error. The integral component is applied in updateSensors
 	gyros[0] += accel_err_b[0] * glblAtt->accelKp / delT;

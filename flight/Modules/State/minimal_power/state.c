@@ -8,7 +8,6 @@
  * @{
  *
  * @file       attitude.c
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
  * @author     Tau Labs, http://www.taulabs.org Copyright (C) 2013.
  * @brief      Module to handle all comms to the AHRS on a periodic basis.
  *
@@ -52,9 +51,9 @@
 #include "pios.h"
 #include "atmospheric_math.h"
 #include "physical_constants.h"
-#include "state.h"
-#include "sensorfetch.h"
-#include "attitudedrift.h"
+#include "inc/state.h"
+#include "inc/sensorfetch.h"
+#include "inc/attitudedrift.h"
 
 #include "accels.h"
 #include "attitudeactual.h"
@@ -125,7 +124,7 @@ static int32_t update_intertial_sensors(AccelsData * accelsData, GyrosData * gyr
 static void update_T3(GPSVelocityData * gpsVelocityData, PositionActualData * positionActualData);
 
 //! Predict attitude forward one time step
-static void update_SO3(float *gyros, float dT);
+static void update_SO3(float gyros[3], float dT);
 
 //! Cache settings locally
 static void sensorSettingsUpdatedCb(UAVObjEvent * objEv);
@@ -301,8 +300,8 @@ static void StateTask(void *parameters)
 
 			// For first 7 seconds use accels to get gyro bias
 			glblAtt->accelKp = 0.1f + 0.1f * (xTaskGetTickCount() < 4000);
-			glblAtt->accelKi = 0.1;
-			glblAtt->yawBiasRate = 0.1;
+			glblAtt->accelKi = 0.1f;
+			glblAtt->yawBiasRate = 0.1f;
 			glblAtt->accel_filter_enabled = false;
 
 		} else if (glblAtt->zero_during_arming &&
@@ -440,7 +439,7 @@ static int32_t update_intertial_sensors(AccelsData * accels, GyrosData * gyros, 
 	else
 		retval = getSensorsCC(prelim_accels, prelim_gyros, &gyro_queue, glblAtt, &gyrosBias, &sensorSettings);
 
-	if (retval < 0)	// No sensor data.  Alarm set by returning non-0 retval
+	if (retval < 0)	// No sensor data.  Alarm is set by returning non-0 retval
 		return retval;
 
 	// Rotate sensor board into body frame
@@ -464,18 +463,21 @@ static int32_t update_intertial_sensors(AccelsData * accels, GyrosData * gyros, 
 	accels->x = prelim_accels[0];
 	accels->y = prelim_accels[1];
 	accels->z = prelim_accels[2];
+	accels->temperature = prelim_accels[3];
 
 	// Store rotated gyros, optionally with bias correction
 	if (glblAtt->bias_correct_gyro) {
 		// Applying integral component here, as it is relative to the the body frame.
-		gyros->x = prelim_gyros[0] + glblAtt->gyro_correct_int[0];
-		gyros->y = prelim_gyros[1] + glblAtt->gyro_correct_int[1];
-		gyros->z = prelim_gyros[2] + glblAtt->gyro_correct_int[2];
+		gyros->x = prelim_gyros[0] - glblAtt->gyro_correct_int[0];
+		gyros->y = prelim_gyros[1] - glblAtt->gyro_correct_int[1];
+		gyros->z = prelim_gyros[2] - glblAtt->gyro_correct_int[2];
 	} else {
 		gyros->x = prelim_gyros[0];
 		gyros->y = prelim_gyros[1];
 		gyros->z = prelim_gyros[2];
 	}
+	gyros->temperature = prelim_gyros[3];
+
 
 	// Estimate accel bias while user flies level
 	if (glblAtt->trim_requested) {
@@ -601,7 +603,7 @@ static void update_T3(GPSVelocityData * gpsVelocityData, PositionActualData * po
 /**
  * @brief Predict the attitude forward one step based on gyro data
  */
-static void update_SO3(float *gyros, float dT)
+static void update_SO3(float gyros[3], float dT)
 {
 	{
 		// scoping variables to save memory
@@ -650,6 +652,12 @@ static void update_SO3(float *gyros, float dT)
 		glblAtt->q[1] = 0;
 		glblAtt->q[2] = 0;
 		glblAtt->q[3] = 0;
+
+		glblAtt->gyro_correct_int[0] = 0;
+		glblAtt->gyro_correct_int[1] = 0;
+		glblAtt->gyro_correct_int[2] = 0;
+
+		accumulate_gyro_zero();
 	}
 
 	AttitudeActualData attitudeActual;
@@ -711,7 +719,8 @@ static void sensorSettingsUpdatedCb(UAVObjEvent * objEv)
 			}
 		}
 	}
-	else if(objEv == NULL || objEv->obj == AttitudeSettingsHandle()) {
+
+	if (objEv == NULL || objEv->obj == AttitudeSettingsHandle()) {
 		AttitudeSettingsGet(&attitudeSettings);
 		glblAtt->accelKp = attitudeSettings.AccelKp;
 		glblAtt->accelKi = attitudeSettings.AccelKi;
