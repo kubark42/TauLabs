@@ -105,8 +105,8 @@ endif
 ifeq ($(NAVIGATION), YES)
 #MODULES += Attitude/coptercontrol
 MODULES += State/minimal_power
-OPTMODULES += PathFollower
-OPTMODULES += PathManager
+#OPTMODULES += PathFollower
+#OPTMODULES += PathManager
 CFLAGS += -DNAVIGATION
 else
 MODULES += Attitude/coptercontrol
@@ -288,11 +288,13 @@ SRC += $(PIOSCOMMON)/pios_sbus.c
 SRC += $(PIOSCOMMON)/pios_sensors.c
 SRC += $(PIOSCOMMON)/pios_gcsrcvr.c
 SRC += $(PIOSCOMMON)/printf-stdarg.c
+
 ## Libraries for flight calculations
 SRC += $(FLIGHTLIB)/fifo_buffer.c
 SRC += $(FLIGHTLIB)/CoordinateConversions.c
 SRC += $(FLIGHTLIB)/taskmonitor.c
 SRC += $(FLIGHTLIB)/sanitycheck.c
+
 ifeq ($(NAVIGATION), YES)
 SRC += $(STATEESTIMATIONLIB)/ccc.c
 SRC += $(STATEESTIMATIONLIB)/premerlani_gps.c
@@ -304,7 +306,10 @@ SRC += $(FLIGHTLIB)/path_followers/constant_radius_arc/simple_arc.c
 SRC += $(FLIGHTLIB)/path_followers/constant_radius_arc/roll_limited_arc.c
 SRC += $(FLIGHTLIB)/path_followers/straight_line/simple_line.c
 SRC += $(FLIGHTLIB)/path_followers/straight_line/roll_limited_line.c
+SRC += $(FLIGHTLIB)/path_managers/b_ball.c
+SRC += $(FLIGHTLIB)/path_managers/half_plane.c
 endif
+
 SRC += $(MATHLIB)/sin_lookup.c
 SRC += $(MATHLIB)/misc_math.c
 SRC += $(MATHLIB)/atmospheric_math.c
