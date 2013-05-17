@@ -27,6 +27,15 @@
 #ifndef MISC_MATH_H
 #define MISC_MATH_H
 
+#include <pios.h>
+
+// Max/Min macros.
+#define MAX(a, b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a > _b ? _a : _b; })
+#define MIN(a, b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a < _b ? _a : _b; })
+
+//! This is but one definition of sign(.)
+#define sign(x) (x < 0 ? -1 : 1)
+
 //! Bound input value within range (plus or minus)
 float bound_sym(float val, float range);
 
@@ -35,5 +44,4 @@ float bound_min_max(float val, float min, float max);
 
 //! Circular modulus
 float circular_modulus_deg(float err);
-
 #endif /* MISC_MATH_H */

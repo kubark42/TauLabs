@@ -9,6 +9,7 @@
 #define OSDGEN_H_
 
 #include "openpilot.h"
+#include "misc_math.h"
 
 int32_t osdgenInitialize(void);
 
@@ -100,8 +101,6 @@ struct FontDimensions
 
 
 // Max/Min macros.
-#define MAX(a, b)               ((a) > (b) ? (a) : (b))
-#define MIN(a, b)               ((a) < (b) ? (a) : (b))
 #define MAX3(a, b, c)   MAX(a, MAX(b, c))
 #define MIN3(a, b, c)   MIN(a, MIN(b, c))
 
