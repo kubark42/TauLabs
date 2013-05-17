@@ -120,7 +120,7 @@ static void rollPitch_drift_accel(float accels[3], float gyros[3], float Rbe[3][
 /*
  * Correct sensor drift, using the DCM approach from W. Premerlani et. al
  */
-void Premerlani_DCM(float *accels, float *gyros, float Rbe[3][3], const float delT, bool GPS_Drift_Compensation, GlobalAttitudeVariables *glblAtt, float *omegaCorrP)
+void Premerlani_DCM(float accels[3], float gyros[3], float Rbe[3][3], const float delT, bool GPS_Drift_Compensation, GlobalAttitudeVariables *glblAtt, float omegaCorrP[3])
 {
 	float errYaw_b[3] = { 0, 0, 0 };
 	float errRollPitch_b[3] = { 0, 0, 0 };

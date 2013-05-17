@@ -63,7 +63,7 @@ static inline void apply_accel_filter(float *filtered, const float *raw, float a
 /*
  * Correct sensor drift, using the 3C approach by J. Cotton
  */
-void CottonComplementaryCorrection(float *accels, float *gyros, const float delT, GlobalAttitudeVariables *glblAtt, float *accel_err_b)
+void CottonComplementaryCorrection(float accels[3], float gyros[3], const float delT, GlobalAttitudeVariables *glblAtt, float accel_err_b[3])
 {
 	float grav_b[3];
 	static float accels_filtered[3] = {0,0,0};
@@ -84,15 +84,24 @@ void CottonComplementaryCorrection(float *accels, float *gyros, const float delT
 	// Cross with measured acceleration
 	CrossProduct((const float *)accels_filtered, (const float *)grav_filtered_b, accel_err_b);
 	
-	// Account for accel magnitude
+	// Account for filtered gravity vector magnitude
+	float grav_b_mag;
+	if (glblAtt->accel_filter_enabled)
+		grav_b_mag = sqrtf(grav_filtered_b[0]*grav_filtered_b[0] + grav_filtered_b[1]*grav_filtered_b[1] + grav_filtered_b[2]*grav_filtered_b[2]);
+	else
+		grav_b_mag = 1.0f;
+
+	// Account for filtered accel magnitude
 	float accel_mag = VectorMagnitude(accels_filtered);
-	if (accel_mag < 1.0e-3f)
+
+	if (accel_mag < 1.0e-3f || grav_b_mag < 1.0e-3f)
 		return;
-	
+
+
 	// Normalize error vector
-	accel_err_b[0] /= accel_mag;
-	accel_err_b[1] /= accel_mag;
-	accel_err_b[2] /= accel_mag;
+	accel_err_b[0] /= (accel_mag * grav_b_mag);
+	accel_err_b[1] /= (accel_mag * grav_b_mag);
+	accel_err_b[2] /= (accel_mag * grav_b_mag);
 	
 	// Accumulate integral of error.  Scale here so that units are (deg/s) but accelKi has units of s
 	glblAtt->gyro_correct_int[0] += accel_err_b[0] * glblAtt->accelKi;

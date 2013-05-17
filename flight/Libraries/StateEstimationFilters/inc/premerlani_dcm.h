@@ -33,6 +33,6 @@
 #include "openpilot.h"
 #include "state_struct.h"
 
-void Premerlani_DCM(float *accels, float *gyros, float Rbe[3][3], const float delT, bool GPS_Drift_Compensation, GlobalAttitudeVariables *glblAtt, float *omegaCorrP);
+void Premerlani_DCM(float accels[3], float gyros[3], float Rbe[3][3], const float delT, bool GPS_Drift_Compensation, GlobalAttitudeVariables *glblAtt, float omegaCorrP[3]);
 
 #endif // PREMERLANI_DCM_H
