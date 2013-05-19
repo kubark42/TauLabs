@@ -27,7 +27,7 @@
 #ifndef ATMOSPHERIC_MATH_H
 #define ATMOSPHERIC_MATH_H
 
-#include <pios.h>
+#include "openpilot.h"
 
 typedef struct
 {

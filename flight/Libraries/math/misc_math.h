@@ -27,7 +27,7 @@
 #ifndef MISC_MATH_H
 #define MISC_MATH_H
 
-#include <pios.h>
+#include "openpilot.h"
 
 enum arc_center_results {CENTER_FOUND, COINCIDENT_POINTS, INSUFFICIENT_RADIUS};
 
