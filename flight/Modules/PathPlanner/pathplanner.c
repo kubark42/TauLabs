@@ -372,7 +372,7 @@ static void createPathBox()
 	pathPlannerStatus.NumberOfWaypoints = 7;
 	PathPlannerStatusSet(&pathPlannerStatus);
 
-	for (int i=UAVObjGetNumInstances(WaypointHandle()); i<pathPlannerStatus.NumberOfWaypoints; i++) {
+	for (uint16_t i=UAVObjGetNumInstances(WaypointHandle()); i<pathPlannerStatus.NumberOfWaypoints; i++) {
 		WaypointCreateInstance();
 	}
 
@@ -430,7 +430,7 @@ static void createPathStar()
 	pathPlannerStatus.NumberOfWaypoints = 8;
 	PathPlannerStatusSet(&pathPlannerStatus);
 	
-	for (int i=UAVObjGetNumInstances(WaypointHandle()); i<pathPlannerStatus.NumberOfWaypoints; i++) {
+	for (uint16_t i=UAVObjGetNumInstances(WaypointHandle()); i<pathPlannerStatus.NumberOfWaypoints; i++) {
 		WaypointCreateInstance();
 	}
 	
@@ -446,7 +446,7 @@ static void createPathStar()
 	WaypointInstSet(0, &waypoint);
 	
 	// Make five sides of star, plus one extra path to get to the start of the star
-	for (int i=1; i<7; i++) {
+	for (uint16_t i=1; i<7; i++) {
 		waypoint.Position[0] = 35*scale*cosf(theta);
 		waypoint.Position[1] = 35*scale*sinf(theta);
 		waypoint.Position[2] = -50;
@@ -473,7 +473,7 @@ static void createPathLogo()
 	pathPlannerStatus.NumberOfWaypoints = 42;
 	PathPlannerStatusSet(&pathPlannerStatus);
 
-	for (int i=UAVObjGetNumInstances(WaypointHandle()); i<pathPlannerStatus.NumberOfWaypoints; i++) {
+	for (uint16_t i=UAVObjGetNumInstances(WaypointHandle()); i<pathPlannerStatus.NumberOfWaypoints; i++) {
 		WaypointCreateInstance();
 	}
 
