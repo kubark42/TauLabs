@@ -29,7 +29,7 @@
 
 #include "openpilot.h"
 
-enum arc_center_results {CENTER_FOUND, COINCIDENT_POINTS, INSUFFICIENT_RADIUS};
+enum arc_center_results {ARC_CENTER_FOUND, ARC_COINCIDENT_POINTS, ARC_INSUFFICIENT_RADIUS};
 
 // Max/Min macros.
 #define MAX(a, b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a > _b ? _a : _b; })
