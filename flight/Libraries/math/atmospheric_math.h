@@ -27,8 +27,6 @@
 #ifndef ATMOSPHERIC_MATH_H
 #define ATMOSPHERIC_MATH_H
 
-#include "openpilot.h"
-
 typedef struct
 {
     float air_density_at_surface;
