@@ -27,7 +27,7 @@
 #ifndef MISC_MATH_H
 #define MISC_MATH_H
 
-#include "openpilot.h"
+#include "stdbool.h"
 
 enum arc_center_results {ARC_CENTER_FOUND, ARC_COINCIDENT_POINTS, ARC_INSUFFICIENT_RADIUS};
 
