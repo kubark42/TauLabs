@@ -34,6 +34,9 @@ include $(TOP)/make/boards/$(BOARD_NAME)/board-info.mk
 # Set to YES to compile for debugging
 DEBUG ?= YES
 
+# @optbrief Include objects that are just nice information to show
+PATHDESIRED_DIAGNOSTICS ?= YES
+
 # Set to YES to use the Servo output pins for debugging via scope or logic analyser
 ENABLE_DEBUG_PINS ?= NO
 
@@ -43,19 +46,26 @@ ENABLE_AUX_UART ?= NO
 #
 USE_BOOTLOADER ?= NO
 
+# Optional module and driver defaults
+USE_PATHPLANNER ?= YES
+
 # List of modules to include
 MODULES += Actuator ManualControl Stabilization 
 MODULES += Attitude/revolution
 MODULES += FirmwareIAP
 
-OPTMODULES += PathPlanner
 OPTMODULES += AltitudeHold 
-OPTMODULES += VtolPathFollower 
+OPTMODULES += PathManager
+OPTMODULES += PathFollower
 OPTMODULES += FixedWingPathFollower
-OPTMODULES += GroundPathFollower
 OPTMODULES += CameraStab
 OPTMODULES += OveroSync/simulated
 OPTMODULES += Autotune
+
+ifeq ($(USE_PATHPLANNER), YES)
+OPTMODULES += PathPlanner
+CFLAGS += -DPATH_PLANNER
+endif
 
 # To run simulation instead of connect to SITL
 MODULES += Sensors/simulated
@@ -192,11 +202,22 @@ SRC += $(PIOSPOSIX)/pios_gcsrcvr.c
 SRC += $(FLIGHTLIB)/fifo_buffer.c
 SRC += $(FLIGHTLIB)/WorldMagModel.c
 SRC += $(FLIGHTLIB)/CoordinateConversions.c
-SRC += $(FLIGHTLIB)/paths.c
+SRC += $(FLIGHTLIB)/path_planners/direct.c
+SRC += $(FLIGHTLIB)/path_planners/direct_with_filleting.c
+SRC += $(FLIGHTLIB)/path_managers/b_ball.c
+SRC += $(FLIGHTLIB)/path_managers/half_plane.c
+SRC += $(FLIGHTLIB)/paths_library/example_program.c
+SRC += $(FLIGHTLIB)/paths_library/simple_return_to_home.c
+SRC += $(FLIGHTLIB)/paths_library/simple_hold_position.c
+SRC += $(FLIGHTLIB)/path_followers/constant_radius_arc/simple_arc.c
+SRC += $(FLIGHTLIB)/path_followers/constant_radius_arc/roll_limited_arc.c
+SRC += $(FLIGHTLIB)/path_followers/straight_line/simple_line.c
+SRC += $(FLIGHTLIB)/path_followers/straight_line/roll_limited_line.c
 SRC += $(FLIGHTLIB)/insgps13state.c
 SRC += $(FLIGHTLIB)/taskmonitor.c
 SRC += $(FLIGHTLIB)/sanitycheck.c
 SRC += $(MATHLIB)/misc_math.c
+SRC += $(MATHLIB)/atmospheric_math.c
 SRC += $(MATHLIB)/pid.c
 SRC += $(MATHLIB)/sin_lookup.c
 
@@ -337,6 +358,14 @@ endif
 
 CFLAGS += -DDIAGNOSTICS
 CFLAGS += -DDIAG_TASKS
+
+ifneq (,$(filter YES,$(PATHDESIRED_DIAGNOSTICS) $(ALL_DIGNOSTICS)))
+CFLAGS += -DPATHDESIRED_DIAGNOSTICS
+endif
+
+ifeq ($(PATH_PLANNER), YES)
+CFLAGS += -DPATH_PLANNER
+endif
 
 CFLAGS += $(CFLAGS_UAVOBJECTS)
 CFLAGS += -DARCH_POSIX
