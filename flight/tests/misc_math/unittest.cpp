@@ -380,7 +380,7 @@ TEST_F(MeasureArcRad, SeparatedPoints) {
     phi = measure_arc_rad(start_point, end_point, center0);
 
     // Test lower bounding when min = max with (val < min)
-    ASSERT_NEAR(theta0[1]-theta0[0], phi, eps);
+    ASSERT_NEAR(theta[1]-theta[0], phi, eps);
   }
 };
 
@@ -411,6 +411,7 @@ protected:
 };
 
 TEST_F(AngleBetween2dVectors, DivergentVectors) {
+  float eps = 0.0001f;
   float phi;
   for (int i=0; i< 10; i++){
     float theta[2] = {expf(i)*PI, expf(i+1)*PI}; // pseudo-random angles
@@ -421,11 +422,12 @@ TEST_F(AngleBetween2dVectors, DivergentVectors) {
     phi = angle_between_2d_vectors(a, b);
 
     // Test lower bounding when min = max with (val < min)
-    ASSERT_NEAR(theta0[1]-theta0[0], phi, eps);
+    ASSERT_NEAR(theta[1]-theta[0], phi, eps);
   }
 };
 
 TEST_F(AngleBetween2dVectors, ParallelVectors) {
+  float eps = 0.0001f;
   float phi;
   for (int i=0; i< 10; i++){
     float theta = expf(i)*PI; // pseudo-random angles
