@@ -542,7 +542,7 @@ Tip: lower is better!</string>
               <property name="objrelation" stdset="0">
                <stringlist>
                 <string>objname:SensorSettings</string>
-                <string>fieldname:YGyroTempCoeff</string>
+                <string>fieldname:Ybd_GyroTempCoeff</string>
                 <string>element:T3</string>
                 <string>scale:1</string>
                 <string>buttongroup:1</string>
@@ -564,7 +564,7 @@ Tip: lower is better!</string>
               <property name="objrelation" stdset="0">
                <stringlist>
                 <string>objname:SensorSettings</string>
-                <string>fieldname:ZGyroTempCoeff</string>
+                <string>fieldname:Zbd_GyroTempCoeff</string>
                 <string>element:T</string>
                 <string>scale:1</string>
                 <string>buttongroup:1</string>
@@ -586,7 +586,7 @@ Tip: lower is better!</string>
               <property name="objrelation" stdset="0">
                <stringlist>
                 <string>objname:SensorSettings</string>
-                <string>fieldname:XGyroTempCoeff</string>
+                <string>fieldname:Xbd_GyroTempCoeff</string>
                 <string>element:T3</string>
                 <string>scale:1</string>
                 <string>buttongroup:1</string>
@@ -608,7 +608,7 @@ Tip: lower is better!</string>
               <property name="objrelation" stdset="0">
                <stringlist>
                 <string>objname:SensorSettings</string>
-                <string>fieldname:XGyroTempCoeff</string>
+                <string>fieldname:Xbd_GyroTempCoeff</string>
                 <string>element:T</string>
                 <string>scale:1</string>
                 <string>buttongroup:1</string>
@@ -640,7 +640,7 @@ Tip: lower is better!</string>
               <property name="objrelation" stdset="0">
                <stringlist>
                 <string>objname:SensorSettings</string>
-                <string>fieldname:ZGyroTempCoeff</string>
+                <string>fieldname:Zbd_GyroTempCoeff</string>
                 <string>element:1</string>
                 <string>scale:1</string>
                 <string>buttongroup:1</string>
@@ -662,7 +662,7 @@ Tip: lower is better!</string>
               <property name="objrelation" stdset="0">
                <stringlist>
                 <string>objname:SensorSettings</string>
-                <string>fieldname:XGyroTempCoeff</string>
+                <string>fieldname:Xbd_GyroTempCoeff</string>
                 <string>element:1</string>
                 <string>scale:1</string>
                 <string>buttongroup:1</string>
@@ -694,7 +694,7 @@ Tip: lower is better!</string>
               <property name="objrelation" stdset="0">
                <stringlist>
                 <string>objname:SensorSettings</string>
-                <string>fieldname:XGyroTempCoeff</string>
+                <string>fieldname:Xbd_GyroTempCoeff</string>
                 <string>element:T2</string>
                 <string>scale:1</string>
                 <string>buttongroup:1</string>
@@ -716,7 +716,7 @@ Tip: lower is better!</string>
               <property name="objrelation" stdset="0">
                <stringlist>
                 <string>objname:SensorSettings</string>
-                <string>fieldname:YGyroTempCoeff</string>
+                <string>fieldname:Ybd_GyroTempCoeff</string>
                 <string>element:1</string>
                 <string>scale:1</string>
                 <string>buttongroup:1</string>
@@ -738,7 +738,7 @@ Tip: lower is better!</string>
               <property name="objrelation" stdset="0">
                <stringlist>
                 <string>objname:SensorSettings</string>
-                <string>fieldname:YGyroTempCoeff</string>
+                <string>fieldname:Ybd_GyroTempCoeff</string>
                 <string>element:T</string>
                 <string>scale:1</string>
                 <string>buttongroup:1</string>
@@ -777,7 +777,7 @@ Tip: lower is better!</string>
               <property name="objrelation" stdset="0">
                <stringlist>
                 <string>objname:SensorSettings</string>
-                <string>fieldname:YGyroTempCoeff</string>
+                <string>fieldname:Ybd_GyroTempCoeff</string>
                 <string>element:T2</string>
                 <string>scale:1</string>
                 <string>buttongroup:1</string>
@@ -818,7 +818,7 @@ Tip: lower is better!</string>
               <property name="objrelation" stdset="0">
                <stringlist>
                 <string>objname:SensorSettings</string>
-                <string>fieldname:ZGyroTempCoeff</string>
+                <string>fieldname:Zbd_GyroTempCoeff</string>
                 <string>element:T3</string>
                 <string>scale:1</string>
                 <string>buttongroup:1</string>
@@ -850,7 +850,7 @@ Tip: lower is better!</string>
               <property name="objrelation" stdset="0">
                <stringlist>
                 <string>objname:SensorSettings</string>
-                <string>fieldname:ZGyroTempCoeff</string>
+                <string>fieldname:Zbd_GyroTempCoeff</string>
                 <string>element:T2</string>
                 <string>scale:1</string>
                 <string>buttongroup:1</string>

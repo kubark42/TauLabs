@@ -159,11 +159,13 @@ static void stabilizationTask(void* parameters)
 		
 		PIOS_WDG_UpdateFlag(PIOS_WDG_STABILIZATION);
 		
-		// Wait until the AttitudeRaw object is updated, if a timeout then go to failsafe
-		if ( xQueueReceive(queue, &ev, FAILSAFE_TIMEOUT_MS / portTICK_RATE_MS) != pdTRUE )
+		// Wait until the Gryos object is updated, if a timeout then go to failsafe
+		if ( xQueueReceive(queue, &ev, FAILSAFE_TIMEOUT_MS * portTICK_RATE_MS) != pdTRUE )
 		{
-			AlarmsSet(SYSTEMALARMS_ALARM_STABILIZATION,SYSTEMALARMS_ALARM_WARNING);
-			continue;
+			if (!GyrosReadOnly()) { // Only trigger alarm if gyros are writeable
+				AlarmsSet(SYSTEMALARMS_ALARM_STABILIZATION,SYSTEMALARMS_ALARM_WARNING);
+				continue;
+			}
 		}
 		
 		dT = PIOS_DELAY_DiffuS(timeval) * 1.0e-6f;

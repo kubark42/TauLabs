@@ -32,8 +32,9 @@
 #define GPS_AIRSPEED_H
 
 #include "gpsvelocity.h"
+#include "atmospheric_math.h"
 
-void gps_airspeed_update(const GPSVelocityData *gpsVelData, float staticAirDensity);
+void gps_airspeed_estimate(const GPSVelocityData *gpsVelData, float altitude_NED, AirParameters *air);
 void gps_airspeed_initialize(void);
 
 #endif // GPS_AIRSPEED_H

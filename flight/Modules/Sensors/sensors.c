@@ -534,18 +534,18 @@ static void settingsUpdatedCb(UAVObjEvent * objEv)
 	gyro_scale[0] = sensorSettings.GyroScale[SENSORSETTINGS_GYROSCALE_X];
 	gyro_scale[1] = sensorSettings.GyroScale[SENSORSETTINGS_GYROSCALE_Y];
 	gyro_scale[2] = sensorSettings.GyroScale[SENSORSETTINGS_GYROSCALE_Z];
-	gyro_coeff_x[0] =  sensorSettings.XGyroTempCoeff[0];
-	gyro_coeff_x[1] =  sensorSettings.XGyroTempCoeff[1];
-	gyro_coeff_x[2] =  sensorSettings.XGyroTempCoeff[2];
-	gyro_coeff_x[3] =  sensorSettings.XGyroTempCoeff[3];
-	gyro_coeff_y[0] =  sensorSettings.YGyroTempCoeff[0];
-	gyro_coeff_y[1] =  sensorSettings.YGyroTempCoeff[1];
-	gyro_coeff_y[2] =  sensorSettings.YGyroTempCoeff[2];
-	gyro_coeff_y[3] =  sensorSettings.YGyroTempCoeff[3];
-	gyro_coeff_z[0] =  sensorSettings.ZGyroTempCoeff[0];
-	gyro_coeff_z[1] =  sensorSettings.ZGyroTempCoeff[1];
-	gyro_coeff_z[2] =  sensorSettings.ZGyroTempCoeff[2];
-	gyro_coeff_z[3] =  sensorSettings.ZGyroTempCoeff[3];
+	gyro_coeff_x[0] =  sensorSettings.Xbd_GyroTempCoeff[0];
+	gyro_coeff_x[1] =  sensorSettings.Xbd_GyroTempCoeff[1];
+	gyro_coeff_x[2] =  sensorSettings.Xbd_GyroTempCoeff[2];
+	gyro_coeff_x[3] =  sensorSettings.Xbd_GyroTempCoeff[3];
+	gyro_coeff_y[0] =  sensorSettings.Ybd_GyroTempCoeff[0];
+	gyro_coeff_y[1] =  sensorSettings.Ybd_GyroTempCoeff[1];
+	gyro_coeff_y[2] =  sensorSettings.Ybd_GyroTempCoeff[2];
+	gyro_coeff_y[3] =  sensorSettings.Ybd_GyroTempCoeff[3];
+	gyro_coeff_z[0] =  sensorSettings.Zbd_GyroTempCoeff[0];
+	gyro_coeff_z[1] =  sensorSettings.Zbd_GyroTempCoeff[1];
+	gyro_coeff_z[2] =  sensorSettings.Zbd_GyroTempCoeff[2];
+	gyro_coeff_z[3] =  sensorSettings.Zbd_GyroTempCoeff[3];
 	
 	// Zero out any adaptive tracking
 	MagBiasData magBias;

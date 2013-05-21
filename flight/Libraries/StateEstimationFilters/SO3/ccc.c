@@ -8,6 +8,7 @@
  *
  * @file       ccc.c
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
+ * @author     Tau Labs, http://www.taulabs.org Copyright (C) 2013.
  * @brief      Module to handle all comms to the AHRS on a periodic basis.
  *
  * @see        The GNU Public License (GPL) Version 3
@@ -57,44 +58,86 @@
 // Private variables
 
 // Private functions
+//! Apply smoothing to sensor values
+static inline void apply_accel_filter(float *filtered, const float *raw, float accel_alpha, bool accel_filter_enabled);
 
 /*
  * Correct sensor drift, using the 3C approach by J. Cotton
  */
-void CottonComplementaryCorrection(float *accels, float *gyros, const float delT, GlobalAttitudeVariables *glblAtt, float *accel_err_b)
+void CottonComplementaryCorrection(float accels[3], float gyros[3], const float delT, GlobalAttitudeVariables *glblAtt, float accel_err_b[3])
 {
 	float grav_b[3];
-	
-	// Rotate normalized gravity reference vector to body frame and cross with measured acceleration
-	grav_b[0] = -(2 * (glblAtt->q[1] * glblAtt->q[3] - glblAtt->q[0] * glblAtt->q[2]));
-	grav_b[1] = -(2 * (glblAtt->q[2] * glblAtt->q[3] + glblAtt->q[0] * glblAtt->q[1]));
+	static float accels_filtered[3] = {0,0,0};
+	static float grav_filtered_b[3] = {0,0,0};
+
+	// Apply smoothing to accel values, to reduce vibration noise before main calculations.
+	apply_accel_filter(accels_filtered, accels, glblAtt->accel_alpha, glblAtt->accel_filter_enabled);
+
+	// Rotate normalized gravity reference vector to body frame
+	grav_b[0] = -(2.0f * (glblAtt->q[1] * glblAtt->q[3] - glblAtt->q[0] * glblAtt->q[2]));
+	grav_b[1] = -(2.0f * (glblAtt->q[2] * glblAtt->q[3] + glblAtt->q[0] * glblAtt->q[1]));
 	grav_b[2] = -(glblAtt->q[0] * glblAtt->q[0] - glblAtt->q[1] * glblAtt->q[1] -
 					  glblAtt->q[2] * glblAtt->q[2] + glblAtt->q[3] * glblAtt->q[3]);
-	CrossProduct((const float *)accels, (const float *)grav_b, accel_err_b);
+
+	// Apply same filtering to the rotated attitude to match delays
+	apply_accel_filter(grav_filtered_b, grav_b, glblAtt->accel_alpha, glblAtt->accel_filter_enabled);
+
+	// Cross with measured acceleration
+	CrossProduct((const float *)accels_filtered, (const float *)grav_filtered_b, accel_err_b);
 	
-	// Account for accel magnitude
-	float accel_mag = VectorMagnitude(accels);
-	if (accel_mag < 1.0e-3f)
+	// Account for filtered gravity vector magnitude
+	float grav_b_mag;
+	if (glblAtt->accel_filter_enabled)
+		grav_b_mag = sqrtf(grav_filtered_b[0]*grav_filtered_b[0] + grav_filtered_b[1]*grav_filtered_b[1] + grav_filtered_b[2]*grav_filtered_b[2]);
+	else
+		grav_b_mag = 1.0f;
+
+	// Account for filtered accel magnitude
+	float accel_mag = VectorMagnitude(accels_filtered);
+
+	if (accel_mag < 1.0e-3f || grav_b_mag < 1.0e-3f)
 		return;
-	
+
+
 	// Normalize error vector
-	accel_err_b[0] /= accel_mag;
-	accel_err_b[1] /= accel_mag;
-	accel_err_b[2] /= accel_mag;
+	accel_err_b[0] /= (accel_mag * grav_b_mag);
+	accel_err_b[1] /= (accel_mag * grav_b_mag);
+	accel_err_b[2] /= (accel_mag * grav_b_mag);
 	
 	// Accumulate integral of error.  Scale here so that units are (deg/s) but accelKi has units of s
-	glblAtt->gyro_correct_int[0] += accel_err_b[0] * glblAtt->accelKi;
-	glblAtt->gyro_correct_int[1] += accel_err_b[1] * glblAtt->accelKi;
+	glblAtt->gyro_correct_int[0] -= accel_err_b[0] * glblAtt->accelKi;
+	glblAtt->gyro_correct_int[1] -= accel_err_b[1] * glblAtt->accelKi;
 	
 	// Because most crafts wont get enough information from gravity to zero yaw gyro, we try
 	// and make it average zero (weakly)
-	glblAtt->gyro_correct_int[2] += -gyros[2] * glblAtt->yawBiasRate;
+	glblAtt->gyro_correct_int[2] -= -gyros[2] * glblAtt->yawBiasRate;
 	
 	// In this step, correct rates based on proportional error. The integral component is applied in updateSensors
 	gyros[0] += accel_err_b[0] * glblAtt->accelKp / delT;
 	gyros[1] += accel_err_b[1] * glblAtt->accelKp / delT;
 	gyros[2] += accel_err_b[2] * glblAtt->accelKp / delT;
 }
+
+
+/**
+ * @brief apply_accel_filter
+ * @param[in] raw
+ * @param[out] filtered
+ */
+static inline void apply_accel_filter(float *filtered, const float *raw, float accel_alpha, bool accel_filter_enabled)
+{
+	if(accel_filter_enabled) {
+		filtered[0] = filtered[0] * accel_alpha + raw[0] * (1 - accel_alpha);
+		filtered[1] = filtered[1] * accel_alpha + raw[1] * (1 - accel_alpha);
+		filtered[2] = filtered[2] * accel_alpha + raw[2] * (1 - accel_alpha);
+	}
+	else {
+		filtered[0] = raw[0];
+		filtered[1] = raw[1];
+		filtered[2] = raw[2];
+	}
+}
+
 
 /**
  * @}

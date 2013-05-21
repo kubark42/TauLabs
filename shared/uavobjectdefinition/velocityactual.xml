@@ -1,5 +1,5 @@
 <xml>
-    <object name="VelocityActual" singleinstance="true" settings="false">
+    <object name="VelocityActual" singleinstance="true" settings="false" category="StateEstimation">
         <description>Updated by @ref AHRSCommsModule and used within @ref GuidanceModule for velocity control</description>
         <field name="North" units="m/s" type="float" elements="1"/>
         <field name="East" units="m/s" type="float" elements="1"/>

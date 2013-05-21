@@ -115,7 +115,7 @@
 
 #define COPTERCONTROL
 // Conditional related to making CC run navigation
-#if defined(NAVGIATION)
+#if defined(NAVIGATION)
 #define PIOS_GPS_PROVIDES_AIRSPEED
 #endif
 

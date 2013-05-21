@@ -5,8 +5,8 @@
  * @addtogroup State State Module
  * @{ 
  *
- * @file       state.h
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2011.
+ * @file       state_struct.h
+ * @author     Tau Labs, http://www.taulabs.org Copyright (C) 2013.
  * @brief      Acquires sensor data and fuses it into attitude estimate for CC
  *
  * @see        The GNU Public License (GPL) Version 3
@@ -63,6 +63,12 @@ struct GlobalAttitudeVariables {
 	float trim_accels[3];
 	//! Counter of how many accel samples have been accumulated
 	int32_t trim_samples;
+	//! Low-pass filter for accelerometers
+	float accel_alpha;
+	//! Flag for turning on accelerometer LPF
+	bool accel_filter_enabled;
+	//!
+	bool accumulating_gyro;
 };
 
 typedef struct GlobalAttitudeVariables GlobalAttitudeVariables;
