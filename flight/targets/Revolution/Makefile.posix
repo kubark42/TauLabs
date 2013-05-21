@@ -99,7 +99,6 @@ MODULES += Telemetry
 OPTMODULES += AltitudeHold 
 OPTMODULES += PathManager
 OPTMODULES += PathFollower
-OPTMODULES += FixedWingPathFollower
 OPTMODULES += CameraStab
 OPTMODULES += OveroSync/simulated
 OPTMODULES += Autotune
