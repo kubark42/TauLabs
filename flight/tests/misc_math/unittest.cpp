@@ -32,6 +32,7 @@
  */
 
 #include "gtest/gtest.h"
+#include "physical_constants.h"
 
 #include <stdio.h>		/* printf */
 #include <stdlib.h>		/* abort */
@@ -281,13 +282,14 @@ protected:
 };
 
 TEST_F(FindArcCenter, ArcCenterExists) {
+  float eps = 0.0001f;
   float center[2];
   enum arc_center_results ret;
 
   for (int i=0; i< 10; i++){
     float radius = 1.1;
     float center0[2] = {pow(1.1, i), pow(-0.9, i)}; // pseudo-random center
-    float theta[2] = {expf(i)*F_PI, expf(i+1)*F_PI}; // pseudo-random angles
+    float theta[2] = {expf(i)*PI, expf(i+1)*PI}; // pseudo-random angles
     float start_point[2] = {center0[0] + radius*cosf(theta[0]), center0[1] + radius*sinf(theta[0])};
     float end_point[2]   = {center0[0] + radius*cosf(theta[1]), center0[1] + radius*sinf(theta[1])};
     ret = find_arc_center(start_point, end_point, radius, i%2, i%2, center);
@@ -308,7 +310,7 @@ TEST_F(FindArcCenter, ArcCenterBarelyExists) {
   for (int i=0; i< 10; i++){
     float radius = 1.1;
     float center0[2] = {pow(1.1, i), pow(-0.9, i)}; // pseudo-random center
-    float theta[2] = {expf(i)*F_PI, expf(i+1)*F_PI}; // pseudo-random angles
+    float theta[2] = {expf(i)*PI, expf(i+1)*PI}; // pseudo-random angles
     float start_point[2] = {center0[0] + radius_scale_error*radius*cosf(theta[0]), center0[1] + radius_scale_error*radius*sinf(theta[0])};
     float end_point[2]   = {center0[0] + radius_scale_error*radius*cosf(theta[1]), center0[1] + radius_scale_error*radius*sinf(theta[1])};
     ret = find_arc_center(start_point, end_point, radius, i%2, i%2, center);
@@ -329,7 +331,7 @@ TEST_F(FindArcCenter, ArcCenterDoesNotExist) {
   for (int i=0; i< 10; i++){
     float radius = 1.1;
     float center0[2] = {pow(1.1, i), pow(-0.9, i)}; // pseudo-random center
-    float theta[2] = {expf(i)*F_PI, expf(i+1)*F_PI}; // pseudo-random angles
+    float theta[2] = {expf(i)*PI, expf(i+1)*PI}; // pseudo-random angles
     float start_point[2] = {center0[0] + radius_scale_error*radius*cosf(theta[0]), center0[1] + radius_scale_error*radius*sinf(theta[0])};
     float end_point[2]   = {center0[0] + radius_scale_error*radius*cosf(theta[1]), center0[1] + radius_scale_error*radius*sinf(theta[1])};
     ret = find_arc_center(start_point, end_point, radius, i%2, i%2, center);
@@ -346,7 +348,7 @@ TEST_F(FindArcCenter, CoincidentInputs) {
   for (int i=0; i< 10; i++){
     float radius = 1.1;
     float center0[2] = {pow(1.1, i), pow(-0.9, i)}; // pseudo-random center
-    float theta = expf(i)*F_PI; // pseudo-random angles
+    float theta = expf(i)*PI; // pseudo-random angles
     float start_point[2] = {center0[0] + radius*cosf(theta), center0[1] + radius*sinf(theta)};
     ret = find_arc_center(start_point, start_point, radius, i%2, i%2, center);
 
@@ -367,11 +369,12 @@ protected:
 };
 
 TEST_F(MeasureArcRad, SeparatedPoints) {
+  float eps = 0.0001f;
   float phi;
   for (int i=0; i< 10; i++){
     float radius = exp(i);
     float center0[2] = {pow(1.1, i), pow(-0.9, i)}; // pseudo-random center
-    float theta[2] = {expf(i)*F_PI, expf(i+1)*F_PI}; // pseudo-random angles
+    float theta[2] = {expf(i)*PI, expf(i+1)*PI}; // pseudo-random angles
     float start_point[2] = {center0[0] + radius*cosf(theta[0]), center0[1] + radius*sinf(theta[0])};
     float end_point[2]   = {center0[0] + radius*cosf(theta[1]), center0[1] + radius*sinf(theta[1])};
     phi = measure_arc_rad(start_point, end_point, center0);
@@ -382,11 +385,12 @@ TEST_F(MeasureArcRad, SeparatedPoints) {
 };
 
 TEST_F(MeasureArcRad, CoincidentPoints) {
+  float eps = 0.0001f;
   float phi;
   for (int i=0; i< 10; i++){
     float radius = exp(i);
     float center0[2] = {pow(1.1, i), pow(-0.9, i)}; // pseudo-random center
-    float theta = expf(i)*F_PI; // pseudo-random angles
+    float theta = expf(i)*PI; // pseudo-random angles
     float start_point[2] = {center0[0] + radius*cosf(theta), center0[1] + radius*sinf(theta)};
     phi = measure_arc_rad(start_point, start_point, center0);
 
@@ -409,7 +413,7 @@ protected:
 TEST_F(AngleBetween2dVectors, DivergentVectors) {
   float phi;
   for (int i=0; i< 10; i++){
-    float theta[2] = {expf(i)*F_PI, expf(i+1)*F_PI}; // pseudo-random angles
+    float theta[2] = {expf(i)*PI, expf(i+1)*PI}; // pseudo-random angles
     float mag_a = expf(i);
     float mag_b = pow(i, 1.1);
     float a[2] = {mag_a * cosf(theta[0]), mag_a * sinf(theta[0])};
@@ -424,7 +428,7 @@ TEST_F(AngleBetween2dVectors, DivergentVectors) {
 TEST_F(AngleBetween2dVectors, ParallelVectors) {
   float phi;
   for (int i=0; i< 10; i++){
-    float theta = expf(i)*F_PI; // pseudo-random angles
+    float theta = expf(i)*PI; // pseudo-random angles
     float mag_a = expf(i);
     float a[2] = {mag_a * cosf(theta), mag_a * sinf(theta)};
     phi = angle_between_2d_vectors(a, a);
