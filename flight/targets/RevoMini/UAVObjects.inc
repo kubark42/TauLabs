@@ -73,8 +73,6 @@ UAVOBJSRCFILENAMES += objectpersistence
 UAVOBJSRCFILENAMES += overosyncstats
 UAVOBJSRCFILENAMES += overosyncsettings
 UAVOBJSRCFILENAMES += pathdesired
-UAVOBJSRCFILENAMES += pathplannersettings
-UAVOBJSRCFILENAMES += pathstatus
 UAVOBJSRCFILENAMES += poilocation
 UAVOBJSRCFILENAMES += positionactual
 UAVOBJSRCFILENAMES += ratedesired
@@ -105,6 +103,17 @@ UAVOBJSRCFILENAMES += waypoint
 UAVOBJSRCFILENAMES += waypointactive
 
 UAVOBJSRCFILENAMES += txpidsettings
+
+UAVOBJSRCFILENAMES += pathsegmentdescriptor
+UAVOBJSRCFILENAMES += pathstatus
+UAVOBJSRCFILENAMES += pathfollowerstatus
+UAVOBJSRCFILENAMES += pathmanagersettings
+UAVOBJSRCFILENAMES += pathmanagerstatus
+UAVOBJSRCFILENAMES += pathplannersettings
+UAVOBJSRCFILENAMES += pathplannerstatus
+
+UAVOBJSRCFILENAMES += i2cvm
+UAVOBJSRCFILENAMES += i2cvmuserprogram
 UAVOBJSRCFILENAMES += vibrationanalysissettings
 UAVOBJSRCFILENAMES += vibrationanalysisoutput
 

@@ -114,6 +114,8 @@ SRC += $(OPTESTS)/test_common.c
 SRC += $(OPTESTS)/$(TESTAPP).c
 endif
 
+SRC += $(MATHLIB)/misc_math.c
+
 ## UAVOBJECTS
 ifndef TESTAPP
 SRC += $(OPUAVSYNTHDIR)/gcsreceiver.c

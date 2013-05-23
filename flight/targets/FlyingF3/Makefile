@@ -124,8 +124,6 @@ SRC += $(DEBUG_CM3_DIR)/dcc_stdio.c
 SRC += $(DEBUG_CM3_DIR)/cm3_fault_handlers.c
 endif
 
-SRC += $(FLIGHTLIB)/paths.c
-SRC += $(FLIGHTLIB)/CoordinateConversions.c
 SRC += $(FLIGHTLIB)/path_planners/direct.c
 SRC += $(FLIGHTLIB)/path_planners/direct_with_filleting.c
 SRC += $(FLIGHTLIB)/path_managers/b_ball.c
@@ -237,6 +235,10 @@ ifneq (,$(filter YES,$(PATHDESIRED_DIAGNOSTICS) $(ALL_DIAGNOSTICS)))
 CFLAGS += -DPATHDESIRED_DIAGNOSTICS
 endif
 
+ifeq ($(PATH_PLANNER), YES)
+CFLAGS += -DPATH_PLANNER
+endif
+
 # configure CMSIS DSP Library
 CDEFS += -DARM_MATH_CM4
 CDEFS += -DARM_MATH_MATRIX_CHECK
@@ -260,10 +262,6 @@ CDEFS += -DUSE_STDPERIPH_DRIVER
 CDEFS += -DUSE_$(BOARD)
 ifeq ($(ENABLE_DEBUG_CONSOLE), YES)
 CDEFS += -DPIOS_INCLUDE_DEBUG_CONSOLE
-endif
-
-ifeq ($(PATH_PLANNER), YES)
-CFLAGS += -DPATH_PLANNER
 endif
 
 CDEFS += -DEE_BANK_BASE=$(EE_BANK_BASE)
