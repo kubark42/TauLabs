@@ -15,6 +15,7 @@
                 <elementname>Sensors</elementname>
                 <elementname>Stabilization</elementname>
                 <elementname>PathFollower</elementname>
+                <elementname>PathManager</elementname>
                 <elementname>PathPlanner</elementname>
                 <elementname>Battery</elementname>
                 <elementname>FlightTime</elementname>
