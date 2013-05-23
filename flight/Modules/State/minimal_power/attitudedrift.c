@@ -41,7 +41,9 @@
  *
  */
 
+#include "openpilot.h"
 #include "pios.h"
+
 #include "physical_constants.h"
 #include "modulesettings.h"
 #include <pios_board_info.h>

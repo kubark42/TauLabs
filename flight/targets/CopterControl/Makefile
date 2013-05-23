@@ -35,11 +35,11 @@ include $(TOP)/make/boards/$(BOARD_NAME)/board-info.mk
 DEBUG ?= NO
 
 # @optbrief Include objects that are just nice information to show
-STACK_DIAGNOSTICS ?= NO
+STACK_DIAGNOSTICS ?= YES
 MIXERSTATUS_DIAGNOSTICS ?= NO
 RATEDESIRED_DIAGNOSTICS ?= NO
 I2C_WDG_STATS_DIAGNOSTICS ?= NO
-DIAG_TASKS ?= NO
+DIAG_TASKS ?= YES
 
 #Or just turn on all the above diagnostics. WARNING: This consumes massive amounts of memory.
 ALL_DIGNOSTICS ?=NO
@@ -55,7 +55,7 @@ ENABLE_AUX_UART ?= NO
 
 # @endgroup Compile Options
 
-NAVIGATION ?= NO
+NAVIGATION ?= YES
 
 # @startgroup  Optional modules
 # @groupbrief Optional module and driver defaults
@@ -112,8 +112,10 @@ OPTMODULES += Battery
 endif
 # List of mandatory modules to include
 ifeq ($(NAVIGATION), YES)
-MODULES += State/coptercontrol
-MODULES += PathFollower
+#MODULES += Attitude/coptercontrol
+MODULES += State/minimal_power
+OPTMODULES += PathFollower
+OPTMODULES += PathManager
 CFLAGS += -DNAVIGATION
 else
 MODULES += Attitude/coptercontrol
@@ -234,6 +236,10 @@ SRC += $(OPUAVSYNTHDIR)/fixedwingairspeeds.c
 SRC += $(OPUAVSYNTHDIR)/fixedwingpathfollowerstatus.c
 SRC += $(OPUAVSYNTHDIR)/fixedwingpathfollowersettings.c
 SRC += $(OPUAVSYNTHDIR)/pathstatus.c
+SRC += $(OPUAVSYNTHDIR)/pathfollowerstatus.c
+SRC += $(OPUAVSYNTHDIR)/pathmanagersettings.c
+SRC += $(OPUAVSYNTHDIR)/pathmanagerstatus.c
+SRC += $(OPUAVSYNTHDIR)/pathsegmentdescriptor.c
 SRC += $(OPUAVSYNTHDIR)/pathdesired.c
 SRC += $(OPUAVSYNTHDIR)/homelocation.c
 SRC += $(OPUAVSYNTHDIR)/positionactual.c
@@ -297,18 +303,32 @@ SRC += $(PIOSCOMMON)/pios_adc.c
 ifeq ($(USE_PCF8591), YES)
 SRC += $(PIOSCOMMON)/pios_pcf8591_adc.c
 endif
+
 ## Libraries for flight calculations
 SRC += $(FLIGHTLIB)/fifo_buffer.c
 SRC += $(FLIGHTLIB)/CoordinateConversions.c
 SRC += $(FLIGHTLIB)/taskmonitor.c
 SRC += $(FLIGHTLIB)/sanitycheck.c
+
 ifeq ($(NAVIGATION), YES)
-SRC += $(STATEESTIMATIONLIB)/ccc.c
-SRC += $(STATEESTIMATIONLIB)/premerlani_gps.c
-SRC += $(STATEESTIMATIONLIB)/premerlani_dcm.c
+SRC += $(STATEESTIMATIONLIB)/gps_airspeed.c
+SRC += $(STATEESTIMATIONLIB)/SO3/ccc.c
+SRC += $(STATEESTIMATIONLIB)/SO3/premerlani_dcm.c
+SRC += $(STATEESTIMATIONLIB)/SE3/premerlani_gps.c
+SRC += $(FLIGHTLIB)/paths_library/example_program.c
+SRC += $(FLIGHTLIB)/paths_library/simple_return_to_home.c
+SRC += $(FLIGHTLIB)/paths_library/simple_hold_position.c
+SRC += $(FLIGHTLIB)/path_followers/constant_radius_arc/simple_arc.c
+SRC += $(FLIGHTLIB)/path_followers/constant_radius_arc/roll_limited_arc.c
+SRC += $(FLIGHTLIB)/path_followers/straight_line/simple_line.c
+SRC += $(FLIGHTLIB)/path_followers/straight_line/roll_limited_line.c
+SRC += $(FLIGHTLIB)/path_managers/b_ball.c
+SRC += $(FLIGHTLIB)/path_managers/half_plane.c
 endif
+
 SRC += $(MATHLIB)/sin_lookup.c
 SRC += $(MATHLIB)/misc_math.c
+SRC += $(MATHLIB)/atmospheric_math.c
 SRC += $(MATHLIB)/pid.c
 
 ## CMSIS for STM32

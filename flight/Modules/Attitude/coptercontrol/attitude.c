@@ -706,18 +706,18 @@ static void updateTemperatureComp(float temperature, float *temp_bias)
 		temp_counter = 0;
 
 		// Compute a third order polynomial for each chanel after each 500 samples
-		temp_bias[0] = sensorSettings.XGyroTempCoeff[0] + 
-		               sensorSettings.XGyroTempCoeff[1] * t + 
-		               sensorSettings.XGyroTempCoeff[2] * powf(t,2) + 
-		               sensorSettings.XGyroTempCoeff[3] * powf(t,3);
-		temp_bias[1] = sensorSettings.YGyroTempCoeff[0] + 
-		               sensorSettings.YGyroTempCoeff[1] * t + 
-		               sensorSettings.YGyroTempCoeff[2] * powf(t,2) + 
-		               sensorSettings.YGyroTempCoeff[3] * powf(t,3);
-		temp_bias[2] = sensorSettings.ZGyroTempCoeff[0] + 
-		               sensorSettings.ZGyroTempCoeff[1] * t + 
-		               sensorSettings.ZGyroTempCoeff[2] * powf(t,2) + 
-		               sensorSettings.ZGyroTempCoeff[3] * powf(t,3);
+		temp_bias[0] = sensorSettings.Xbd_GyroTempCoeff[0] +
+		               sensorSettings.Xbd_GyroTempCoeff[1] * t +
+		               sensorSettings.Xbd_GyroTempCoeff[2] * powf(t,2) +
+		               sensorSettings.Xbd_GyroTempCoeff[3] * powf(t,3);
+		temp_bias[1] = sensorSettings.Ybd_GyroTempCoeff[0] +
+		               sensorSettings.Ybd_GyroTempCoeff[1] * t +
+		               sensorSettings.Ybd_GyroTempCoeff[2] * powf(t,2) +
+		               sensorSettings.Ybd_GyroTempCoeff[3] * powf(t,3);
+		temp_bias[2] = sensorSettings.Zbd_GyroTempCoeff[0] +
+		               sensorSettings.Zbd_GyroTempCoeff[1] * t +
+		               sensorSettings.Zbd_GyroTempCoeff[2] * powf(t,2) +
+		               sensorSettings.Zbd_GyroTempCoeff[3] * powf(t,3);
 	}
 }
 
@@ -775,7 +775,7 @@ static void settingsUpdatedCb(UAVObjEvent * objEv) {
 	} else if (attitudeSettings.TrimFlight == ATTITUDESETTINGS_TRIMFLIGHT_LOAD) {
 		trim_requested = false;
 
-		// Get sensor data  mean 
+		// Get sensor data  mean
 		float a_body[3] = { trim_accels[0] / trim_samples,
 			trim_accels[1] / trim_samples,
 			trim_accels[2] / trim_samples

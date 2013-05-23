@@ -827,18 +827,18 @@ bool Calibration::storeLevelingMeasurement(UAVObject *obj) {
         rotate_vector(Rsb, gyro_sensor, gyro_newbody, false);
 
         // Store these new biases, accounting for any temperature coefficients
-        sensorSettingsData.XGyroTempCoeff[0] = gyro_newbody[0] -
-                temp * sensorSettingsData.XGyroTempCoeff[1] -
-                pow(temp,2) * sensorSettingsData.XGyroTempCoeff[2] -
-                pow(temp,3) * sensorSettingsData.XGyroTempCoeff[3];
-        sensorSettingsData.YGyroTempCoeff[0] = gyro_newbody[1] -
-                temp * sensorSettingsData.YGyroTempCoeff[1] -
-                pow(temp,2) * sensorSettingsData.YGyroTempCoeff[2] -
-                pow(temp,3) * sensorSettingsData.YGyroTempCoeff[3];
-        sensorSettingsData.ZGyroTempCoeff[0] = gyro_newbody[2] -
-                temp * sensorSettingsData.ZGyroTempCoeff[1] -
-                pow(temp,2) * sensorSettingsData.ZGyroTempCoeff[2] -
-                pow(temp,3) * sensorSettingsData.ZGyroTempCoeff[3];
+        sensorSettingsData.Xbd_GyroTempCoeff[0] = gyro_newbody[0] -
+                temp * sensorSettingsData.Xbd_GyroTempCoeff[1] -
+                pow(temp,2) * sensorSettingsData.Xbd_GyroTempCoeff[2] -
+                pow(temp,3) * sensorSettingsData.Xbd_GyroTempCoeff[3];
+        sensorSettingsData.Ybd_GyroTempCoeff[0] = gyro_newbody[1] -
+                temp * sensorSettingsData.Ybd_GyroTempCoeff[1] -
+                pow(temp,2) * sensorSettingsData.Ybd_GyroTempCoeff[2] -
+                pow(temp,3) * sensorSettingsData.Ybd_GyroTempCoeff[3];
+        sensorSettingsData.Zbd_GyroTempCoeff[0] = gyro_newbody[2] -
+                temp * sensorSettingsData.Zbd_GyroTempCoeff[1] -
+                pow(temp,2) * sensorSettingsData.Zbd_GyroTempCoeff[2] -
+                pow(temp,3) * sensorSettingsData.Zbd_GyroTempCoeff[3];
         SensorSettings::GetInstance(getObjectManager())->setData(sensorSettingsData);
 
         // We offset the gyro bias by current bias to help precision
@@ -1082,18 +1082,18 @@ int Calibration::computeTempCal()
     SensorSettings * sensorSettings = SensorSettings::GetInstance(getObjectManager());
     Q_ASSERT(sensorSettings);
     SensorSettings::DataFields sensorSettingsData = sensorSettings->getData();
-    sensorSettingsData.XGyroTempCoeff[0] = result(0,0);
-    sensorSettingsData.XGyroTempCoeff[1] = result(1,0);
-    sensorSettingsData.XGyroTempCoeff[2] = result(2,0);
-    sensorSettingsData.XGyroTempCoeff[3] = result(3,0);
-    sensorSettingsData.YGyroTempCoeff[0] = result(0,1);
-    sensorSettingsData.YGyroTempCoeff[1] = result(1,1);
-    sensorSettingsData.YGyroTempCoeff[2] = result(2,1);
-    sensorSettingsData.YGyroTempCoeff[3] = result(3,1);
-    sensorSettingsData.ZGyroTempCoeff[0] = result(0,2);
-    sensorSettingsData.ZGyroTempCoeff[1] = result(1,2);
-    sensorSettingsData.ZGyroTempCoeff[2] = result(2,2);
-    sensorSettingsData.ZGyroTempCoeff[3] = result(3,2);
+    sensorSettingsData.Xbd_GyroTempCoeff[0] = result(0,0);
+    sensorSettingsData.Xbd_GyroTempCoeff[1] = result(1,0);
+    sensorSettingsData.Xbd_GyroTempCoeff[2] = result(2,0);
+    sensorSettingsData.Xbd_GyroTempCoeff[3] = result(3,0);
+    sensorSettingsData.Ybd_GyroTempCoeff[0] = result(0,1);
+    sensorSettingsData.Ybd_GyroTempCoeff[1] = result(1,1);
+    sensorSettingsData.Ybd_GyroTempCoeff[2] = result(2,1);
+    sensorSettingsData.Ybd_GyroTempCoeff[3] = result(3,1);
+    sensorSettingsData.Zbd_GyroTempCoeff[0] = result(0,2);
+    sensorSettingsData.Zbd_GyroTempCoeff[1] = result(1,2);
+    sensorSettingsData.Zbd_GyroTempCoeff[2] = result(2,2);
+    sensorSettingsData.Zbd_GyroTempCoeff[3] = result(3,2);
     sensorSettings->setData(sensorSettingsData);
 
     QList<double> xCoeffs, yCoeffs, zCoeffs;

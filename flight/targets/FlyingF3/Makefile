@@ -43,6 +43,7 @@ PATHDESIRED_DIAGNOSTICS ?= YES
 
 # List of modules to include
 MODULES = Sensors
+#MODULES += State/normalpower
 MODULES += Attitude/revolution
 MODULES += Actuator
 MODULES += ManualControl

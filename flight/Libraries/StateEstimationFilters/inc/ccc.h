@@ -6,7 +6,7 @@
  * @{ 
  *
  * @file       ccc.h
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2011.
+ * @author     Tau Labs, http://www.taulabs.org Copyright (C) 2013.
  * @brief      Acquires sensor data and fuses it into attitude estimate for CC
  *
  * @see        The GNU Public License (GPL) Version 3
@@ -33,6 +33,6 @@
 #include "openpilot.h"
 #include "state_struct.h"
 
-void CottonComplementaryCorrection(float *accels, float *gyros, const float delT, GlobalAttitudeVariables *glblAtt, float *omegaCorrP);
+void CottonComplementaryCorrection(float accels[3], float gyros[3], const float delT, GlobalAttitudeVariables *glblAtt, float omegaCorrP[3]);
 
 #endif // CCC_H

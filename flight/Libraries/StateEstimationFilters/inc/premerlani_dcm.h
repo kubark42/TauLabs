@@ -6,7 +6,7 @@
  * @{ 
  *
  * @file       premerlani_dcm.h
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2011.
+ * @author     Tau Labs, http://www.taulabs.org Copyright (C) 2013.
  * @brief      Acquires sensor data and fuses it into attitude estimate for CC
  *
  * @see        The GNU Public License (GPL) Version 3
@@ -33,6 +33,6 @@
 #include "openpilot.h"
 #include "state_struct.h"
 
-void Premerlani_DCM(float *accels, float *gyros, float Rbe[3][3], const float delT, bool GPS_Drift_Compensation, GlobalAttitudeVariables *glblAtt, float *omegaCorrP);
+void Premerlani_DCM(float accels[3], float gyros[3], float Rbe[3][3], const float delT, bool GPS_Drift_Compensation, GlobalAttitudeVariables *glblAtt, float omegaCorrP[3]);
 
 #endif // PREMERLANI_DCM_H

@@ -7,7 +7,6 @@
  * @{
  *
  * @file       premerlani_gps.c
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
  * @author     Tau Labs, http://www.taulabs.org Copyright (C) 2013.
  * @brief      Module to handle all comms to the AHRS on a periodic basis.
  *
@@ -200,12 +199,12 @@ void Premerlani_GPS(float *accels, float *gyros, float Rbe[3][3], const float de
 	gyros[2] += omegaCorrP[2] + drft->omegaCorrI[2];
 	
 	//Add 0.0001% of proportional error back into gyroscope bias offset. This keeps DC elements out of the raw gyroscope data.
-	glblAtt->gyro_correct_int[0] += omegaCorrP[0] / 1000000.0f;
-	glblAtt->gyro_correct_int[1] += omegaCorrP[1] / 1000000.0f;
+	glblAtt->gyro_correct_int[0] -= omegaCorrP[0] / 1000000.0f;
+	glblAtt->gyro_correct_int[1] -= omegaCorrP[1] / 1000000.0f;
 	
 	// Because most crafts wont get enough information from gravity to zero yaw gyro, we try
 	// and make it average zero (weakly)
-	glblAtt->gyro_correct_int[2] += -gyros[2] * glblAtt->yawBiasRate;
+	glblAtt->gyro_correct_int[2] -= -gyros[2] * glblAtt->yawBiasRate;
 }
 
 /*
