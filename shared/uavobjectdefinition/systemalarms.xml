@@ -15,12 +15,13 @@
 				<elementname>Sensors</elementname>
 				<elementname>Stabilization</elementname>
 				<elementname>PathFollower</elementname>
+                <elementname>PathManager</elementname>
 				<elementname>PathPlanner</elementname>
 				<elementname>Battery</elementname>
 				<elementname>FlightTime</elementname>
 				<elementname>I2C</elementname>
 				<elementname>GPS</elementname>
-			  <elementname>BootFault</elementname>
+				<elementname>BootFault</elementname>
 			</elementnames>
 		</field>
 		<field name="ConfigError" units="" type="enum" elements="1" defaultvalue="None">
