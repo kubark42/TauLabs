@@ -33,6 +33,12 @@ include $(TOP)/make/boards/$(BOARD_NAME)/board-info.mk
 # Set to YES for debugging
 DEBUG ?= NO
 
+# @optbrief Include objects that are just nice information to show
+PATHDESIRED_DIAGNOSTICS ?= YES
+
+# Optional module and driver defaults
+USE_PATHPLANNER ?= YES
+
 # List of modules to include
 MODULES = Sensors
 MODULES += Attitude/revolution 
@@ -44,11 +50,9 @@ MODULES += FirmwareIAP
 MODULES += Telemetry
 
 OPTMODULES += GPS
-OPTMODULES += PathPlanner
 OPTMODULES += AltitudeHold 
-OPTMODULES += VtolPathFollower 
-OPTMODULES += FixedWingPathFollower
-OPTMODULES += GroundPathFollower
+OPTMODULES += PathManager
+OPTMODULES += PathFollower
 OPTMODULES += CameraStab
 OPTMODULES += Autotune
 OPTMODULES += TxPID
@@ -57,6 +61,10 @@ OPTMODULES += UAVOMavlinkBridge
 #OPTMODULES += Battery
 OPTMODULES += ComUsbBridge
 
+ifeq ($(USE_PATHPLANNER), YES)
+OPTMODULES += PathPlanner
+CFLAGS += -DPATH_PLANNER
+endif
 
 # Paths
 OPSYSTEM = ./System
@@ -113,7 +121,17 @@ SRC += $(DEBUG_CM3_DIR)/cm3_fault_handlers.c
 endif
 
 SRC += $(FLIGHTLIB)/CoordinateConversions.c
-SRC += $(FLIGHTLIB)/paths.c
+SRC += $(FLIGHTLIB)/path_planners/direct.c
+SRC += $(FLIGHTLIB)/path_planners/direct_with_filleting.c
+SRC += $(FLIGHTLIB)/path_managers/b_ball.c
+SRC += $(FLIGHTLIB)/path_managers/half_plane.c
+SRC += $(FLIGHTLIB)/paths_library/example_program.c
+SRC += $(FLIGHTLIB)/paths_library/simple_return_to_home.c
+SRC += $(FLIGHTLIB)/paths_library/simple_hold_position.c
+SRC += $(FLIGHTLIB)/path_followers/constant_radius_arc/simple_arc.c
+SRC += $(FLIGHTLIB)/path_followers/constant_radius_arc/roll_limited_arc.c
+SRC += $(FLIGHTLIB)/path_followers/straight_line/simple_line.c
+SRC += $(FLIGHTLIB)/path_followers/straight_line/roll_limited_line.c
 SRC += $(FLIGHTLIB)/fifo_buffer.c
 SRC += $(FLIGHTLIB)/WorldMagModel.c
 SRC += $(FLIGHTLIB)/insgps13state.c
@@ -121,6 +139,7 @@ SRC += $(FLIGHTLIB)/taskmonitor.c
 SRC += $(FLIGHTLIB)/sanitycheck.c
 SRC += $(MATHLIB)/sin_lookup.c
 SRC += $(MATHLIB)/misc_math.c
+SRC += $(MATHLIB)/atmospheric_math.c
 SRC += $(MATHLIB)/pid.c
 
 ## PIOS Hardware (STM32F4xx)
@@ -211,6 +230,14 @@ endif
 CFLAGS += $(ARCHFLAGS)
 CFLAGS += -DDIAGNOSTICS
 CFLAGS += -DDIAG_TASKS
+
+ifeq ($(PATH_PLANNER), YES)
+CFLAGS += -DPATH_PLANNER
+endif
+
+ifneq (,$(filter YES,$(PATHDESIRED_DIAGNOSTICS) $(ALL_DIGNOSTICS)))
+CFLAGS += -DPATHDESIRED_DIAGNOSTICS
+endif
 
 # configure CMSIS DSP Library
 CDEFS += -DARM_MATH_CM4
