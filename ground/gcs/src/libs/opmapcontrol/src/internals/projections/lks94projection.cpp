@@ -3,7 +3,8 @@
 *
 * @file       lks94projection.cpp
 * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2012.
-* @brief      
+* @author     Tau Labs, http://taulabs.org Copyright (C) 2013.
+* @brief
 * @see        The GNU Public License (GPL) Version 3
 * @defgroup   OPMapWidget
 * @{
@@ -24,8 +25,9 @@
 * with this program; if not, write to the Free Software Foundation, Inc., 
 * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
-#include "lks94projection.h"
 
+#include "lks94projection.h"
+#include "../../../../shared/api/physical_constants.h"
 
  
 namespace projections {
@@ -103,8 +105,8 @@ QVector <double> LKS94Projection::DTM10(const QVector <double>& lonlat)
 
     // ...
 
-    double lon = DegreesToRadians(lonlat[0]);
-    double lat = DegreesToRadians(lonlat[1]);
+    double lon = lonlat[0] * DEG2RAD;
+    double lat = lonlat[1] * DEG2RAD;
     double h = lonlat.count() < 3 ? 0 : std::isnan(lonlat[2]) ? 0 : lonlat[2];//TODO NAN
     double v = semiMajor / sqrt(1 - es * pow(sin(lat), 2));
     double x = (v + h) * cos(lat) * cos(lon);
@@ -172,9 +174,9 @@ QVector <double>  LKS94Projection::MTD10(QVector <double>&  pnt)
             }
             else // center of earth
             {
-                ret[0]=RadiansToDegrees(lon);
-                ret[1]=RadiansToDegrees(M_PI * 0.5);
-                ret[2]=-semiMinor;
+                ret[0] = lon * RAD2DEG;
+                ret[1] = M_PI * 0.5 * RAD2DEG;
+                ret[2] = -semiMinor;
                 return ret;
             }
         }
@@ -210,9 +212,9 @@ QVector <double>  LKS94Projection::MTD10(QVector <double>&  pnt)
     {
         lat = atan(Sin_p1 / Cos_p1);
     }
-    ret[0]=RadiansToDegrees(lon);
-    ret[1]=RadiansToDegrees(lat);
-    ret[2]=Height;
+    ret[0] = lon * RAD2DEG;
+    ret[1] = lat * RAD2DEG;
+    ret[2] = Height;
     return ret;
 }
 QVector <double> LKS94Projection::DTM00(QVector <double>& lonlat)
@@ -241,8 +243,8 @@ QVector <double> LKS94Projection::DTM00(QVector <double>& lonlat)
 
     // ...
 
-    double lon = DegreesToRadians(lonlat[0]);
-    double lat = DegreesToRadians(lonlat[1]);
+    double lon = lonlat[0] * DEG2RAD;
+    double lat = lonlat[1] * DEG2RAD;
 
     double delta_lon = 0.0;  // Delta qlonglongitude (Given qlonglongitude - center)
     double sin_phi, cos_phi; // sin and cos value
@@ -302,8 +304,8 @@ QVector <double> LKS94Projection::DTM01(QVector <double>& lonlat)
 
     // ...
 
-    double lon = DegreesToRadians(lonlat[0]);
-    double lat = DegreesToRadians(lonlat[1]);
+    double lon = lonlat[0] * DEG2RAD;
+    double lat = lonlat[1] * DEG2RAD;
     double h = lonlat.count() < 3 ? 0 : std::isnan(lonlat[2]) ? 0 : lonlat[2];//TODO NaN
     double v = semiMajor / sqrt(1 - es * pow(sin(lat), 2));
     double x = (v + h) * cos(lat) * cos(lon);
@@ -371,9 +373,9 @@ QVector <double> LKS94Projection::MTD01(QVector <double>& pnt)
             else // center of earth
             {
                 QVector<double> ret(3);
-                ret[0]=RadiansToDegrees(lon);
-                ret[1]=RadiansToDegrees(M_PI * 0.5);
-                ret[2]=-semiMinor;
+                ret[0] = lon * RAD2DEG;
+                ret[1] = M_PI * 0.5  * RAD2DEG;
+                ret[2] = -semiMinor;
                 return ret;
             }
         }
@@ -412,9 +414,9 @@ QVector <double> LKS94Projection::MTD01(QVector <double>& pnt)
         lat = atan(Sin_p1 / Cos_p1);
     }
     QVector<double> ret(3);
-    ret[0]=RadiansToDegrees(lon);
-    ret[1]=RadiansToDegrees(lat);
-    ret[2]=Height;
+    ret[0] = lon * RAD2DEG;
+    ret[1] = lat * RAD2DEG;
+    ret[2] = Height;
     return ret;
 }
 QVector <double> LKS94Projection::MTD11(QVector <double>& p)
@@ -467,7 +469,7 @@ QVector <double> LKS94Projection::MTD11(QVector <double>& p)
             throw  "Latitude failed to converge";
     }
 
-    if(fabs(phi) < HALF_PI)
+    if(fabs(phi) < PI/2)
     {
         SinCos(phi,  sin_phi,  cos_phi);
         tan_phi = tan(phi);
@@ -492,18 +494,17 @@ QVector <double> LKS94Projection::MTD11(QVector <double>& p)
         if(p.count() < 3)
         {
             QVector<double> ret(2);
-            ret[0]= RadiansToDegrees(lon);
-            ret[1]= RadiansToDegrees(lat);
+            ret[0] = lon * RAD2DEG;
+            ret[1] = lat * RAD2DEG;
             return ret;
         }
         else
         {
             QVector<double> ret(3);
-            ret[0]= RadiansToDegrees(lon);
-            ret[1]= RadiansToDegrees(lat);
-            ret[2]=p[2];
+            ret[0] = lon * RAD2DEG;
+            ret[1] = lat * RAD2DEG;
+            ret[2] = p[2];
             return ret;
-            //return new double[] { RadiansToDegrees(lon), RadiansToDegrees(lat), p[2] };
         }
     }
     else
@@ -511,17 +512,17 @@ QVector <double> LKS94Projection::MTD11(QVector <double>& p)
         if(p.count() < 3)
         {
             QVector<double> ret(2);
-            ret[0]= RadiansToDegrees(HALF_PI * Sign(y));
-            ret[1]= RadiansToDegrees(centralMeridian);
+            ret[0] = PI/2 * Sign(y) * RAD2DEG;
+            ret[1] = centralMeridian * RAD2DEG;
             return ret;
         }
 
         else
         {
             QVector<double> ret(3);
-            ret[0]= RadiansToDegrees(HALF_PI * Sign(y));
-            ret[1]= RadiansToDegrees(centralMeridian);
-            ret[2]=p[2];
+            ret[0] = PI/2 * Sign(y) * RAD2DEG;
+            ret[1] = centralMeridian * RAD2DEG;
+            ret[2] = p[2];
             return ret;
         }
 

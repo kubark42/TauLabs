@@ -31,9 +31,15 @@
 #define GRAVITY 9.805f // [m/s^2]
 
 // Trigonometry
+#ifdef __cplusplus
+#define PI 3.14159265358979323846264338327950288 // [-]
+#define DEG2RAD (PI / 180)
+#define RAD2DEG (180 / PI)
+#else
 #define PI 3.14159265358979323846f // [-]
 #define DEG2RAD (PI / 180.0f)
 #define RAD2DEG (180.0f / PI)
+#endif
 
 // Temperature and pressure conversions
 #define CELSIUS2KELVIN     273.15f
