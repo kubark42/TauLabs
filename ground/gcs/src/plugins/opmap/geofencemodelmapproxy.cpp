@@ -43,15 +43,15 @@ GeofenceModelMapProxy::GeofenceModelMapProxy(QObject *parent, OPMapWidget *map, 
     connect(myModel,SIGNAL(rowsRemoved(const QModelIndex&,int,int)),this,SLOT(rowsRemoved(const QModelIndex&,int,int)));
     connect(selection,SIGNAL(currentRowChanged(QModelIndex,QModelIndex)),this,SLOT(currentRowChanged(QModelIndex,QModelIndex)));
     connect(myModel,SIGNAL(dataChanged(QModelIndex,QModelIndex)),this,SLOT(dataChanged(QModelIndex,QModelIndex)));
-    connect(myMap,SIGNAL(SelectedVertexChanged(QList<WayPointItem*>)),this,SLOT(selectedVertexChanged(QList<WayPointItem*>)));
-    connect(myMap,SIGNAL(VertexValuesChanged(WayPointItem*)),this,SLOT(vertexValuesChanged(WayPointItem*)));
+    connect(myMap,SIGNAL(SelectedVertexChanged(QList<GeoFenceVertexItem*>)),this,SLOT(selectedVertexChanged(QList<GeoFenceVertexItem*>)));
+    connect(myMap,SIGNAL(VertexValuesChanged(GeoFenceVertexItem*)),this,SLOT(vertexValuesChanged(GeoFenceVertexItem*)));
 }
 
-WayPointItem *GeofenceModelMapProxy::findVertexNumber(int number)
+GeoFenceVertexItem *GeofenceModelMapProxy::findVertexNumber(int number)
 {
     if(number<0)
         return NULL;
-    return myMap->WPFind(number);
+    return myMap->GFVertexFind(number);
 }
 
 void GeofenceModelMapProxy::createVertexPoint(internals::PointLatLng coord)
@@ -131,7 +131,7 @@ void GeofenceModelMapProxy::dataChanged(const QModelIndex &topLeft, const QModel
 {
     Q_UNUSED(bottomRight);
 
-    WayPointItem * item=findVertexNumber(topLeft.row());
+    GeoFenceVertexItem * item=findVertexNumber(topLeft.row());
     if(!item)
         return;
     internals::PointLatLng latlng;
@@ -166,7 +166,7 @@ void GeofenceModelMapProxy::rowsInserted(const QModelIndex &parent, int first, i
     for(int x=first;x<last+1;x++)
     {
         QModelIndex index;
-        WayPointItem * item;
+        GeoFenceVertexItem * item;
         internals::PointLatLng latlng;
         double altitude;
         index=myModel->index(x,GeofenceDataModel::LATITUDE);
@@ -191,7 +191,7 @@ void GeofenceModelMapProxy::rowsRemoved(const QModelIndex &parent, int first, in
     refreshOverlays();
 }
 
-void GeofenceModelMapProxy::vertexValuesChanged(WayPointItem *wp)
+void GeofenceModelMapProxy::vertexValuesChanged(GeoFenceVertexItem *wp)
 {
     QModelIndex index;
     index=myModel->index(wp->Number(),GeofenceDataModel::LATITUDE);
@@ -207,18 +207,18 @@ void GeofenceModelMapProxy::currentRowChanged(QModelIndex current, QModelIndex p
 {
     Q_UNUSED(previous);
 
-    QList<WayPointItem*> list;
-    WayPointItem * wp=findVertexNumber(current.row());
+    QList<GeoFenceVertexItem*> list;
+    GeoFenceVertexItem * wp=findVertexNumber(current.row());
     if(!wp)
         return;
     list.append(wp);
     myMap->setSelectedVertex(list);
 }
 
-void GeofenceModelMapProxy::selectedVertexChanged(QList<WayPointItem *> list)
+void GeofenceModelMapProxy::selectedVertexChanged(QList<GeoFenceVertexItem *> list)
 {
     selection->clearSelection();
-    foreach(WayPointItem * wp,list)
+    foreach(GeoFenceVertexItem * wp,list)
     {
         QModelIndex index=myModel->index(wp->Number(),0);
         selection->setCurrentIndex(index,QItemSelectionModel::Select | QItemSelectionModel::Rows);
@@ -229,7 +229,7 @@ GeofenceModelMapProxy::overlayType GeofenceModelMapProxy::overlayTranslate(int t
 {
 }
 
-void GeofenceModelMapProxy::createOverlay(WayPointItem *from, WayPointItem *to, GeofenceModelMapProxy::overlayType type, QColor color)
+void GeofenceModelMapProxy::createOverlay(GeoFenceVertexItem *from, GeoFenceVertexItem *to, GeofenceModelMapProxy::overlayType type, QColor color)
 {
 }
 

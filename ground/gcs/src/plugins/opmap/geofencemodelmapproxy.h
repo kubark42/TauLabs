@@ -40,7 +40,7 @@ class GeofenceModelMapProxy : public QObject
 public:
     explicit GeofenceModelMapProxy(QObject *parent, OPMapWidget * map, GeofenceDataModel * model, QItemSelectionModel * selectionModel);
 
-    WayPointItem *findVertexNumber(int number);
+    GeoFenceVertexItem *findVertexNumber(int number);
     void createVertexPoint(internals::PointLatLng coord);
     void deleteVertexPoint(int number);
     void deleteAll();
@@ -56,13 +56,13 @@ private slots:
     void dataChanged ( const QModelIndex & topLeft, const QModelIndex & bottomRight );
     void rowsInserted ( const QModelIndex & parent, int first, int last );
     void rowsRemoved ( const QModelIndex & parent, int first, int last );
-    void vertexValuesChanged(WayPointItem *wp);
-    void currentRowChanged(QModelIndex,QModelIndex);
-    void selectedVertexChanged(QList<WayPointItem*>);
+    void vertexValuesChanged(GeoFenceVertexItem *wp);
+    void currentRowChanged(QModelIndex, QModelIndex);
+    void selectedVertexChanged(QList<GeoFenceVertexItem*>);
     
 private:
     overlayType overlayTranslate(int type);
-    void createOverlay(WayPointItem * from,WayPointItem * to,overlayType type,QColor color);
+    void createOverlay(GeoFenceVertexItem *from, GeoFenceVertexItem *to, overlayType type, QColor color);
     void refreshOverlays();
 
     static const int DEFAULT_UPPER_ALTITUDE;

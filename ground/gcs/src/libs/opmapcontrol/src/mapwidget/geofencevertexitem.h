@@ -1,9 +1,9 @@
 /**
 ******************************************************************************
 *
-* @file       waypointitem.h
-* @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2012.
-* @brief      A graphicsItem representing a WayPoint
+* @file       geofencevertexitem.h
+* @author     Tau Labs, http://taulabs.org Copyright (C) 2013.
+* @brief      A graphicsItem representing a geofence vertex
 * @see        The GNU Public License (GPL) Version 3
 * @defgroup   OPMapWidget
 * @{
@@ -24,8 +24,8 @@
 * with this program; if not, write to the Free Software Foundation, Inc.,
 * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
-#ifndef WAYPOINTITEM_H
-#define WAYPOINTITEM_H
+#ifndef GEOFENCEVERTEXITEM_H
+#define GEOFENCEVERTEXITEM_H
 
 #include "mappointitem.h"
 
@@ -33,94 +33,93 @@ namespace mapcontrol
 {
 class HomeItem;
 /**
-* @brief A QGraphicsItem representing a WayPoint
+* @brief A QGraphicsItem representing a GeoFence
 *
-* @class WayPointItem waypointitem.h "waypointitem.h"
+* @class GeoFenceVertexItem geofencevertexitem.h "geofencevertexitem.h"
 */
-class WayPointItem: public MapPointItem
+class GeoFenceVertexItem: public MapPointItem
 {
     Q_OBJECT
     Q_INTERFACES(QGraphicsItem)
 public:
-    enum { Type = UserType + TYPE_WAYPOINTITEM };
-    enum wptype {absolute,relative};
+    enum { Type = UserType + TYPE_GEOFENCEVERTEXITEM };
+    enum geofencetype {GEO_ABSOLUTE, GEO_RELATIVE};
     /**
     * @brief Constructor
     *
-    * @param coord coordinates in LatLng of the Waypoint
-    * @param altitude altitude of the WayPoint
+    * @param coord coordinates in LatLng of the GeoFence
+    * @param altitude altitude of the GeoFence
     * @param map pointer to map to use
     * @return
     */
-    WayPointItem(internals::PointLatLng const& coord,int const& altitude,MapGraphicItem* map,wptype type=absolute);
-    WayPointItem(MapGraphicItem* map,bool magicwaypoint);
+    GeoFenceVertexItem(internals::PointLatLng const& coord,int const& altitude,MapGraphicItem* map,geofencetype type = GEO_ABSOLUTE);
     /**
     * @brief Constructor
     *
-    * @param coord coordinates in LatLng of the WayPoint
-    * @param altitude altitude of the WayPoint
-    * @param description description fo the WayPoint
+    * @param coord coordinates in LatLng of the GeoFence
+    * @param altitude altitude of the GeoFence
+    * @param description description fo the GeoFence
     * @param map pointer to map to use
     * @return
     */
-    WayPointItem(internals::PointLatLng const& coord,int const& altitude,QString const& description,MapGraphicItem* map,wptype type=absolute);
-    WayPointItem(distBearingAltitude const& relativeCoord,QString const& description,MapGraphicItem* map);
+    GeoFenceVertexItem(internals::PointLatLng const& coord,int const& altitude,QString const& description,MapGraphicItem* map,geofencetype type = GEO_ABSOLUTE);
+    GeoFenceVertexItem(distBearingAltitude const& relativeCoord,QString const& description,MapGraphicItem* map);
 
     /**
-    * @brief Returns the WayPoint description
+    * @brief Returns the GeoFence description
     *
     * @return QString
     */
     QString Description(){return description;}
     /**
-    * @brief Sets the WayPoint description
+    * @brief Sets the GeoFence description
     *
     * @param value
     */
     void SetDescription(QString const& value);
     /**
-    * @brief Returns true if WayPoint is Reached
+    * @brief Returns true if GeoFence is Reached
     *
     * @return bool
     */
     bool Reached(){return reached;}
     /**
-    * @brief  Sets if WayPoint is Reached
+    * @brief  Sets if GeoFence is Reached
     *
     * @param value
     */
     void SetReached(bool const& value);
     /**
-    * @brief Returns the WayPoint number
+    * @brief Returns the GeoFence number
     *
     */
     int Number(){return number;}
     int numberAdjusted(){return number+1;}
     /**
-    * @brief Sets WayPoint number
+    * @brief Sets GeoFence number
     *
     * @param value
     */
     void SetNumber(int const& value);
     /**
-    * @brief Returns WayPoint LatLng coordinate
+    * @brief Returns GeoFence LatLng coordinate
     *
     */
 
     virtual void SetCoord(internals::PointLatLng const& value);
     /**
-    * @brief Used if WayPoint number is to be drawn on screen
+    * @brief Used if GeoFence number is to be drawn on screen
     *
     */
     bool ShowNumber(){return shownumber;}
     /**
-    * @brief  Used to set if WayPoint number is to be drawn on screen
+    * @brief  Used to set if GeoFence number is to be drawn on screen
     *
     * @param value
     */
     void SetShowNumber(bool const& value);
     /**
-    * @brief Returns the WayPoint altitude
+    * @brief Returns the GeoFence altitude
     *
     * @return int
     */
@@ -136,11 +135,11 @@ public:
     QString customString(){return myCustomString;}
     void setCustomString(QString arg){myCustomString=arg;}
     void setFlag(GraphicsItemFlag flag, bool enabled);
-~WayPointItem();
+~GeoFenceVertexItem();
 
     static int snumber;
-    void setWPType(wptype type);
-    wptype WPType(){return myType;}
+    void setWPType(geofencetype type);
+    geofencetype WPType(){return myType;}
 protected:
     void mouseMoveEvent ( QGraphicsSceneMouseEvent * event );
     void mousePressEvent ( QGraphicsSceneMouseEvent * event );
@@ -159,61 +158,61 @@ private:
     QGraphicsRectItem* numberIBG;
     QTransform transf;
     HomeItem * myHome;
-    wptype myType;
+    geofencetype myType;
     QString myCustomString;
 
 public slots:
     /**
-    * @brief Called when a WayPoint is deleted
+    * @brief Called when a GeoFence is deleted
     *
-    * @param number number of the WayPoint that was deleted
+    * @param number number of the GeoFence that was deleted
     */
-    void WPDeleted(int const& number,WayPointItem *waypoint);
+    void WPDeleted(int const& number,GeoFenceVertexItem *geofencevertex);
     /**
-    * @brief Called when a WayPoint is renumbered
+    * @brief Called when a GeoFence is renumbered
     *
-    * @param oldnumber the old  WayPoint number
-    * @param newnumber the new WayPoint number
-    * @param waypoint a pointer to the WayPoint renumbered
+    * @param oldnumber the old  GeoFence number
+    * @param newnumber the new GeoFence number
+    * @param geofencevertex a pointer to the GeoFence renumbered
     */
-    void WPRenumbered(int const& oldnumber,int const& newnumber,WayPointItem* waypoint);
+    void WPRenumbered(int const& oldnumber,int const& newnumber,GeoFenceVertexItem* geofencevertex);
     /**
-    * @brief Called when a  WayPoint is inserted
+    * @brief Called when a  GeoFence is inserted
     *
-    * @param number the number of the  WayPoint
-    * @param waypoint  a pointer to the WayPoint inserted
+    * @param number the number of the  GeoFence
+    * @param geofencevertex  a pointer to the GeoFence inserted
     */
-    void WPInserted(int const& number,WayPointItem* waypoint);
+    void WPInserted(int const& number,GeoFenceVertexItem* geofencevertex);
 
     void onHomePositionChanged(internals::PointLatLng, float altitude);
     void RefreshPos();
     void setOpacitySlot(qreal opacity);
 signals:
     /**
-    * @brief fires when this WayPoint number changes (not fired if due to a auto-renumbering)
+    * @brief fires when this GeoFence number changes (not fired if due to a auto-renumbering)
     *
-    * @param oldnumber this WayPoint old number
-    * @param newnumber this WayPoint new number
-    * @param waypoint a pointer to this WayPoint
+    * @param oldnumber this GeoFence old number
+    * @param newnumber this GeoFence new number
+    * @param geofencevertex a pointer to this GeoFence
     */
-    void WPNumberChanged(int const& oldnumber,int const& newnumber,WayPointItem* waypoint);
+    void WPNumberChanged(int const& oldnumber,int const& newnumber,GeoFenceVertexItem* geofencevertex);
 
     /**
     * @brief Fired when the description, altitude or coordinates change
     *
-    * @param waypoint a pointer to this WayPoint
+    * @param geofencevertex a pointer to this GeoFence
     */
 
     /**
-    * @brief Fired when the waypoint is dropped somewhere
+    * @brief Fired when the geofencevertex is dropped somewhere
     *
-    * @param waypoint a pointer to this WayPoint
+    * @param geofencevertex a pointer to this GeoFence
     */
-    void WPDropped(WayPointItem* waypoint);
+    void WPDropped(GeoFenceVertexItem* geofencevertex);
 
-    void WPValuesChanged(WayPointItem* waypoint);
-    void waypointdoubleclick(WayPointItem* waypoint);
-    void manualCoordChange(WayPointItem *);
+    void WPValuesChanged(GeoFenceVertexItem* geofencevertex);
+    void geofencevertexdoubleclick(GeoFenceVertexItem* geofencevertex);
+    void manualCoordChange(GeoFenceVertexItem *);
 };
 }
-#endif // WAYPOINTITEM_H
+#endif // GEOFENCEVERTEXITEM_H

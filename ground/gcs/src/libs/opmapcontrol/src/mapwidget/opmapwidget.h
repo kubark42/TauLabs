@@ -27,24 +27,28 @@
 #ifndef OPMAPWIDGET_H
 #define OPMAPWIDGET_H
 
+#include <QObject>
+#include <QtOpenGL/QGLWidget>
+#include "QtSvg/QGraphicsSvgItem"
+
 #include "../mapwidget/mapgraphicitem.h"
 #include "../core/geodecoderstatus.h"
 #include "../core/maptype.h"
 #include "../core/languagetype.h"
 #include "../core/diagnostics.h"
+
 #include "configuration.h"
-#include <QObject>
-#include <QtOpenGL/QGLWidget>
 #include "waypointitem.h"
-#include "QtSvg/QGraphicsSvgItem"
+#include "waypointcurve.h"
 #include "uavitem.h"
 #include "gpsitem.h"
+#include "geofencevertexitem.h"
 #include "homeitem.h"
-#include "mapripper.h"
-#include "mapline.h"
 #include "mapcircle.h"
-#include "waypointcurve.h"
+#include "mapline.h"
+#include "mapripper.h"
 #include "waypointitem.h"
+
 namespace mapcontrol
 {
     class UAVItem;
@@ -364,7 +368,7 @@ namespace mapcontrol
         * @param position index of the WayPoint
         * @return WayPointItem a pointer to the WayPoint Inserted
         */
-        WayPointItem* VertexInsert(internals::PointLatLng const& coord, int const& altitude, int const& position);
+        GeoFenceVertexItem* VertexInsert(internals::PointLatLng const& coord, int const& altitude, int const& position);
 
         void SetShowCompass(bool const& value);
 
@@ -397,8 +401,9 @@ namespace mapcontrol
         bool WPPresent();
         void WPDelete(int number);
         WayPointItem *WPFind(int number);
+        GeoFenceVertexItem * GFVertexFind(int number);
         void setSelectedWP(QList<WayPointItem *> list);
-        void setSelectedVertex(QList<WayPointItem *> list);
+        void setSelectedVertex(QList<GeoFenceVertexItem *> list);
         void VertexDelete(int number);
         bool geofencePolyMode(){return m_createGeofencePolyMode;}
         void setGeofencePolyMode(bool set){m_createGeofencePolyMode = set;}
@@ -413,7 +418,7 @@ namespace mapcontrol
         internals::PointLatLng currentmouseposition;
         bool followmouse;
         void ConnectWP(WayPointItem* item);
-        void ConnectVertex(WayPointItem* item);
+        void ConnectVertex(GeoFenceVertexItem* item);
         QGraphicsSvgItem *compass;
         bool showuav;
         bool showhome;
@@ -541,7 +546,7 @@ namespace mapcontrol
         * @param number new WayPoint number
         * @param waypoint WayPoint inserted
         */
-        void VertexInserted(int const& number,WayPointItem* waypoint);
+        void VertexInserted(int const& number, GeoFenceVertexItem*waypoint);
         /**
         * @brief fires when one of the geofence vertex WayPoints numbers changes (not
         * fired if due to a auto-renumbering)
@@ -550,29 +555,29 @@ namespace mapcontrol
         * @param newnumber WayPoint new number
         * @param waypoint a pointer to the WayPoint that was renumbered
         */
-        void VertexNumberChanged(int const& oldnumber,int const& newnumber,WayPointItem* waypoint);
+        void VertexNumberChanged(int const& oldnumber,int const& newnumber, GeoFenceVertexItem *waypoint);
         /**
         * @brief Fires when new WayPoints representing geofence vertices are selected
         *
         * @param vertices list of selected vertices
         */
-        void SelectedVertexChanged(QList<WayPointItem*> vertices);
+        void SelectedVertexChanged(QList<GeoFenceVertexItem*> vertices);
         /**
         * @brief Fired when the altitude or coordinates of a WayPoint representing
         * a geofence vertex is changed
         *
         * @param vertex a pointer to the WayPoint
         */
-        void VertexValuesChanged(WayPointItem* vertex);
+        void VertexValuesChanged(GeoFenceVertexItem* vertex);
         /**
         * @brief Fires When a WayPoint representing a geofence vertex is deleted
         *
         * @param number number of the deleted WayPoint
         */
-        void VertexDeleted(int const& number,WayPointItem* waypoint);
+        void VertexDeleted(int const& number, GeoFenceVertexItem *waypoint);
 
-        void VertexLocalPositionChanged(QPointF,WayPointItem*);
-        void VertexManualCoordChange(WayPointItem*);
+        void VertexLocalPositionChanged(QPointF, GeoFenceVertexItem*);
+        void VertexManualCoordChange(GeoFenceVertexItem*);
 
         void onCreateGeofencePolyModeAddVertex(QMouseEvent* event);
         void onEndCreateGeofencePolyMode(QMouseEvent* event);

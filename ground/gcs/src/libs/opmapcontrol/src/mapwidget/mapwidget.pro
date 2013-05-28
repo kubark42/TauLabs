@@ -11,6 +11,7 @@ SOURCES += mapgraphicitem.cpp \
     waypointitem.cpp \
     uavitem.cpp \
     gpsitem.cpp \
+    geofencevertexitem.cpp \
     trailitem.cpp \
     homeitem.cpp \
     mapripform.cpp \
@@ -38,6 +39,7 @@ HEADERS += mapgraphicitem.h \
     waypointitem.h \
     uavitem.h \
     gpsitem.h \
+    geofencevertexitem.h \
     uavmapfollowtype.h \
     uavtrailtype.h \
     trailitem.h \

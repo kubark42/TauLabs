@@ -415,6 +415,22 @@ namespace mapcontrol
         }
         return NULL;
     }
+    GeoFenceVertexItem * OPMapWidget::GFVertexFind(int number)
+    {
+        foreach(QGraphicsItem* i,map->childItems())
+        {
+            GeoFenceVertexItem* w=qgraphicsitem_cast<GeoFenceVertexItem*>(i);
+            if(w)
+            {
+                if(w->Number()==number)
+                {
+                    return w;
+                }
+            }
+        }
+        return NULL;
+    }
+
     void OPMapWidget::WPSetVisibleAll(bool value)
     {
         foreach(QGraphicsItem* i,map->childItems())
@@ -489,7 +505,7 @@ namespace mapcontrol
         item->SetNumber(newnumber);
     }
 
-    WayPointItem *OPMapWidget::VertexInsert(const internals::PointLatLng &coord, const int &altitude, const int &position)
+    GeoFenceVertexItem *OPMapWidget::VertexInsert(const internals::PointLatLng &coord, const int &altitude, const int &position)
     {
         internals::PointLatLng mcoord;
         bool reloc=false;
@@ -500,7 +516,7 @@ namespace mapcontrol
         }
         else
             mcoord=coord;
-        WayPointItem* item=new WayPointItem(mcoord,altitude,map);
+        GeoFenceVertexItem* item=new GeoFenceVertexItem(mcoord,altitude,map);
         item->SetNumber(position);
         ConnectVertex(item);
         item->setParentItem(map);
@@ -521,15 +537,15 @@ namespace mapcontrol
         connect(this,SIGNAL(WPDeleted(int,WayPointItem*)),item,SLOT(WPDeleted(int,WayPointItem*)),Qt::DirectConnection);
     }
 
-    void OPMapWidget::ConnectVertex(WayPointItem *item)
+    void OPMapWidget::ConnectVertex(GeoFenceVertexItem *item)
     {
-        connect(item,SIGNAL(WPNumberChanged(int,int,WayPointItem*)),this,SIGNAL(VertexNumberChanged(int,int,WayPointItem*)),Qt::DirectConnection);
-        connect(item,SIGNAL(WPValuesChanged(WayPointItem*)),this,SIGNAL(VertexValuesChanged(WayPointItem*)),Qt::DirectConnection);
-        connect(item,SIGNAL(localPositionChanged(QPointF,WayPointItem*)),this,SIGNAL(VertexLocalPositionChanged(QPointF,WayPointItem*)),Qt::DirectConnection);
-        connect(item,SIGNAL(manualCoordChange(WayPointItem*)),this,SIGNAL(VertexManualCoordChange(WayPointItem*)),Qt::DirectConnection);
-        connect(this,SIGNAL(VertexInserted(int,WayPointItem*)),item,SLOT(WPInserted(int,WayPointItem*)),Qt::DirectConnection);
-        connect(this,SIGNAL(VertexNumberChanged(int,int,WayPointItem*)),item,SLOT(WPRenumbered(int,int,WayPointItem*)),Qt::DirectConnection);
-        connect(this,SIGNAL(VertexDeleted(int,WayPointItem*)),item,SLOT(WPDeleted(int,WayPointItem*)),Qt::DirectConnection);
+        connect(item,SIGNAL(WPNumberChanged(int, int, WayPointItem*)),this,SIGNAL(VertexNumberChanged(int, int, GeoFenceVertexItem*)),Qt::DirectConnection);
+        connect(item,SIGNAL(WPValuesChanged(WayPointItem*)),this,SIGNAL(VertexValuesChanged(GeoFenceVertexItem*)),Qt::DirectConnection);
+        connect(item,SIGNAL(localPositionChanged(QPointF, WayPointItem*)),this,SIGNAL(VertexLocalPositionChanged(QPointF, GeoFenceVertexItem*)),Qt::DirectConnection);
+        connect(item,SIGNAL(manualCoordChange(WayPointItem*)),this,SIGNAL(VertexManualCoordChange(GeoFenceVertexItem*)),Qt::DirectConnection);
+        connect(this,SIGNAL(VertexInserted(int, GeoFenceVertexItem*)),item,SLOT(WPInserted(int, WayPointItem*)),Qt::DirectConnection);
+        connect(this,SIGNAL(VertexNumberChanged(int, int, GeoFenceVertexItem*)),item,SLOT(WPRenumbered(int, int, WayPointItem*)),Qt::DirectConnection);
+        connect(this,SIGNAL(VertexDeleted(int, GeoFenceVertexItem*)),item,SLOT(WPDeleted(int, WayPointItem*)),Qt::DirectConnection);
     }
     void OPMapWidget::diagRefresh()
     {
@@ -603,10 +619,10 @@ namespace mapcontrol
         }
     }
 
-    void OPMapWidget::setSelectedVertex(QList<WayPointItem *> list)
+    void OPMapWidget::setSelectedVertex(QList<GeoFenceVertexItem *> list)
     {
         this->scene()->clearSelection();
-        foreach(WayPointItem * wp,list)
+        foreach(GeoFenceVertexItem * wp,list)
         {
             wp->setSelected(true);
         }
@@ -616,7 +632,7 @@ namespace mapcontrol
     {
         foreach(QGraphicsItem* i,map->childItems())
         {
-            WayPointItem* w=qgraphicsitem_cast<WayPointItem*>(i);
+            GeoFenceVertexItem* w=qgraphicsitem_cast<GeoFenceVertexItem*>(i);
             if(w)
             {
                 if(w->Number()==number)
