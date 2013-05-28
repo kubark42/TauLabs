@@ -105,6 +105,10 @@ public:
     int type() const {return Type;}
 
 protected:
+//    void mouseMoveEvent ( QGraphicsSceneMouseEvent * event );
+//    void mousePressEvent ( QGraphicsSceneMouseEvent * event );
+//    void mouseReleaseEvent ( QGraphicsSceneMouseEvent * event );
+//    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event);
     MapGraphicItem* map;
 
     internals::PointLatLng coord; //coordinates of this MapPointItem
@@ -124,7 +128,18 @@ private:
     QString myCustomString;
 
 public slots:
+//    void RefreshPos();
+//    void setOpacitySlot(qreal opacity);
 signals:
+//    /**
+//    * @brief Fired when the description, altitude or coordinates change
+//    *
+//    * @param waypoint a pointer to this WayPoint
+//    */
+
+
+//    void WPValuesChanged(MapPoint* waypoint);
+//    void mappointdoubleclick(MapPoint* waypoint);
     void absolutePositionChanged(internals::PointLatLng coord, float altitude);
     void relativePositionChanged(QPointF point, MapPointItem* mappoint);
     void aboutToBeDeleted(MapPointItem *);

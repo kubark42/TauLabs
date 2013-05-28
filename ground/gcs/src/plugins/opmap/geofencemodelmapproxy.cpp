@@ -227,10 +227,15 @@ void GeofenceModelMapProxy::selectedVertexChanged(QList<GeoFenceVertexItem *> li
 
 GeofenceModelMapProxy::overlayType GeofenceModelMapProxy::overlayTranslate(int type)
 {
+    Q_UNUSED(type);
 }
 
 void GeofenceModelMapProxy::createOverlay(GeoFenceVertexItem *from, GeoFenceVertexItem *to, GeofenceModelMapProxy::overlayType type, QColor color)
 {
+    Q_UNUSED(from);
+    Q_UNUSED(to);
+    Q_UNUSED(type);
+    Q_UNUSED(color);
 }
 
 void GeofenceModelMapProxy::refreshOverlays()

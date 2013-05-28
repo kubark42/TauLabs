@@ -121,7 +121,7 @@ ModelMapProxy::overlayType ModelMapProxy::overlayTranslate(int type)
 
 /**
  * @brief ModelMapProxy::createOverlay Create a graphical path component
- * @param from The starting location
+ * @param from The starting location (for circles the center)
  * @param to The ending location (for circles the radius) which is a HomeItem
  * @param type The type of path component
  * @param color
@@ -157,7 +157,7 @@ void ModelMapProxy::createOverlay(WayPointItem *from, WayPointItem *to,
 
 /**
  * @brief ModelMapProxy::createOverlay Create a graphical path component
- * @param from The starting location
+ * @param from The starting location (for circles the center)
  * @param to The ending location (for circles the radius) which is a HomeItem
  * @param type The type of path component
  * @param color

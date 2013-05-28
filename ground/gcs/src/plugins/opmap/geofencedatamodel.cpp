@@ -193,38 +193,38 @@ bool GeofenceDataModel::writeToFile(QString fileName)
     foreach(GeofenceData * obj,dataStorage)
     {
 
-        QDomElement waypoint = doc.createElement("vertex");
-        waypoint.setAttribute("number",dataStorage.indexOf(obj));
-        vertices.appendChild(waypoint);
+        QDomElement geofence = doc.createElement("vertex");
+        geofence.setAttribute("number",dataStorage.indexOf(obj));
+        vertices.appendChild(geofence);
         QDomElement field=doc.createElement("field");
         field.setAttribute("value",obj->latitude);
         field.setAttribute("name","latitude");
-        waypoint.appendChild(field);
+        geofence.appendChild(field);
 
         field=doc.createElement("field");
         field.setAttribute("value",obj->longitude);
         field.setAttribute("name","longitude");
-        waypoint.appendChild(field);
+        geofence.appendChild(field);
 
         field=doc.createElement("field");
         field.setAttribute("value",obj->altitude);
         field.setAttribute("name","altitude");
-        waypoint.appendChild(field);
+        geofence.appendChild(field);
 
         field=doc.createElement("field");
         field.setAttribute("value",obj->vertexId);
         field.setAttribute("name","vertexId");
-        waypoint.appendChild(field);
+        geofence.appendChild(field);
 
         field=doc.createElement("field");
         field.setAttribute("value",obj->vertexPairId);
         field.setAttribute("name","vertexPairId");
-        waypoint.appendChild(field);
+        geofence.appendChild(field);
 
         field=doc.createElement("field");
         field.setAttribute("value",obj->polygonId);
         field.setAttribute("name","polygonId");
-        waypoint.appendChild(field);
+        geofence.appendChild(field);
 
     }
 

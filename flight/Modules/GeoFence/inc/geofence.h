@@ -6,7 +6,7 @@
  * @{ 
  *
  * @file       geofence.h
- * @author     PhoenixPilot Team, http://github.com/PhoenixPilot Copyright (C) 2013.
+ * @author     Tau Labs, http://taulabs.org Copyright (C) 2013.
  * @brief      Module to monitor position with respect to geofence and set alarms appropriately.
  *
  * @see        The GNU Public License (GPL) Version 3

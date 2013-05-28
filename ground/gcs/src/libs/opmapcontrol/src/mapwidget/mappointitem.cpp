@@ -39,6 +39,8 @@ namespace mapcontrol
     void MapPointItem::setRelativeCoord(distBearingAltitude value)
     {
         relativeCoord=value;
+//        RefreshPos();
+//        emit WPValuesChanged(this);
         this->update();
     }
 
@@ -52,6 +54,8 @@ namespace mapcontrol
         {
             relativeCoord=back;
         }
+//        emit WPValuesChanged(this);
+//        RefreshPos();
         this->update();
     }
     void MapPointItem::SetDescription(const QString &value)
@@ -59,6 +63,7 @@ namespace mapcontrol
         if(description==value)
             return;
         description=value;
+//        emit WPValuesChanged(this);
         this->update();
     }
 
@@ -84,6 +89,7 @@ namespace mapcontrol
     {
         return internals::PureProjection::DistanceBetweenLatLngAlt(coord, altitude, coord2, altitude2);
     }
+
 
 
 

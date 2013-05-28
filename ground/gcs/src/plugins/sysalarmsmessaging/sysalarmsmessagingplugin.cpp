@@ -89,7 +89,7 @@ bool SysAlarmsMessagingPlugin::initialize(const QStringList &arguments, QString 
  */
 void SysAlarmsMessagingPlugin::updateAlarms(UAVObject* systemAlarm)
 {
-    Q_ASSERT(systemAlarm->getObjID() == SystemAlarms::OBJID);
+//    Q_ASSERT(systemAlarm->getObjID() == SystemAlarms::OBJID);
 
     foreach (UAVObjectField *field, systemAlarm->getFields()) {
         for (uint i = 0; i < field->getNumElements(); ++i) {

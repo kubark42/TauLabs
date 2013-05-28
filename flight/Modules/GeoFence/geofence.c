@@ -8,7 +8,7 @@
  * @{
  *
  * @file       geofence.c
- * @author     PhoenixPilot Team, http://github.com/PhoenixPilot Copyright (C) 2013.
+ * @author     Tau Labs, http://taulabs.org Copyright (C) 2013.
  * @brief      Module to monitor position with respect to geofence and set alarms appropriately.
  *
  * @see        The GNU Public License (GPL) Version 3
@@ -48,7 +48,7 @@
 #include "openpilot.h"
 #include "CoordinateConversions.h"
 
-#include "hwsettings.h"
+#include "modulesettings.h"
 #include "geofencevertices.h"
 #include "geofencefaces.h"
 #include "positionactual.h"
@@ -57,19 +57,20 @@
 //
 // Configuration
 //
-#define STACK_SIZE_BYTES   500
+#define STACK_SIZE_BYTES   1500
 #define SAMPLE_PERIOD_MS   2000
 #define TASK_PRIORITY      (tskIDLE_PRIORITY + 1)
 
 // Private functions
 static void geofenceTask(void *parameters);
-static bool testLineTriangeIntersection(PositionActualData *positionActual, float lineCA[3], float lineBA[3], float vertexA[3], float t);
-
+static bool test_line_triange_intersection(PositionActualData *positionActual, float lineCA[3], float lineBA[3], float vertexA[3], float t);
+static void set_manual_control_error(SystemAlarmsGeoFenceOptions error_code);
+static bool check_enabled();
 
 // Private types
 
 // Private variables
-static bool geofenceEnabled=false;
+static bool geofence_enabled=false;
 static xTaskHandle geofenceTaskHandle;
 
 /**
@@ -79,9 +80,9 @@ static xTaskHandle geofenceTaskHandle;
  */
 int32_t GeofenceStart(void)
 {
-	if (geofenceEnabled) {
+	if (geofence_enabled) {
 		// Start geofence task
-		xTaskCreate(geofenceTask, (signed char *)"GEOFENCE", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY, &geofenceTaskHandle);
+		xTaskCreate(geofenceTask, (signed char *)"GeoFence", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY, &geofenceTaskHandle);
 		TaskMonitorAdd(TASKINFO_RUNNING_GEOFENCE, geofenceTaskHandle);
 		return 0;
 	}
@@ -95,52 +96,18 @@ int32_t GeofenceStart(void)
  */
 int32_t GeofenceInitialize(void)
 {
-	
-	//Geofence only works if we have GPS // <-- TODO: Make it so it only works if we have ground truth data, such as provided by UBX or mocap
-	uint8_t gpsPort = PIOS_COM_GPS;
-	bool gpsEnabled=false;
-	
-#ifdef MODULE_GPS_BUILTIN
-	gpsEnabled = true;
-#else
-	
-	HwSettingsInitialize();
-	uint8_t optionalModules[HWSETTINGS_OPTIONALMODULES_NUMELEM];
-	
-	HwSettingsOptionalModulesGet(optionalModules);
-	
-	if (optionalModules[HWSETTINGS_OPTIONALMODULES_GPS] == HWSETTINGS_OPTIONALMODULES_ENABLED)
-		gpsEnabled = true;
-	else
-		gpsEnabled = false;
-#endif
+	geofence_enabled = check_enabled();
 
-	if (optionalModules[HWSETTINGS_OPTIONALMODULES_GEOFENCE] == HWSETTINGS_OPTIONALMODULES_ENABLED) {
-		geofenceEnabled=true;
-	}
-	
-//	if (geofenceEnabled && gpsPort && gpsEnabled) {
-//		GPSPositionInitialize();
-//		GPSVelocityInitialize();
-//#if !defined(PIOS_GPS_MINIMAL)
-//		GPSTimeInitialize();
-//		GPSSatellitesInitialize();
-//#endif
-//#ifdef PIOS_GPS_SETS_HOMELOCATION
-//		HomeLocationInitialize();
-//#endif
-//		updateSettings();
-//	}
-//	
-	if (geofenceEnabled && gpsPort && gpsEnabled) {
-		GeofenceInitialize();
+	if (geofence_enabled) {
+		GeofenceFacesInitialize();
+		GeofenceVerticesInitialize();
 		return 0;
 	}
 	
 	return -1;
 }
 
-MODULE_INITCALL(GeofenceInitialize, GeofenceStart)
+MODULE_INITCALL(GeofenceInitialize, GeofenceStart);
 
 // ****************
 /**
@@ -149,12 +116,18 @@ MODULE_INITCALL(GeofenceInitialize, GeofenceStart)
 static void geofenceTask(void *parameters){
 	while(1){
 		vTaskDelay(SAMPLE_PERIOD_MS);
-		
+
 		uint8_t sumCrossingsNow=0; //<-- This could just be a bool that is toggled each time there's a crossing
 		uint8_t sumCrossingsSoon=0; //<-- This could just be a bool that is toggled each time there's a crossing
 		
-		uint16_t num=UAVObjGetNumInstances(GeofenceVerticesHandle());
-		
+		uint16_t num_vertices=UAVObjGetNumInstances(GeofenceVerticesHandle());
+		uint16_t num_faces=UAVObjGetNumInstances(GeofenceFacesHandle());
+
+		if (num_vertices < 4) // The fewest number of vertices requiered to make a 3D volume is 4.
+			continue;
+		if (num_faces < 4) // The fewest number of faces requiered to make a 3D volume is 4.
+			continue;
+
 		VelocityActualData velocityActualData;
 		PositionActualData positionActual_now;
 		PositionActualData positionActual_soon;
@@ -171,7 +144,7 @@ static void geofenceTask(void *parameters){
 		
 		//TODO: It's silly to recreate the normal vector and offset each loop. The equation for the plane should
 		// be computed only when the vertices are changed. However, that is much less RAM efficient.
-		for (uint16_t i=0; i<num; i++) {
+		for (uint16_t i=0; i<num_vertices; i++) {
 			GeofenceVerticesData geofenceVerticesData;
 			GeofenceFacesData geofenceFacesData;
 			
@@ -215,7 +188,7 @@ static void geofenceTask(void *parameters){
 			}
 			
 			//Test if ray falls inside triangle. No need to independently test for both t_soon and t_now ray, as they are identical rays
-			bool 	inside=testLineTriangeIntersection(&positionActual_soon, lineCA, lineBA, vertexA, t_soon);
+			bool 	inside=test_line_triange_intersection(&positionActual_soon, lineCA, lineBA, vertexA, t_soon);
 			
 			if (inside && t_soon > 0) {
 				sumCrossingsSoon++;
@@ -227,13 +200,13 @@ static void geofenceTask(void *parameters){
 	
 		//Test if we have crossed the geofence
 		if (sumCrossingsSoon % 2) {	//If there are an odd number of faces crossed, then the UAV is and will be inside the polyhedron. 
-			AlarmsClear(SYSTEMALARMS_ALARM_GEOFENCE);
+			set_manual_control_error(SYSTEMALARMS_GEOFENCE_LEAVINGBOUNDARY);
 		}
 		else if (sumCrossingsNow % 2) {	//If there are an odd number of faces crossed, then the UAV is inside the polyhedron, but on its current course will soon leave the polygon. 
-			AlarmsSet(SYSTEMALARMS_ALARM_GEOFENCE, SYSTEMALARMS_ALARM_WARNING);
+			set_manual_control_error(SYSTEMALARMS_GEOFENCE_LEFTBOUNDARY);
 		}
 		else{ //If there are an even number, then the UAV is outside the polyhedron.
-			AlarmsSet(SYSTEMALARMS_ALARM_GEOFENCE, SYSTEMALARMS_ALARM_CRITICAL);
+			set_manual_control_error(SYSTEMALARMS_GEOFENCE_NONE);
 		}
 		
 	}
@@ -246,7 +219,7 @@ static void geofenceTask(void *parameters){
  * From: http://www.blackpawn.com/texts/pointinpoly/default.html
  */
 
-static bool testLineTriangeIntersection(PositionActualData *positionActual, float lineCA[3], float lineBA[3], float vertexA[3], float t)
+static bool test_line_triange_intersection(PositionActualData *positionActual, float lineCA[3], float lineBA[3], float vertexA[3], float t)
 {
 	float P[3]={positionActual->North+t, positionActual->East, positionActual->Down};
 	
@@ -268,6 +241,88 @@ static bool testLineTriangeIntersection(PositionActualData *positionActual, floa
 	
 	return inside;
 }
+
+
+static bool check_enabled()
+{
+	ModuleSettingsInitialize();
+	uint8_t module_state[MODULESETTINGS_ADMINSTATE_NUMELEM];
+
+	ModuleSettingsAdminStateGet(module_state);
+
+	bool gps_module_enabled = false; 	//Geofence only works if we have GPS or groundtruth
+	bool groundtruth_available = false; //Geofence only works if we have GPS or groundtruth
+	bool pathfollower_module_enabled = false; // Geofence only works if we can autonomously steer the vehicle
+	bool geofence_module_enabled = false;
+
+#ifdef MODULE_GPS_BUILTIN
+	gps_module_enabled = true;
+#else
+	if (module_state[MODULESETTINGS_ADMINSTATE_GPS] == MODULESETTINGS_ADMINSTATE_ENABLED)
+		gps_module_enabled = true;
+#endif
+
+#ifdef MODULE_PATHFOLLOWER_BUILTIN
+	pathfollower_module_enabled = true;
+#else
+if (module_state[MODULESETTINGS_ADMINSTATE_VTOLPATHFOLLOWER] == MODULESETTINGS_ADMINSTATE_ENABLED ||
+		module_state[MODULESETTINGS_ADMINSTATE_FIXEDWINGPATHFOLLOWER] == MODULESETTINGS_ADMINSTATE_ENABLED ||
+		module_state[MODULESETTINGS_ADMINSTATE_GROUNDPATHFOLLOWER] == MODULESETTINGS_ADMINSTATE_ENABLED) {
+	pathfollower_module_enabled=true;
+}
+#endif
+
+#ifdef MODULE_GEOFENCE_BUILTIN
+	geofence_module_enabled = true;
+#else
+	if (module_state[MODULESETTINGS_ADMINSTATE_GEOFENCE] == MODULESETTINGS_ADMINSTATE_ENABLED) {
+		geofence_module_enabled=true;
+	}
+#endif
+
+	return (gps_module_enabled || groundtruth_available) && pathfollower_module_enabled && geofence_module_enabled;
+}
+
+
+/**
+ * Set the error code and alarm state
+ * @param[in] error code
+ */
+/**
+ * @brief set_manual_control_error
+ * @param error_code
+ */
+static void set_manual_control_error(SystemAlarmsGeoFenceOptions error_code)
+{
+	// Get the severity of the alarm given the error code
+	SystemAlarmsAlarmOptions severity;
+	switch (error_code) {
+		case SYSTEMALARMS_GEOFENCE_NONE:
+		severity = SYSTEMALARMS_ALARM_OK;
+		break;
+	case SYSTEMALARMS_GEOFENCE_LEAVINGBOUNDARY:
+		severity = SYSTEMALARMS_ALARM_WARNING;
+		break;
+	case SYSTEMALARMS_GEOFENCE_LEFTBOUNDARY:
+		severity = SYSTEMALARMS_ALARM_CRITICAL;
+		break;
+	default:
+		severity = SYSTEMALARMS_ALARM_ERROR;
+		error_code = SYSTEMALARMS_CONFIGERROR_UNDEFINED;
+		break;
+	}
+
+	// Make sure not to set the error code if it didn't change
+	SystemAlarmsGeoFenceOptions current_error_code;
+	SystemAlarmsGeoFenceGet((uint8_t *) &current_error_code);
+	if (current_error_code != error_code) {
+		SystemAlarmsGeoFenceSet((uint8_t *) &error_code);
+	}
+
+	// AlarmSet checks only updates on toggle
+	AlarmsSet(SYSTEMALARMS_ALARM_GEOFENCE, (uint8_t) severity);
+}
+
 
 /**
  * @}
