@@ -24,13 +24,24 @@
 * with this program; if not, write to the Free Software Foundation, Inc.,
 * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
-#include "../internals/pureprojection.h"
+
+#include "opmapwidget.h"
+#include "waypointitem.h"
 #include "gpsitem.h"
+
 namespace mapcontrol
 {
-    GPSItem::GPSItem(MapGraphicItem* map,OPMapWidget* parent,QString uavPic):map(map),mapwidget(parent),showtrail(true),showtrailline(true),trailtime(5),traildistance(50),autosetreached(true)
-    ,autosetdistance(100)
+    GPSItem::GPSItem(MapGraphicItem *map, OPMapWidget *parent, QString uavPic) :
+        mapwidget(parent),
+        showtrail(true),
+        showtrailline(true),
+        trailtime(5),
+        traildistance(50),
+        autosetreached(true),
+        autosetdistance(100)
     {
+        this->map = map;
+        altitude = 0;
         pic.load(uavPic);
        // Don't scale but trust the image we are given
        // pic=pic.scaled(50,33,Qt::IgnoreAspectRatio);
@@ -128,12 +139,6 @@ namespace mapcontrol
     }
 
 
-    int GPSItem::type()const
-    {
-        return Type;
-    }
-
-
     void GPSItem::RefreshPos()
     {
         localposition=map->FromLatLngToLocal(coord);
@@ -173,8 +178,8 @@ namespace mapcontrol
     }
     double GPSItem::Distance3D(const internals::PointLatLng &coord, const int &altitude)
     {
-       return sqrt(pow(internals::PureProjection::DistanceBetweenLatLng(this->coord,coord)*1000,2)+
-       pow(this->altitude-altitude,2));
+       return sqrt(pow(internals::PureProjection::DistanceBetweenLatLng(this->coord, coord), 2) +
+                   pow(this->altitude - altitude, 2));
 
     }
     void GPSItem::SetUavPic(QString UAVPic)

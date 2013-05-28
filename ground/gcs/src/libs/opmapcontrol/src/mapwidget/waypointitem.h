@@ -27,36 +27,22 @@
 #ifndef WAYPOINTITEM_H
 #define WAYPOINTITEM_H
 
-#include <QGraphicsItem>
-#include <QPainter>
-#include <QLabel>
-#include "../internals/pointlatlng.h"
-#include "mapgraphicitem.h"
-#include <QObject>
-#include <QPoint>
+#include "mappointitem.h"
 
 namespace mapcontrol
 {
-struct distBearingAltitude
-{
-    double distance;
-    double bearing;
-    distBearingAltitude() : distance(0.0), bearing(0.0) { }
-    double bearingToDegrees(){return bearing*180/M_PI;}
-    void setBearingFromDegrees(double degrees){bearing=degrees*M_PI/180;}
-};
 class HomeItem;
 /**
 * @brief A QGraphicsItem representing a WayPoint
 *
 * @class WayPointItem waypointitem.h "waypointitem.h"
 */
-class WayPointItem:public QObject,public QGraphicsItem
+class WayPointItem: public MapPointItem
 {
     Q_OBJECT
     Q_INTERFACES(QGraphicsItem)
 public:
-    enum { Type = UserType + 1 };
+    enum { Type = UserType + TYPE_WAYPOINTITEM };
     enum wptype {absolute,relative};
     /**
     * @brief Constructer
@@ -120,13 +106,8 @@ public:
     * @brief Returns WayPoint LatLng coordinate
     *
     */
-    internals::PointLatLng Coord(){return coord;}
-    /**
-    * @brief  Sets WayPoint LatLng coordinate
-    *
-    * @param value
-    */
-    void SetCoord(internals::PointLatLng const& value);
+
+    virtual void SetCoord(internals::PointLatLng const& value);
     /**
     * @brief Used if WayPoint number is to be drawn on screen
     *
@@ -143,16 +124,10 @@ public:
     *
     * @return int
     */
-    float Altitude(){return altitude;}
-    /**
-    * @brief Sets the WayPoint Altitude
-    *
-    * @param value
-    */
-    void SetAltitude(const float &value);
+
+    virtual void SetAltitude(const float &value);
     void setRelativeCoord(distBearingAltitude value);
     distBearingAltitude getRelativeCoord(){return relativeCoord;}
-    int type() const;
     QRectF boundingRect() const;
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
                 QWidget *widget);
@@ -172,14 +147,9 @@ protected:
     void mouseReleaseEvent ( QGraphicsSceneMouseEvent * event );
     void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event);
 private:
-    internals::PointLatLng coord;//coordinates of this WayPoint
-    distBearingAltitude relativeCoord;
     bool reached;
-    QString description;
     bool shownumber;
     bool isDragging;
-    float altitude;
-    MapGraphicItem* map;
     int number;
     bool isMagic;
 
@@ -215,7 +185,7 @@ public slots:
     */
     void WPInserted(int const& number,WayPointItem* waypoint);
 
-    void onHomePositionChanged(internals::PointLatLng,float altitude);
+    void onHomePositionChanged(internals::PointLatLng, float altitude);
     void RefreshPos();
     void setOpacitySlot(qreal opacity);
 signals:
@@ -243,9 +213,7 @@ signals:
 
     void WPValuesChanged(WayPointItem* waypoint);
     void waypointdoubleclick(WayPointItem* waypoint);
-    void localPositionChanged(QPointF point,WayPointItem* waypoint);
     void manualCoordChange(WayPointItem *);
-    void aboutToBeDeleted(WayPointItem *);
 };
 }
 #endif // WAYPOINTITEM_H

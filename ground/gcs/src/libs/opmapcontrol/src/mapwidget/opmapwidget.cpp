@@ -107,19 +107,19 @@ namespace mapcontrol
             GPS->SetUavPic(UAVPic);
     }
 
-    WayPointLine * OPMapWidget::WPLineCreate(WayPointItem *from, WayPointItem *to,QColor color)
+    MapLine * OPMapWidget::WPLineCreate(WayPointItem *from, WayPointItem *to,QColor color)
     {
         if(!from|!to)
             return NULL;
-        WayPointLine* ret= new WayPointLine(from,to,map,color);
+        MapLine* ret= new MapLine(from,to,map,color);
         ret->setOpacity(overlayOpacity);
         return ret;
     }
-    WayPointLine * OPMapWidget::WPLineCreate(HomeItem *from, WayPointItem *to,QColor color)
+    MapLine * OPMapWidget::WPLineCreate(HomeItem *from, WayPointItem *to,QColor color)
     {
         if(!from|!to)
             return NULL;
-        WayPointLine* ret= new WayPointLine(from,to,map,color);
+        MapLine* ret= new MapLine(from,to,map,color);
         ret->setOpacity(overlayOpacity);
         return ret;
     }
@@ -142,20 +142,20 @@ namespace mapcontrol
         return ret;
     }
 
-    WayPointCircle * OPMapWidget::WPCircleCreate(WayPointItem *center, WayPointItem *radius, bool clockwise,QColor color)
+    MapCircle *OPMapWidget::WPCircleCreate(WayPointItem *center, WayPointItem *radius, bool clockwise, QColor color)
     {
         if(!center|!radius)
             return NULL;
-        WayPointCircle* ret= new WayPointCircle(center,radius,clockwise,map,color);
+        MapCircle* ret= new MapCircle(center,radius,clockwise,map,color);
         ret->setOpacity(overlayOpacity);
         return ret;
     }
 
-    WayPointCircle *OPMapWidget::WPCircleCreate(HomeItem *center, WayPointItem *radius, bool clockwise,QColor color)
+    MapCircle *OPMapWidget::WPCircleCreate(HomeItem *center, WayPointItem *radius, bool clockwise,QColor color)
     {
         if(!center|!radius)
             return NULL;
-        WayPointCircle* ret= new WayPointCircle(center,radius,clockwise,map,color);
+        MapCircle* ret= new MapCircle(center,radius,clockwise,map,color);
         ret->setOpacity(overlayOpacity);
         return ret;
     }
@@ -462,12 +462,12 @@ namespace mapcontrol
     {
         foreach(QGraphicsItem* i,map->childItems())
         {
-            WayPointLine* w=qgraphicsitem_cast<WayPointLine*>(i);
+            MapLine* w=qgraphicsitem_cast<MapLine*>(i);
             if(w)
                 w->deleteLater();
             else
             {
-                WayPointCircle* ww=qgraphicsitem_cast<WayPointCircle*>(i);
+                MapCircle* ww=qgraphicsitem_cast<MapCircle*>(i);
                 if(ww)
                     ww->deleteLater();
             }
