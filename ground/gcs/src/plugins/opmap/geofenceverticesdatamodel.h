@@ -1,8 +1,9 @@
 /**
  ******************************************************************************
  *
- * @file       geofencedatamodel.h
+ * @file       geofenceverticesdatamodel.h
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2012.
+ * @author     Tau Labs, http://taulabs.org Copyright (C) 2013.
  * @addtogroup GCSPlugins GCS Plugins
  * @{
  * @addtogroup OPMapPlugin OpenPilot Map Plugin
@@ -24,34 +25,35 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-#ifndef GEOFENCEDATAMODEL_H
-#define GEOFENCEDATAMODEL_H
+#ifndef GEOFENCEVERTICESDATAMODEL_H
+#define GEOFENCEVERTICESDATAMODEL_H
 
 #include <QAbstractTableModel>
 
-struct GeofenceData{
+struct GeoFenceVerticesData{
     double latitude;
     double longitude;
     double altitude;
     int vertexId;
-    int vertexPairId;
-    int polygonId;
+//    int vertexPairId;
+//    int polygonId;
 };
 
-class GeofenceDataModel : public QAbstractTableModel
+class GeoFenceVerticesDataModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
-    enum GeofenceDataEnum{
-        LATITUDE,
-        LONGITUDE,
-        ALTITUDE,
-        VERTEX_ID,
-        VERTEX_PAIR_ID,
-        POLYGON_ID
+    enum GeoFenceVerticesDataEnum{
+        GEO_LATITUDE,
+        GEO_LONGITUDE,
+        GEO_ALTITUDE,
+//        GEO_FACE_ID,
+        GEO_VERTEX_ID//,
+//        GEO_VERTEX_PAIR_ID,
+//        GEO_POLYGON_ID
     };
 
-    explicit GeofenceDataModel(QObject *parent = 0);
+    explicit GeoFenceVerticesDataModel(QObject *parent = 0);
     int rowCount(const QModelIndex &parent = QModelIndex()) const ;
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
@@ -69,11 +71,11 @@ signals:
 public slots:
 
 private:
-    QVariant getColumnByIndex(const GeofenceData *row, const int index) const;
-    bool setColumnByIndex(GeofenceData *row, const int index, const QVariant value);
+    QVariant getColumnByIndex(const GeoFenceVerticesData *row, const int index) const;
+    bool setColumnByIndex(GeoFenceVerticesData *row, const int index, const QVariant value);
 
-    QList<GeofenceData*> dataStorage;
+    QList<GeoFenceVerticesData*> dataStorage;
     int nextIndex;
 };
 
-#endif // GEOFENCEDATAMODEL_H
+#endif // GEOFENCEVERTICESDATAMODEL_H

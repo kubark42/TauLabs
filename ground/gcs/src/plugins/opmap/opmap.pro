@@ -22,9 +22,11 @@ HEADERS += opmapplugin.h \
     opmap_zoom_slider_widget.h \
     opmap_statusbar_widget.h \
     modelmapproxy.h \
-    geofencedatamodel.h \
+    geofenceverticesdatamodel.h \
+    geofencefacesdatamodel.h \
     geofencemodelmapproxy.h \
     geofencedialog.h \
+    geofencemodeluavoproxy.h \
     homeeditor.h
 SOURCES += opmapplugin.cpp \
     opmapgadgetwidget.cpp \
@@ -35,9 +37,11 @@ SOURCES += opmapplugin.cpp \
     opmap_zoom_slider_widget.cpp \
     opmap_statusbar_widget.cpp \
     modelmapproxy.cpp \
-    geofencedatamodel.cpp \
+    geofenceverticesdatamodel.cpp \
+    geofencefacesdatamodel.cpp \
     geofencemodelmapproxy.cpp \
     geofencedialog.cpp \
+    geofencemodeluavoproxy.cpp \
     homeeditor.cpp
 
 OTHER_FILES += OPMapGadget.pluginspec

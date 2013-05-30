@@ -31,7 +31,9 @@
 #include <QDialog>
 #include <QItemSelectionModel>
 
-#include "geofencedatamodel.h"
+#include "geofenceverticesdatamodel.h"
+#include "geofencefacesdatamodel.h"
+#include "geofencemodeluavoproxy.h"
 
 namespace Ui {
 class GeofenceDialog;
@@ -45,15 +47,38 @@ public:
     explicit GeofenceDialog(QWidget *parent = 0);
     ~GeofenceDialog();
 
-    void setModel(GeofenceDataModel *model,QItemSelectionModel *selection);
+    void setModel(GeoFenceVerticesDataModel *model,QItemSelectionModel *selection);
 
 private slots:
     void rowsInserted ( const QModelIndex & parent, int start, int end );
-    
+
+    // SHOULD BE IN A WIDGET
+    //VVVVVVVVVVVVVVVVVVVVVVVVVVVV
+private slots:
+    void on_tbAdd_clicked();
+
+    void on_tbDelete_clicked();
+
+    void on_tbInsert_clicked();
+
+    void on_tbReadFromFile_clicked();
+
+    void on_tbSaveToFile_clicked();
+
+    void on_tbDetails_clicked();
+
+    void on_tbSendToUAV_clicked();
+
+    void on_tbFetchFromUAV_clicked();
+    //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 private:
     Ui::GeofenceDialog *ui;
 
-    GeofenceDataModel *dataModel;
+    GeoFenceVerticesDataModel *geofenceVerticesDataModel;
+    GeoFenceVerticesDataModel *geofenceFacesDataModel;
+
+    GeoFenceModelUavoProxy  *proxy;
 };
 
 #endif // GEOFENCEDIALOG_H

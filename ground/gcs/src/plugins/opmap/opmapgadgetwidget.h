@@ -345,13 +345,15 @@ private:
     WayPointItem * magicWayPoint;
 
     QPointer<FlightDataModel> modelWP;
-    QPointer<GeofenceDataModel> modelGF;
+    QPointer<GeoFenceVerticesDataModel> modelGFV;
+    QPointer<GeoFenceFacesDataModel> modelGFF;
     QPointer<QDialog> pathPlannerDialog;
     QPointer<GeofenceDialog> geofenceTable;
     QPointer<ModelMapProxy> mapProxyWP;
     QPointer<GeofenceModelMapProxy> mapProxyGF;
     QPointer<QItemSelectionModel> selectionModelWP;
-    QPointer<QItemSelectionModel> selectionModelGF;
+    QPointer<QItemSelectionModel> selectionModelGFV;
+    QPointer<QItemSelectionModel> selectionModelGFF;
 };
 
 #endif /* OPMAP_GADGETWIDGET_H_ */

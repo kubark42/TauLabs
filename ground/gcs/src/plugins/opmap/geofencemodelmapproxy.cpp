@@ -3,6 +3,7 @@
  *
  * @file       geofencemodelmapproxy.cpp
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2012.
+ * @author     Tau Labs, http://taulabs.org Copyright (C) 2013.
  * @addtogroup GCSPlugins GCS Plugins
  * @{
  * @addtogroup OPMapPlugin OpenPilot Map Plugin
@@ -31,10 +32,10 @@ const int GeofenceModelMapProxy::DEFAULT_LOWER_ALTITUDE = 100;
 const int GeofenceModelMapProxy::DEFAULT_UPPER_ALTITUDE = 400;
 
 
-GeofenceModelMapProxy::GeofenceModelMapProxy(QObject *parent, OPMapWidget *map, GeofenceDataModel *model, QItemSelectionModel *selectionModel) :
+GeofenceModelMapProxy::GeofenceModelMapProxy(QObject *parent, OPMapWidget *map, GeoFenceVerticesDataModel *verticesModel, GeoFenceFacesDataModel * fencesModel, QItemSelectionModel *selectionModel) :
     QObject(parent),
     myMap(map),
-    myModel(model),
+    myModel(verticesModel),
     selection(selectionModel),
     currentPolygonId(-1)
 
@@ -57,12 +58,12 @@ GeoFenceVertexItem *GeofenceModelMapProxy::findVertexNumber(int number)
 void GeofenceModelMapProxy::createVertexPoint(internals::PointLatLng coord)
 {
     myModel->insertRow(myModel->rowCount(),QModelIndex());
-    QModelIndex index=myModel->index(myModel->rowCount()-1,GeofenceDataModel::LATITUDE);
+    QModelIndex index=myModel->index(myModel->rowCount()-1,GeoFenceVerticesDataModel::GEO_LATITUDE);
     myModel->setData(index,coord.Lat(),Qt::EditRole);
-    index=myModel->index(myModel->rowCount()-1,GeofenceDataModel::LONGITUDE);
+    index=myModel->index(myModel->rowCount()-1,GeoFenceVerticesDataModel::GEO_LONGITUDE);
     myModel->setData(index,coord.Lng(),Qt::EditRole);
-    index=myModel->index(myModel->rowCount()-1,GeofenceDataModel::POLYGON_ID);
-    myModel->setData(index,currentPolygonId,Qt::EditRole);
+//    index=myModel->index(myModel->rowCount()-1,GeoFenceVerticesDataModel::GEO_POLYGON_ID);
+//    myModel->setData(index,currentPolygonId,Qt::EditRole);
 }
 
 void GeofenceModelMapProxy::deleteVertexPoint(int number)
@@ -94,31 +95,31 @@ void GeofenceModelMapProxy::endGeofencePolygon(QMouseEvent* event)
         // Get latitude and longitude for current point, this will be used for the
         // new point.
         internals::PointLatLng point;
-        QModelIndex index = myModel->index(count, GeofenceDataModel::LATITUDE);
+        QModelIndex index = myModel->index(count, GeoFenceVerticesDataModel::GEO_LATITUDE);
         point.SetLat(index.data().toDouble());
-        index = myModel->index(count, GeofenceDataModel::LONGITUDE);
+        index = myModel->index(count, GeoFenceVerticesDataModel::GEO_LONGITUDE);
         point.SetLng(index.data().toDouble());
 
         // Set the point's altitude
-        index = myModel->index(count, GeofenceDataModel::ALTITUDE);
+        index = myModel->index(count, GeoFenceVerticesDataModel::GEO_ALTITUDE);
         myModel->setData(index, DEFAULT_UPPER_ALTITUDE);
 
-        // Set the point's pair id and polygon id
-        index = myModel->index(count, GeofenceDataModel::VERTEX_PAIR_ID);
-        myModel->setData(index, curPairId);
-        index = myModel->index(count, GeofenceDataModel::POLYGON_ID);
-        myModel->setData(index, currentPolygonId);
+//        // Set the point's pair id and polygon id
+//        index = myModel->index(count, GeoFenceVerticesDataModel::GEO_VERTEX_PAIR_ID);
+//        myModel->setData(index, curPairId);
+//        index = myModel->index(count, GeoFenceVerticesDataModel::GEO_POLYGON_ID);
+//        myModel->setData(index, currentPolygonId);
 
         // Add a new vertex
         createVertexPoint(point);
 
         // Set the new point's altitude, polygon id and pair id
-        index = myModel->index(myModel->rowCount() - 1, GeofenceDataModel::ALTITUDE);
+        index = myModel->index(myModel->rowCount() - 1, GeoFenceVerticesDataModel::GEO_ALTITUDE);
         myModel->setData(index, DEFAULT_LOWER_ALTITUDE);
-        index = myModel->index(myModel->rowCount() - 1, GeofenceDataModel::VERTEX_PAIR_ID);
-        myModel->setData(index, curPairId);
-        index = myModel->index(myModel->rowCount() - 1, GeofenceDataModel::POLYGON_ID);
-        myModel->setData(index, currentPolygonId);
+//        index = myModel->index(myModel->rowCount() - 1, GeoFenceVerticesDataModel::GEO_VERTEX_PAIR_ID);
+//        myModel->setData(index, curPairId);
+//        index = myModel->index(myModel->rowCount() - 1, GeoFenceVerticesDataModel::GEO_POLYGON_ID);
+//        myModel->setData(index, currentPolygonId);
 
         ++curPairId;
     }
@@ -140,20 +141,20 @@ void GeofenceModelMapProxy::dataChanged(const QModelIndex &topLeft, const QModel
     QModelIndex index;
     switch(topLeft.column())
     {
-    case GeofenceDataModel::LATITUDE:
+    case GeoFenceVerticesDataModel::GEO_LATITUDE:
         latlng=item->Coord();
-        index=myModel->index(x,GeofenceDataModel::LATITUDE);
+        index=myModel->index(x,GeoFenceVerticesDataModel::GEO_LATITUDE);
         latlng.SetLat(index.data(Qt::DisplayRole).toDouble());
         item->SetCoord(latlng);
         break;
-    case GeofenceDataModel::LONGITUDE:
+    case GeoFenceVerticesDataModel::GEO_LONGITUDE:
         latlng=item->Coord();
-        index=myModel->index(x,GeofenceDataModel::LONGITUDE);
+        index=myModel->index(x,GeoFenceVerticesDataModel::GEO_LONGITUDE);
         latlng.SetLng(index.data(Qt::DisplayRole).toDouble());
         item->SetCoord(latlng);
         break;
-    case GeofenceDataModel::ALTITUDE:
-        index=myModel->index(x,GeofenceDataModel::ALTITUDE);
+    case GeoFenceVerticesDataModel::GEO_ALTITUDE:
+        index=myModel->index(x,GeoFenceVerticesDataModel::GEO_ALTITUDE);
         altitude=index.data(Qt::DisplayRole).toDouble();
         item->SetAltitude(altitude);
         break;
@@ -169,11 +170,11 @@ void GeofenceModelMapProxy::rowsInserted(const QModelIndex &parent, int first, i
         GeoFenceVertexItem * item;
         internals::PointLatLng latlng;
         double altitude;
-        index=myModel->index(x,GeofenceDataModel::LATITUDE);
+        index=myModel->index(x,GeoFenceVerticesDataModel::GEO_LATITUDE);
         latlng.SetLat(index.data(Qt::DisplayRole).toDouble());
-        index=myModel->index(x,GeofenceDataModel::LONGITUDE);
+        index=myModel->index(x,GeoFenceVerticesDataModel::GEO_LONGITUDE);
         latlng.SetLng(index.data(Qt::DisplayRole).toDouble());
-        index=myModel->index(x,GeofenceDataModel::ALTITUDE);
+        index=myModel->index(x,GeoFenceVerticesDataModel::GEO_ALTITUDE);
         altitude=index.data(Qt::DisplayRole).toDouble();
         item=myMap->VertexInsert(latlng, altitude, x);
     }
@@ -194,12 +195,12 @@ void GeofenceModelMapProxy::rowsRemoved(const QModelIndex &parent, int first, in
 void GeofenceModelMapProxy::vertexValuesChanged(GeoFenceVertexItem *wp)
 {
     QModelIndex index;
-    index=myModel->index(wp->Number(),GeofenceDataModel::LATITUDE);
+    index=myModel->index(wp->Number(),GeoFenceVerticesDataModel::GEO_LATITUDE);
     myModel->setData(index,wp->Coord().Lat(),Qt::EditRole);
-    index=myModel->index(wp->Number(),GeofenceDataModel::LONGITUDE);
+    index=myModel->index(wp->Number(),GeoFenceVerticesDataModel::GEO_LONGITUDE);
     myModel->setData(index,wp->Coord().Lng(),Qt::EditRole);
 
-    index=myModel->index(wp->Number(),GeofenceDataModel::ALTITUDE);
+    index=myModel->index(wp->Number(),GeoFenceVerticesDataModel::GEO_ALTITUDE);
     myModel->setData(index,wp->Altitude(),Qt::EditRole);
 }
 

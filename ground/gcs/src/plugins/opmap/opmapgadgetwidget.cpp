@@ -234,9 +234,11 @@ OPMapGadgetWidget::OPMapGadgetWidget(QWidget *parent) : QWidget(parent)
     mapProxyWP = new ModelMapProxy(this, m_map, modelWP, selectionModelWP);
 
 #ifdef USE_GEOFENCE
-    modelGF = new GeofenceDataModel(this);
-    selectionModelGF=new QItemSelectionModel(modelGF);
-    mapProxyGF = new GeofenceModelMapProxy(this, m_map, modelGF, selectionModelGF);
+    modelGFF = new GeoFenceFacesDataModel(this);
+    modelGFV = new GeoFenceVerticesDataModel(this);
+    selectionModelGFF=new QItemSelectionModel(modelGFF);
+    selectionModelGFV=new QItemSelectionModel(modelGFV);
+    mapProxyGF = new GeofenceModelMapProxy(this, m_map, modelGFV, modelGFF, selectionModelGFF);
     geofenceTable = new GeofenceDialog();
     geofenceTable->setModel(modelGF, selectionModelGF);
     connect(mapProxyGF, SIGNAL(requestGeofenceEditDialog()), this, SLOT(onGeofenceOpenEditorAct_triggered()));
@@ -1402,6 +1404,7 @@ void OPMapGadgetWidget::createActions()
 #ifdef USE_GEOFENCE
     geofenceOpenEditorAct = new QAction(tr("Geofence editor"), this);
     geofenceOpenEditorAct->setStatusTip(tr("Open the geofence editor"));
+    connect(geofenceOpenEditorAct, SIGNAL(triggered()), this, SLOT(onGeofenceOpenEditorAct_triggered()));
 
     geofenceBeginCreatePolygon = new QAction(tr("Begin create from polygon"), this);
     geofenceBeginCreatePolygon->setStatusTip(tr("Begin a new geofence polygon"));
@@ -1939,6 +1942,7 @@ void OPMapGadgetWidget::onGeofenceBeginCreatePolygonAct_triggered()
 
 void OPMapGadgetWidget::onGeofenceEndCreatePolygonAct_triggered(QMouseEvent *event)
 {
+    Q_ASSERT(event);
 }
 
 void OPMapGadgetWidget::onGeofenceAddVertexAct_triggeredFromThis()

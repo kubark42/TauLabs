@@ -1,8 +1,8 @@
 /**
  ******************************************************************************
  *
- * @file       geofencedatamodel.cpp
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2012.
+ * @file       geofencefacesdatamodel.cpp
+ * @author     Tau Labs, http://taulabs.org Copyright (C) 2013.
  * @addtogroup GCSPlugins GCS Plugins
  * @{
  * @addtogroup OPMapPlugin OpenPilot Map Plugin
@@ -28,27 +28,27 @@
 #include <QFile>
 #include <QMessageBox>
 #include <QDomDocument>
-#include "geofencedatamodel.h"
+#include "geofencefacesdatamodel.h"
 
-GeofenceDataModel::GeofenceDataModel(QObject *parent) :
+GeoFenceFacesDataModel::GeoFenceFacesDataModel(QObject *parent) :
     QAbstractTableModel(parent),
     nextIndex(0)
 {
 }
 
-int GeofenceDataModel::rowCount(const QModelIndex &/*parent*/) const
+int GeoFenceFacesDataModel::rowCount(const QModelIndex &/*parent*/) const
 {
     return dataStorage.length();
 }
 
-int GeofenceDataModel::columnCount(const QModelIndex &parent) const
+int GeoFenceFacesDataModel::columnCount(const QModelIndex &parent) const
 {
     if (parent.isValid())
         return 0;
     return 6;
 }
 
-QVariant GeofenceDataModel::data(const QModelIndex &index, int role) const
+QVariant GeoFenceFacesDataModel::data(const QModelIndex &index, int role) const
 {
     if (role == Qt::DisplayRole||role==Qt::EditRole)
     {
@@ -56,7 +56,7 @@ QVariant GeofenceDataModel::data(const QModelIndex &index, int role) const
         int columnNumber=index.column();
         if(rowNumber>dataStorage.length()-1 || rowNumber<0)
             return QVariant::Invalid;
-        GeofenceData * myRow=dataStorage.at(rowNumber);
+        GeoFenceFacesData * myRow=dataStorage.at(rowNumber);
         QVariant ret=getColumnByIndex(myRow,columnNumber);
         return ret;
     }
@@ -65,7 +65,7 @@ QVariant GeofenceDataModel::data(const QModelIndex &index, int role) const
     }
 }
 
-QVariant GeofenceDataModel::headerData(int section, Qt::Orientation orientation, int role) const
+QVariant GeoFenceFacesDataModel::headerData(int section, Qt::Orientation orientation, int role) const
  {
      if (role == Qt::DisplayRole)
      {
@@ -76,23 +76,17 @@ QVariant GeofenceDataModel::headerData(int section, Qt::Orientation orientation,
          else if (orientation == Qt::Horizontal) {
              switch (section)
              {
-             case LATITUDE:
-                 return QString(tr("Latitude"));
+             case GEO_FACE_ID:
+                 return QString(tr("Face ID"));
                  break;
-             case LONGITUDE:
-                 return QString(tr("Longitude"));
+             case GEO_VERTEX_A:
+                 return QString(tr("Vertex A"));
                  break;
-             case ALTITUDE:
-                 return QString(tr("Altitude"));
+             case GEO_VERTEX_B:
+                 return QString(tr("Vertex B"));
                  break;
-             case VERTEX_ID:
-                 return QString(tr("Vertex ID"));
-                 break;
-             case VERTEX_PAIR_ID:
-                 return QString(tr("Vertex Pair ID"));
-                 break;
-             case POLYGON_ID:
-                 return QString(tr("Polygon ID"));
+             case GEO_VERTEX_C:
+                 return QString(tr("Vertex C"));
                  break;
              default:
                  return QString();
@@ -110,7 +104,7 @@ QVariant GeofenceDataModel::headerData(int section, Qt::Orientation orientation,
      }
 }
 
-bool GeofenceDataModel::setData(const QModelIndex &index, const QVariant &value, int role)
+bool GeoFenceFacesDataModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     if (role == Qt::EditRole)
     {
@@ -118,39 +112,36 @@ bool GeofenceDataModel::setData(const QModelIndex &index, const QVariant &value,
         int rowIndex=index.row();
         if(rowIndex>dataStorage.length()-1)
             return false;
-        GeofenceData * myRow=dataStorage.at(rowIndex);
+        GeoFenceFacesData * myRow=dataStorage.at(rowIndex);
         setColumnByIndex(myRow,columnIndex,value);
         emit dataChanged(index,index);
     }
     return true;
 }
 
-Qt::ItemFlags GeofenceDataModel::flags(const QModelIndex & /*index*/) const
+Qt::ItemFlags GeoFenceFacesDataModel::flags(const QModelIndex & /*index*/) const
  {
     return Qt::ItemIsSelectable |  Qt::ItemIsEditable | Qt::ItemIsEnabled ;
 }
 
-bool GeofenceDataModel::insertRows(int row, int count, const QModelIndex &/*parent*/)
+bool GeoFenceFacesDataModel::insertRows(int row, int count, const QModelIndex &/*parent*/)
 {
-    GeofenceData * data;
+    GeoFenceFacesData * data;
     beginInsertRows(QModelIndex(),row,row+count-1);
-    for(int x=0; x<count;++x)
+    for(int x=0; x<count; ++x)
     {
-        data=new GeofenceData;
-        data->latitude=0;
-        data->longitude=0;
-        data->altitude=0;
-        data->vertexId = 0;
-        data->vertexPairId = 0;
-        data->polygonId=0;
+        data=new GeoFenceFacesData;
+        data->faceID=0;
+        data->vertexA=0;
+        data->vertexB=0;
+        data->vertexC = 0;
+
         if(rowCount()>0)
         {
-            data->latitude=this->data(this->index(rowCount()-1,LATITUDE)).toDouble();
-            data->longitude=this->data(this->index(rowCount()-1,LONGITUDE)).toDouble();
-            data->altitude=this->data(this->index(rowCount()-1,ALTITUDE)).toDouble();
-            data->vertexId = nextIndex++;
-            data->vertexPairId = this->data(this->index(rowCount()-1, VERTEX_PAIR_ID)).toInt();
-            data->polygonId=this->data(this->index(rowCount()-1,POLYGON_ID)).toInt();
+            data->faceID=this->data(this->index(rowCount()-1, GEO_FACE_ID)).toUInt(); // Fixme: Should this be faceID++ ?
+            data->vertexA=this->data(this->index(rowCount()-1, GEO_VERTEX_A)).toUInt();
+            data->vertexB=this->data(this->index(rowCount()-1, GEO_VERTEX_B)).toUInt();
+            data->vertexC=this->data(this->index(rowCount()-1, GEO_VERTEX_C)).toUInt();
         }
         dataStorage.insert(row,data);
     }
@@ -159,7 +150,7 @@ bool GeofenceDataModel::insertRows(int row, int count, const QModelIndex &/*pare
     return true;
 }
 
-bool GeofenceDataModel::removeRows(int row, int count, const QModelIndex &/*parent*/)
+bool GeoFenceFacesDataModel::removeRows(int row, int count, const QModelIndex &/*parent*/)
 {
     if(row<0)
         return false;
@@ -174,7 +165,7 @@ bool GeofenceDataModel::removeRows(int row, int count, const QModelIndex &/*pare
     return true;
 }
 
-bool GeofenceDataModel::writeToFile(QString fileName)
+bool GeoFenceFacesDataModel::writeToFile(QString fileName)
 {
 
     QFile file(fileName);
@@ -190,41 +181,41 @@ bool GeofenceDataModel::writeToFile(QString fileName)
     QDomElement vertices = doc.createElement("vertices");
     root.appendChild(vertices);
 
-    foreach(GeofenceData * obj,dataStorage)
+    foreach(GeoFenceFacesData * obj,dataStorage)
     {
 
         QDomElement geofence = doc.createElement("vertex");
         geofence.setAttribute("number",dataStorage.indexOf(obj));
         vertices.appendChild(geofence);
         QDomElement field=doc.createElement("field");
-        field.setAttribute("value",obj->latitude);
-        field.setAttribute("name","latitude");
+        field.setAttribute("value",obj->faceID);
+        field.setAttribute("name","faceID");
         geofence.appendChild(field);
 
         field=doc.createElement("field");
-        field.setAttribute("value",obj->longitude);
-        field.setAttribute("name","longitude");
+        field.setAttribute("value",obj->vertexA);
+        field.setAttribute("name","vertexA");
         geofence.appendChild(field);
 
         field=doc.createElement("field");
-        field.setAttribute("value",obj->altitude);
-        field.setAttribute("name","altitude");
+        field.setAttribute("value",obj->vertexB);
+        field.setAttribute("name","vertexB");
         geofence.appendChild(field);
 
         field=doc.createElement("field");
-        field.setAttribute("value",obj->vertexId);
-        field.setAttribute("name","vertexId");
+        field.setAttribute("value",obj->vertexC);
+        field.setAttribute("name","vertexC");
         geofence.appendChild(field);
 
-        field=doc.createElement("field");
-        field.setAttribute("value",obj->vertexPairId);
-        field.setAttribute("name","vertexPairId");
-        geofence.appendChild(field);
+//        field=doc.createElement("field");
+//        field.setAttribute("value",obj->vertexPairId);
+//        field.setAttribute("name","vertexPairId");
+//        geofence.appendChild(field);
 
-        field=doc.createElement("field");
-        field.setAttribute("value",obj->polygonId);
-        field.setAttribute("name","polygonId");
-        geofence.appendChild(field);
+//        field=doc.createElement("field");
+//        field.setAttribute("value",obj->polygonId);
+//        field.setAttribute("name","polygonId");
+//        geofence.appendChild(field);
 
     }
 
@@ -239,7 +230,7 @@ bool GeofenceDataModel::writeToFile(QString fileName)
 
     return true;
 }
-void GeofenceDataModel::readFromFile(QString fileName)
+void GeoFenceFacesDataModel::readFromFile(QString fileName)
 {
     //TODO warning message
     removeRows(0,rowCount());
@@ -269,7 +260,7 @@ void GeofenceDataModel::readFromFile(QString fileName)
         return;
     }
 
-    GeofenceData * data=NULL;
+    GeoFenceFacesData * data=NULL;
     QDomNode node = root.firstChild();
     while (!node.isNull()) {
         QDomElement modelSection = node.toElement();
@@ -277,23 +268,18 @@ void GeofenceDataModel::readFromFile(QString fileName)
             QDomElement e = modelSection.toElement();
             if (e.tagName() == "vertex") {
                 QDomNode fieldNode=e.firstChild();
-                data=new GeofenceData;
+                data=new GeoFenceFacesData;
                 while (!fieldNode.isNull()) {
                     QDomElement field = fieldNode.toElement();
                     if (field.tagName() == "field") {
-                        if(field.attribute("name")=="latitude")
-                            data->latitude=field.attribute("value").toDouble();
-                        else if(field.attribute("name")=="longitude")
-                            data->longitude=field.attribute("value").toDouble();
-                        else if(field.attribute("name")=="altitude")
-                            data->altitude=field.attribute("value").toDouble();
-                        else if(field.attribute("name")=="vertexId")
-                            data->vertexId=field.attribute("value").toInt();
-                        else if(field.attribute("name")=="vertexPairId")
-                            data->vertexPairId=field.attribute("value").toInt();
-                        else if(field.attribute("name")=="polygonId")
-                            data->polygonId=field.attribute("value").toInt();
-
+                        if(field.attribute("name")=="faceID")
+                            data->faceID=field.attribute("value").toUInt();
+                        else if(field.attribute("name")=="vertexA")
+                            data->vertexA=field.attribute("value").toUInt();
+                        else if(field.attribute("name")=="vertexB")
+                            data->vertexB=field.attribute("value").toUInt();
+                        else if(field.attribute("name")=="vertexC")
+                            data->vertexC=field.attribute("value").toUInt();
                     }
                     fieldNode=fieldNode.nextSibling();
                 }
@@ -318,59 +304,45 @@ void GeofenceDataModel::readFromFile(QString fileName)
     }
 }
 
-bool GeofenceDataModel::setColumnByIndex(GeofenceData  *row,const int index,const QVariant value)
+bool GeoFenceFacesDataModel::setColumnByIndex(GeoFenceFacesData  *row,const int index,const QVariant value)
 {
     bool retVal = false;
     switch(index)
     {
-    case LATITUDE:
-        row->latitude = value.toDouble();
+    case GEO_FACE_ID:
+        row->faceID = value.toUInt();
         retVal = true;
         break;
-    case LONGITUDE:
-        row->longitude = value.toDouble();
+    case GEO_VERTEX_A:
+        row->vertexA = value.toUInt();
         retVal = true;
         break;
-    case ALTITUDE:
-        row->altitude = value.toDouble();
+    case GEO_VERTEX_B:
+        row->vertexB = value.toUInt();
         retVal = true;
         break;
-    case VERTEX_ID:
-        row->vertexId = value.toInt();
-        retVal = true;
-        break;
-    case VERTEX_PAIR_ID:
-        row->vertexPairId = value.toInt();
-        retVal = true;
-        break;
-    case POLYGON_ID:
-        row->polygonId = value.toInt();
+    case GEO_VERTEX_C:
+        row->vertexC = value.toUInt();
         retVal = true;
         break;
     }
     return retVal;
 }
-QVariant GeofenceDataModel::getColumnByIndex(const GeofenceData *row,const int index) const
+QVariant GeoFenceFacesDataModel::getColumnByIndex(const GeoFenceFacesData *row,const int index) const
 {
     switch(index)
     {
-    case LATITUDE:
-        return row->latitude;
+    case GEO_FACE_ID:
+        return row->faceID;
         break;
-    case LONGITUDE:
-        return row->longitude;
+    case GEO_VERTEX_A:
+        return row->vertexA;
         break;
-    case ALTITUDE:
-        return row->altitude;
+    case GEO_VERTEX_B:
+        return row->vertexB;
         break;
-    case VERTEX_ID:
-        return row->vertexId;
-        break;
-    case VERTEX_PAIR_ID:
-        return row->vertexPairId;
-        break;
-    case POLYGON_ID:
-        return row->polygonId;
+    case GEO_VERTEX_C:
+        return row->vertexC;
         break;
     }
 

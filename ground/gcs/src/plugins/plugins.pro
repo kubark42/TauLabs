@@ -164,6 +164,12 @@ plugin_pathplanner.depends = plugin_coreplugin
 plugin_pathplanner.depends += plugin_uavobjects
 SUBDIRS += plugin_pathplanner
 
+## Geofence Editor gadget
+#plugin_geofenceeditor.subdir = geofenceeditor
+#plugin_geofenceeditor.depends = plugin_coreplugin
+#plugin_geofenceeditor.depends += plugin_uavobjects
+#SUBDIRS += plugin_geofenceeditor
+
 # Waypoint Editor gadget
 plugin_waypointeditor.subdir = waypointeditor
 plugin_waypointeditor.depends = plugin_coreplugin

@@ -29,7 +29,8 @@
 
 #include <QObject>
 #include "opmapcontrol/opmapcontrol.h"
-#include "geofencedatamodel.h"
+#include "geofenceverticesdatamodel.h"
+#include "geofencefacesdatamodel.h"
 
 using namespace mapcontrol;
 
@@ -38,7 +39,7 @@ class GeofenceModelMapProxy : public QObject
     typedef enum {OVERLAY_LINE,OVERLAY_CIRCLE_RIGHT,OVERLAY_CIRCLE_LEFT} overlayType;
     Q_OBJECT
 public:
-    explicit GeofenceModelMapProxy(QObject *parent, OPMapWidget * map, GeofenceDataModel * model, QItemSelectionModel * selectionModel);
+    explicit GeofenceModelMapProxy(QObject *parent, OPMapWidget * map, GeoFenceVerticesDataModel * verticesModel, GeoFenceFacesDataModel * fencesModel, QItemSelectionModel * selectionModel);
 
     GeoFenceVertexItem *findVertexNumber(int number);
     void createVertexPoint(internals::PointLatLng coord);
@@ -69,7 +70,7 @@ private:
     static const int DEFAULT_LOWER_ALTITUDE;
 
     OPMapWidget * myMap;
-    GeofenceDataModel * myModel;
+    GeoFenceVerticesDataModel * myModel;
     QItemSelectionModel * selection;
     int currentPolygonId;
 };
