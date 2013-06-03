@@ -1,5 +1,5 @@
 BOARD_TYPE          := 0x09
-BOARD_REVISION      := 0x03
+BOARD_REVISION      := 0x02
 BOOTLOADER_VERSION  := 0x02
 HW_TYPE             := 0x00
 
