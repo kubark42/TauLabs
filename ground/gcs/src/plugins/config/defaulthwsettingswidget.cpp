@@ -61,6 +61,13 @@ DefaultHwSettingsWidget::DefaultHwSettingsWidget(QWidget *parent, bool autopilot
              UAVObjectUtilManager* uavoUtilManager = pm->getObject<UAVObjectUtilManager>();
              Core::IBoardType* board = uavoUtilManager->getBoardType();
 
+             if (board == NULL) {
+                 qDebug() << "Hardware not recognized.";
+                 QLabel *label = new QLabel("  Hardware not recognized. This is an error.\n  Try power cycling the board.", this);
+                 label->resize(335,200);
+                 return;
+             }
+
              QString hwSwettingsObject = board->getHwUAVO();
 
              UAVObject *obj = getObjectManager()->getObject(hwSwettingsObject);

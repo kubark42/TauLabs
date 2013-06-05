@@ -431,13 +431,13 @@ void UAVObjectUtilManager::metadataTransactionCompleted(UAVObject* uavoObject, b
   */
 FirmwareIAPObj::DataFields UAVObjectUtilManager::getFirmwareIap()
 {
-    FirmwareIAPObj::DataFields dummy;
-
     FirmwareIAPObj *firmwareIap = FirmwareIAPObj::GetInstance(obm);
     Q_ASSERT(firmwareIap);
-    if (!firmwareIap)
+    if (!firmwareIap) {
+        FirmwareIAPObj::DataFields dummy;
+        memset(&dummy, 0, sizeof(dummy));
         return dummy;
-
+    }
     return firmwareIap->getData();
 }
 

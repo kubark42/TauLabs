@@ -56,6 +56,7 @@ OPTMODULES += Autotune
 OPTMODULES += TxPID
 OPTMODULES += Battery
 OPTMODULES += VibrationAnalysis
+OPTMODULES += GeoFence
 
 # Paths
 OPSYSTEM = ./System

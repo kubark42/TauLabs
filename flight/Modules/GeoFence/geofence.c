@@ -165,10 +165,10 @@ static void geofenceTask(void *parameters)
 		VelocityActualGet(&velocityActualData);
 
 		//Predict UAVO future location
-		float forwardTime=3; //Predict 3 seconds into the future// TODO: should perhaps not be hardcoded
-		positionActual_soon.North=positionActual_now.North+velocityActualData.North*forwardTime;
-		positionActual_soon.East=positionActual_now.East+velocityActualData.East*forwardTime;
-		positionActual_soon.Down=positionActual_now.Down+velocityActualData.Down*forwardTime;
+		float forwardTime = 3; //Predict 3 seconds into the future// TODO: should perhaps not be hardcoded
+		positionActual_soon.North = positionActual_now.North + velocityActualData.North*forwardTime;
+		positionActual_soon.East =  positionActual_now.East  + velocityActualData.East*forwardTime;
+		positionActual_soon.Down =  positionActual_now.Down  + velocityActualData.Down*forwardTime;
 		
 		//TODO: It's silly to recreate the normal vector and offset each loop. The equation for the plane should
 		// be computed only when the vertices are changed. However, that is much less RAM efficient.
@@ -304,10 +304,15 @@ static bool check_enabled()
 
 	ModuleSettingsAdminStateGet(module_state);
 
-	bool gps_module_enabled = false; 	//Geo-fence only works if we have GPS or groundtruth
+	bool homelocation_set = false;      //Geo-fence only works if the home location is set
+	bool gps_module_enabled = false;    //Geo-fence only works if we have GPS or groundtruth
 	bool groundtruth_available = false; //Geo-fence only works if we have GPS or groundtruth
 	bool pathfollower_module_enabled = false; // Geo-fence only works if we can autonomously steer the vehicle
 	bool geofence_module_enabled = false;
+
+	HomeLocationGet(&homeLocation);
+	if (homeLocation.Set == HOMELOCATION_SET_TRUE)
+		homelocation_set = true;
 
 #ifdef MODULE_GPS_BUILTIN
 	gps_module_enabled = true;
@@ -334,7 +339,7 @@ if (module_state[MODULESETTINGS_ADMINSTATE_VTOLPATHFOLLOWER] == MODULESETTINGS_A
 	}
 #endif
 
-	return (gps_module_enabled || groundtruth_available) && pathfollower_module_enabled && geofence_module_enabled;
+	return (gps_module_enabled || groundtruth_available) && pathfollower_module_enabled && geofence_module_enabled && homelocation_set;
 }
 
 
