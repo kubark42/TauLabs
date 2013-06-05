@@ -129,7 +129,7 @@ static void manualControlTask(void *parameters)
 
 		// Control logic to select the valid controller
 		enum control_selection control_selection;
-		if (AlarmsGet(SYSTEMALARMS_ALARM_GEOFENCE) == SYSTEMALARMS_ALARM_OK)
+		if (AlarmsGet(SYSTEMALARMS_ALARM_GEOFENCE) == SYSTEMALARMS_ALARM_OK || AlarmsGet(SYSTEMALARMS_ALARM_GEOFENCE) == SYSTEMALARMS_ALARM_UNINITIALISED)
 			control_selection = transmitter_control_selected_controller();
 		else
 			control_selection = CONTROL_SELECTION_GEOFENCE;
