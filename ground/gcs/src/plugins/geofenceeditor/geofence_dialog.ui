@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>GeofenceDialog</class>
- <widget class="QDialog" name="GeofenceDialog">
+ <class>GeoFenceDialog</class>
+ <widget class="QWidget" name="GeoFenceDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -25,7 +25,7 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset resource="../pathplanner/pathplanner.qrc">
+        <iconset resource="geofenceeditor.qrc">
          <normaloff>:/opmap/images/plus3.png</normaloff>:/opmap/images/plus3.png</iconset>
        </property>
       </widget>
@@ -39,7 +39,7 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset resource="../pathplanner/pathplanner.qrc">
+        <iconset resource="geofenceeditor.qrc">
          <normaloff>:/opmap/images/stopb.png</normaloff>:/opmap/images/stopb.png</iconset>
        </property>
       </widget>
@@ -53,7 +53,7 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset resource="../pathplanner/pathplanner.qrc">
+        <iconset resource="geofenceeditor.qrc">
          <normaloff>:/opmap/images/forward_alt.png</normaloff>:/opmap/images/forward_alt.png</iconset>
        </property>
       </widget>
@@ -67,7 +67,7 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset resource="../pathplanner/pathplanner.qrc">
+        <iconset resource="geofenceeditor.qrc">
          <normaloff>:/opmap/images/unarchive.png</normaloff>:/opmap/images/unarchive.png</iconset>
        </property>
       </widget>
@@ -81,7 +81,7 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset resource="../pathplanner/pathplanner.qrc">
+        <iconset resource="geofenceeditor.qrc">
          <normaloff>:/opmap/images/Ekisho Deep Ocean HD1.png</normaloff>:/opmap/images/Ekisho Deep Ocean HD1.png</iconset>
        </property>
       </widget>
@@ -95,7 +95,7 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset resource="../pathplanner/pathplanner.qrc">
+        <iconset resource="geofenceeditor.qrc">
          <normaloff>:/opmap/images/up_alt.png</normaloff>:/opmap/images/up_alt.png</iconset>
        </property>
       </widget>
@@ -109,7 +109,7 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset resource="../pathplanner/pathplanner.qrc">
+        <iconset resource="geofenceeditor.qrc">
          <normaloff>:/opmap/images/down_alt.png</normaloff>:/opmap/images/down_alt.png</iconset>
        </property>
       </widget>
@@ -152,7 +152,7 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset resource="../pathplanner/pathplanner.qrc">
+        <iconset resource="geofenceeditor.qrc">
          <normaloff>:/opmap/images/star.png</normaloff>:/opmap/images/star.png</iconset>
        </property>
       </widget>
@@ -168,7 +168,7 @@
   </layout>
  </widget>
  <resources>
-  <include location="../pathplanner/pathplanner.qrc"/>
+  <include location="geofenceeditor.qrc"/>
  </resources>
  <connections/>
 </ui>

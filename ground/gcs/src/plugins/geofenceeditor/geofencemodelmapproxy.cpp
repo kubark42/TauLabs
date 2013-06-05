@@ -198,14 +198,14 @@ void GeofenceModelMapProxy::rowsRemoved(const QModelIndex &parent, int first, in
 
 void GeofenceModelMapProxy::vertexValuesChanged(GeoFenceVertexItem *wp)
 {
-    QModelIndex index;
-    index=myVerticesModel->index(wp->Number(),GeoFenceVerticesDataModel::GEO_LATITUDE);
-    myVerticesModel->setData(index,wp->Coord().Lat(),Qt::EditRole);
-    index=myVerticesModel->index(wp->Number(),GeoFenceVerticesDataModel::GEO_LONGITUDE);
-    myVerticesModel->setData(index,wp->Coord().Lng(),Qt::EditRole);
+//    QModelIndex index;
+//    index=myVerticesModel->index(wp->Number(),GeoFenceVerticesDataModel::GEO_LATITUDE);
+//    myVerticesModel->setData(index,wp->Coord().Lat(),Qt::EditRole);
+//    index=myVerticesModel->index(wp->Number(),GeoFenceVerticesDataModel::GEO_LONGITUDE);
+//    myVerticesModel->setData(index,wp->Coord().Lng(),Qt::EditRole);
 
-    index=myVerticesModel->index(wp->Number(),GeoFenceVerticesDataModel::GEO_ALTITUDE);
-    myVerticesModel->setData(index,wp->Altitude(),Qt::EditRole);
+//    index=myVerticesModel->index(wp->Number(),GeoFenceVerticesDataModel::GEO_HEIGHT);
+//    myVerticesModel->setData(index,wp->Altitude(),Qt::EditRole);
 }
 
 void GeofenceModelMapProxy::currentRowChanged(QModelIndex current, QModelIndex previous)

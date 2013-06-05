@@ -1,13 +1,12 @@
 /**
  ******************************************************************************
  * @file       geofenceeditorgadgetfactory.h
- * @author     Tau Labs, http://taulabs.org Copyright (C) 2013.
- *
+ * @author     Tau Labs, http://taulabs.org, Copyright (C) 2013.
  * @addtogroup GCSPlugins GCS Plugins
  * @{
- * @addtogroup GeoFenceEditorGadgetPlugin GeoFence Editor Gadget Plugin
+ * @addtogroup GeoFenceEditorGadgetPlugin Geo-fence Editor Gadget Plugin
  * @{
- * @brief A gadget to edit a geofence mesh
+ * @brief A gadget to edit a list of waypoints
  *****************************************************************************/
 /*
  * This program is free software; you can redistribute it and/or modify
@@ -25,8 +24,8 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef GEOFEENCEGADGETFACTORY_H
-#define GEOFEENCEGADGETFACTORY_H
+#ifndef GEOFENCEEDITORGADGETFACTORY_H
+#define GEOFENCEEDITORGADGETFACTORY_H
 
 #include <coreplugin/iuavgadgetfactory.h>
 
@@ -47,4 +46,4 @@ public:
     IUAVGadget *createGadget(QWidget *parent);
 };
 
-#endif // GEOFEENCEGADGETFACTORY_H
+#endif // GEOFENCEEDITORGADGETFACTORY_H

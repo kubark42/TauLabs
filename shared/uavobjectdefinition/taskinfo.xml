@@ -30,6 +30,7 @@
 				<elementname>GenericI2CSensor</elementname>
 				<elementname>UAVOMavlinkBridge</elementname>
 				<elementname>VibrationAnalysis</elementname>
+				<elementname>Battery</elementname>
 				<elementname>GeoFence</elementname>
 			</elementnames>
 		</field>
@@ -62,6 +63,7 @@
 				<elementname>GenericI2CSensor</elementname>
 				<elementname>UAVOMavlinkBridge</elementname>
 				<elementname>VibrationAnalysis</elementname>
+				<elementname>Battery</elementname>
 				<elementname>GeoFence</elementname>
 			</elementnames>
 			<options>
@@ -98,6 +100,7 @@
 				<elementname>GenericI2CSensor</elementname>
 				<elementname>UAVOMavlinkBridge</elementname>
 				<elementname>VibrationAnalysis</elementname>
+				<elementname>Battery</elementname>
 				<elementname>GeoFence</elementname>
 			</elementnames>
 		</field>

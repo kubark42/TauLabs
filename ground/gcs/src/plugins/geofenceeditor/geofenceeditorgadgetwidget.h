@@ -1,13 +1,12 @@
 /**
  ******************************************************************************
  * @file       geofenceeditorgadgetwidget.h
- * @author     Tau Labs, http://taulabs.org Copyright (C) 2013.
- *
+ * @author     Tau Labs, http://taulabs.org, Copyright (C) 2013.
  * @addtogroup GCSPlugins GCS Plugins
  * @{
- * @addtogroup GeoFenceEditorGadgetPlugin GeoFence Editor Gadget Plugin
+ * @addtogroup GeoFenceEditorGadgetPlugin Geo-fence Editor Gadget Plugin
  * @{
- * @brief A gadget to edit a geofence mesh
+ * @brief A gadget to edit a list of waypoints
  *****************************************************************************/
 /*
  * This program is free software; you can redistribute it and/or modify
@@ -25,17 +24,19 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef GEOFEENCEGADGETWIDGET_H
-#define GEOFEENCEGADGETWIDGET_H
+#ifndef GEOFENCEEDITORGADGETWIDGET_H
+#define GEOFENCEEDITORGADGETWIDGET_H
 
 #include <QtGui/QLabel>
-#include <geofencetable.h>
-#include <geofencefaces.h>
-#include <geofencevertices.h>
+#include <QItemSelectionModel>
+#include "geofenceverticesdatamodel.h"
+#include "geofencefacesdatamodel.h"
+#include "geofencemodeluavoproxy.h"
+#include "geofenceeditor_global.h"
 
-class Ui_GeoFenceEditor;
+class Ui_GeoFenceDialog;
 
-class GeoFenceEditorGadgetWidget : public QLabel
+class GEOFENCEEDITOR_EXPORT GeoFenceEditorGadgetWidget : public QLabel
 {
     Q_OBJECT
 
@@ -43,17 +44,33 @@ public:
     GeoFenceEditorGadgetWidget(QWidget *parent = 0);
     ~GeoFenceEditorGadgetWidget();
 
-signals:
+    void setModel(GeoFenceVerticesDataModel *verticesModel, QItemSelectionModel *verticesSelection, GeoFenceFacesDataModel *facesModel, QItemSelectionModel *facesSelection);
+private slots:
+    void on_tbAdd_clicked();
 
-protected slots:
-    void geofenceChanged(UAVObject *);
-    void geofenceActiveChanged(UAVObject *);
-    void addInstance();
+    void on_tbDelete_clicked();
+
+    void on_tbInsert_clicked();
+
+    void on_tbReadFromFile_clicked();
+
+    void on_tbSaveToFile_clicked();
+
+    void on_tbDetails_clicked();
+
+    void on_tbSendToUAV_clicked();
+
+    void on_tbFetchFromUAV_clicked();
 
 private:
-    Ui_GeoFenceEditor * m_geofenceeditor;
-    GeoFenceTable *geofenceTable;
-    GeoFence *geofenceObj;
+    Ui_GeoFenceDialog  *ui;
+    GeoFenceVerticesDataModel *verticesDataModel;
+    GeoFenceFacesDataModel *facesDataModel;
+    GeoFenceModelUavoProxy  *proxy;
+
+signals:
+    void sendPathPlanToUAV();
+    void receivePathPlanFromUAV();
 };
 
-#endif /* GEOFEENCEGADGETWIDGET_H */
+#endif /* GEOFENCEEDITORGADGETWIDGET_H */

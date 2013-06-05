@@ -234,13 +234,13 @@ OPMapGadgetWidget::OPMapGadgetWidget(QWidget *parent) : QWidget(parent)
     mapProxyWP = new ModelMapProxy(this, m_map, modelWP, selectionModelWP);
 
 #ifdef USE_GEOFENCE
-    modelGFF = new GeoFenceFacesDataModel(this);
     modelGFV = new GeoFenceVerticesDataModel(this);
-    selectionModelGFF=new QItemSelectionModel(modelGFF);
+    modelGFF = new GeoFenceFacesDataModel(this);
     selectionModelGFV=new QItemSelectionModel(modelGFV);
-    mapProxyGF = new GeofenceModelMapProxy(this, m_map, modelGFV, modelGFF, selectionModelGFF);
+    selectionModelGFF=new QItemSelectionModel(modelGFF);
+    mapProxyGF = new GeofenceModelMapProxy(this, m_map, modelGFV, selectionModelGFV, modelGFF, selectionModelGFF);
     geofenceTable = new GeofenceDialog();
-    geofenceTable->setModel(modelGF, selectionModelGF);
+    geofenceTable->setModel(modelGFV, selectionModelGFV, modelGFF, selectionModelGFF);
     connect(mapProxyGF, SIGNAL(requestGeofenceEditDialog()), this, SLOT(onGeofenceOpenEditorAct_triggered()));
     connect(m_map, SIGNAL(onEndCreateGeofencePolyMode(QMouseEvent*)), mapProxyGF, SLOT(endGeofencePolygon(QMouseEvent*)));
  #endif
@@ -1933,7 +1933,7 @@ void OPMapGadgetWidget::onClearWayPointsAct_triggered()
 
 void OPMapGadgetWidget::onGeofenceOpenEditorAct_triggered()
 {
-    geofenceTable->show();
+//    geofenceTable->show();
 }
 
 void OPMapGadgetWidget::onGeofenceBeginCreatePolygonAct_triggered()
@@ -1966,13 +1966,13 @@ void OPMapGadgetWidget::onGeofenceAddVertexAct_triggeredFromContextMenu()
 
 void OPMapGadgetWidget::onGeofenceAddVertexAct_triggered(internals::PointLatLng coord)
 {
-    if (!m_widget || !m_map)
-        return;
+//    if (!m_widget || !m_map)
+//        return;
 
-    if (m_map_mode != Normal_MapMode)
-        return;
+//    if (m_map_mode != Normal_MapMode)
+//        return;
 
-    mapProxyGF->createVertexPoint(coord);
+//    mapProxyGF->createVertexPoint(coord);
 }
 
 void OPMapGadgetWidget::onGeofenceEditVertexAct_triggered()

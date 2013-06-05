@@ -45,7 +45,7 @@ int GeoFenceFacesDataModel::columnCount(const QModelIndex &parent) const
 {
     if (parent.isValid())
         return 0;
-    return 6;
+    return 4; //FixMe: Ugly to hardcode this like that.
 }
 
 QVariant GeoFenceFacesDataModel::data(const QModelIndex &index, int role) const
@@ -66,16 +66,14 @@ QVariant GeoFenceFacesDataModel::data(const QModelIndex &index, int role) const
 }
 
 QVariant GeoFenceFacesDataModel::headerData(int section, Qt::Orientation orientation, int role) const
- {
-     if (role == Qt::DisplayRole)
-     {
-         if(orientation==Qt::Vertical)
-         {
+{
+     if (role == Qt::DisplayRole) {
+         switch (orientation) {
+         case Qt::Vertical:
              return QString::number(section+1);
-         }
-         else if (orientation == Qt::Horizontal) {
-             switch (section)
-             {
+             break;
+         case Qt::Horizontal:
+             switch (section) {
              case GEO_FACE_ID:
                  return QString(tr("Face ID"));
                  break;
@@ -92,11 +90,7 @@ QVariant GeoFenceFacesDataModel::headerData(int section, Qt::Orientation orienta
                  return QString();
                  break;
              }
-         }
-         else {
-             // TODO: There needs to be a return value for the
-             // case where orientation is incorrect (should only
-             // be horizontal or vertical
+             break;
          }
      }
      else {
@@ -108,13 +102,13 @@ bool GeoFenceFacesDataModel::setData(const QModelIndex &index, const QVariant &v
 {
     if (role == Qt::EditRole)
     {
-        int columnIndex=index.column();
-        int rowIndex=index.row();
-        if(rowIndex>dataStorage.length()-1)
+        int columnIndex = index.column();
+        int rowIndex = index.row();
+        if(rowIndex > dataStorage.length()-1)
             return false;
-        GeoFenceFacesData * myRow=dataStorage.at(rowIndex);
-        setColumnByIndex(myRow,columnIndex,value);
-        emit dataChanged(index,index);
+        GeoFenceFacesData *myRow = dataStorage.at(rowIndex);
+        setColumnByIndex(myRow, columnIndex, value);
+        emit dataChanged(index, index);
     }
     return true;
 }
@@ -178,133 +172,90 @@ bool GeoFenceFacesDataModel::writeToFile(QString fileName)
     QDomDocument doc("Geofence");
     QDomElement root = doc.createElement("dataModel");
     doc.appendChild(root);
-    QDomElement vertices = doc.createElement("vertices");
+    QDomElement vertices = doc.createElement("faces");
     root.appendChild(vertices);
 
     foreach(GeoFenceFacesData * obj,dataStorage)
     {
 
-        QDomElement geofence = doc.createElement("vertex");
+        QDomElement geofence = doc.createElement("face");
         geofence.setAttribute("number",dataStorage.indexOf(obj));
         vertices.appendChild(geofence);
         QDomElement field=doc.createElement("field");
-        field.setAttribute("value",obj->faceID);
+        field.setAttribute("value", obj->faceID);
         field.setAttribute("name","faceID");
         geofence.appendChild(field);
 
         field=doc.createElement("field");
-        field.setAttribute("value",obj->vertexA);
+        field.setAttribute("value", obj->vertexA);
         field.setAttribute("name","vertexA");
         geofence.appendChild(field);
 
         field=doc.createElement("field");
-        field.setAttribute("value",obj->vertexB);
+        field.setAttribute("value", obj->vertexB);
         field.setAttribute("name","vertexB");
         geofence.appendChild(field);
 
         field=doc.createElement("field");
-        field.setAttribute("value",obj->vertexC);
+        field.setAttribute("value", obj->vertexC);
         field.setAttribute("name","vertexC");
         geofence.appendChild(field);
-
-//        field=doc.createElement("field");
-//        field.setAttribute("value",obj->vertexPairId);
-//        field.setAttribute("name","vertexPairId");
-//        geofence.appendChild(field);
-
-//        field=doc.createElement("field");
-//        field.setAttribute("value",obj->polygonId);
-//        field.setAttribute("name","polygonId");
-//        geofence.appendChild(field);
-
     }
 
-    QDomElement metaData=doc.createElement("metaData");
-    root.appendChild(metaData);
-    QDomElement item = doc.createElement("item");
-    metaData.appendChild(item);
-    item.setAttribute("value",nextIndex);
-    item.setAttribute("name","nextIndex");
+    // End file write
     file.write(doc.toString().toAscii());
     file.close();
 
     return true;
 }
-void GeoFenceFacesDataModel::readFromFile(QString fileName)
+void GeoFenceFacesDataModel::readFromFile(QDomElement root)
 {
-    //TODO warning message
     removeRows(0,rowCount());
-    QFile file(fileName);
-    file.open(QIODevice::ReadOnly);
-    QDomDocument doc("Geofence");
-    QByteArray array=file.readAll();
-    QString error;
-    if (!doc.setContent(array,&error)) {
-        QMessageBox msgBox;
-        msgBox.setText(tr("File Parsing Failed."));
-        msgBox.setInformativeText(QString(tr("This file is not a correct XML file:%0")).arg(error));
-        msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.exec();
-        return;
-    }
-    file.close();
-
-    QDomElement root = doc.documentElement();
-
-    if (root.isNull() || (root.tagName() != "dataModel")) {
-        QMessageBox msgBox;
-        msgBox.setText(tr("Wrong file contents"));
-        msgBox.setInformativeText(tr("This file does not contain correct UAVSettings"));
-        msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.exec();
-        return;
-    }
 
     GeoFenceFacesData * data=NULL;
     QDomNode node = root.firstChild();
-    while (!node.isNull()) {
-        QDomElement modelSection = node.toElement();
-        if(modelSection.tagName() == "vertices"){
+    QDomElement modelSection = node.toElement();
+
+    // Iterate over list until "faces" is found.
+    while(!node.isNull() && modelSection.tagName() != "faces") {
+        node=node.nextSibling();
+        modelSection = node.toElement();
+    }
+
+    if(modelSection.tagName() == "faces") {
+        node = node.firstChild();
+        while (!node.isNull()) {
+            modelSection = node.toElement();
             QDomElement e = modelSection.toElement();
-            if (e.tagName() == "vertex") {
-                QDomNode fieldNode=e.firstChild();
-                data=new GeoFenceFacesData;
+            if (e.tagName() == "face") {
+                QDomNode fieldNode = e.firstChild();
+                data = new GeoFenceFacesData;
                 while (!fieldNode.isNull()) {
                     QDomElement field = fieldNode.toElement();
                     if (field.tagName() == "field") {
-                        if(field.attribute("name")=="faceID")
-                            data->faceID=field.attribute("value").toUInt();
-                        else if(field.attribute("name")=="vertexA")
-                            data->vertexA=field.attribute("value").toUInt();
-                        else if(field.attribute("name")=="vertexB")
-                            data->vertexB=field.attribute("value").toUInt();
-                        else if(field.attribute("name")=="vertexC")
-                            data->vertexC=field.attribute("value").toUInt();
+                        if(field.attribute("name") == "faceID")
+                            data->faceID = field.attribute("value").toUInt();
+                        else if(field.attribute("name") == "vertexA")
+                            data->vertexA = field.attribute("value").toUInt();
+                        else if(field.attribute("name") == "vertexB")
+                            data->vertexB = field.attribute("value").toUInt();
+                        else if(field.attribute("name") == "vertexC")
+                            data->vertexC = field.attribute("value").toUInt();
                     }
                     fieldNode=fieldNode.nextSibling();
                 }
-            beginInsertRows(QModelIndex(),dataStorage.length(),dataStorage.length());
-            dataStorage.append(data);
-            endInsertRows();
+
+                beginInsertRows(QModelIndex(), dataStorage.length(), dataStorage.length());
+                dataStorage.append(data);
+                endInsertRows();
             }
+
+            node = node.nextSibling();
         }
-        else if(modelSection.tagName() == "metaData"){
-            QDomElement e = modelSection.toElement();
-            if (e.tagName() == "item") {
-                QDomNode itemNode=e.firstChild();
-                while (!itemNode.isNull()) {
-                    QDomElement item = itemNode.toElement();
-                    if(item.attribute("name")=="nextIndex")
-                        nextIndex=item.attribute("value").toLong();
-                    itemNode=itemNode.nextSibling();
-                }
-            }
-        }
-        node=node.nextSibling();
     }
 }
 
-bool GeoFenceFacesDataModel::setColumnByIndex(GeoFenceFacesData  *row,const int index,const QVariant value)
+bool GeoFenceFacesDataModel::setColumnByIndex(GeoFenceFacesData  *row, const int index, const QVariant value)
 {
     bool retVal = false;
     switch(index)
@@ -328,7 +279,7 @@ bool GeoFenceFacesDataModel::setColumnByIndex(GeoFenceFacesData  *row,const int 
     }
     return retVal;
 }
-QVariant GeoFenceFacesDataModel::getColumnByIndex(const GeoFenceFacesData *row,const int index) const
+QVariant GeoFenceFacesDataModel::getColumnByIndex(const GeoFenceFacesData *row, const int index) const
 {
     switch(index)
     {
@@ -345,6 +296,4 @@ QVariant GeoFenceFacesDataModel::getColumnByIndex(const GeoFenceFacesData *row,c
         return row->vertexC;
         break;
     }
-
-    //TODO: There needs to be a default handler
 }

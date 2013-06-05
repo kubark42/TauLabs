@@ -879,7 +879,7 @@ QVariant UAVObjectField::getValue(quint32 index)
         memcpy(&tmpenum, &data[offset + numBytesPerElement*index], numBytesPerElement);
         //            Q_ASSERT((tmpenum < options.length()) && (tmpenum >= 0)); // catch bad enum settings
         if(tmpenum >= options.length()) {
-            qDebug() << "Invalid value for" << name;
+            qDebug() << "Invalid value for" << name << ", which is part of " << obj->getName();
             return QVariant( QString("Bad Value") );
         }
         return QVariant( options[tmpenum] );

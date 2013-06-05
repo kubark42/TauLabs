@@ -60,6 +60,7 @@ UAVOBJSRCFILENAMES += flighttelemetrystats
 UAVOBJSRCFILENAMES += gcstelemetrystats
 UAVOBJSRCFILENAMES += gcsreceiver
 UAVOBJSRCFILENAMES += geofencefaces
+UAVOBJSRCFILENAMES += geofencestatus
 UAVOBJSRCFILENAMES += geofencevertices
 UAVOBJSRCFILENAMES += gpsposition
 UAVOBJSRCFILENAMES += gpssatellites

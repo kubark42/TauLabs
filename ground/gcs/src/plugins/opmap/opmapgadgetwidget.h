@@ -61,8 +61,8 @@
 
 #include "homeeditor.h"
 
-#include "geofencedialog.h"
-#include "geofencemodelmapproxy.h"
+//#include "geofencedialog.h"
+//#include "geofencemodelmapproxy.h"
 
 // ******************************************************
 
@@ -345,12 +345,12 @@ private:
     WayPointItem * magicWayPoint;
 
     QPointer<FlightDataModel> modelWP;
-    QPointer<GeoFenceVerticesDataModel> modelGFV;
-    QPointer<GeoFenceFacesDataModel> modelGFF;
+//    QPointer<GeoFenceVerticesDataModel> modelGFV;
+//    QPointer<GeoFenceFacesDataModel> modelGFF;
     QPointer<QDialog> pathPlannerDialog;
-    QPointer<GeofenceDialog> geofenceTable;
+//    QPointer<GeofenceDialog> geofenceTable;
     QPointer<ModelMapProxy> mapProxyWP;
-    QPointer<GeofenceModelMapProxy> mapProxyGF;
+//    QPointer<GeofenceModelMapProxy> mapProxyGF;
     QPointer<QItemSelectionModel> selectionModelWP;
     QPointer<QItemSelectionModel> selectionModelGFV;
     QPointer<QItemSelectionModel> selectionModelGFF;

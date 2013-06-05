@@ -64,6 +64,8 @@ int32_t geofence_control_select(bool reset_controller)
 
 	switch (geofence_alarm_code){
 	case SYSTEMALARMS_GEOFENCE_NONE:
+	case SYSTEMALARMS_GEOFENCE_INSUFFICIENTVERTICES: // These conditions shouldn't cause a crash, but might want to cause a sanity check error. The problem is that if geofencing is turned on, and there's no computer nearby, this can cripple flight at non-standard fields.
+	case SYSTEMALARMS_GEOFENCE_INSUFFICIENTFACES:
 		break;
 	case SYSTEMALARMS_GEOFENCE_LEAVINGBOUNDARY:
 		new_flight_status = FLIGHTSTATUS_FLIGHTMODE_RETURNTOHOME;

@@ -2,7 +2,7 @@
  ******************************************************************************
  *
  * @file       geofencedialog.h
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2012.
+ * @author     Tau Labs, http://taulabs.org, Copyright (C) 2013.
  * @addtogroup GCSPlugins GCS Plugins
  * @{
  * @addtogroup OPMapPlugin OpenPilot Map Plugin
@@ -36,18 +36,18 @@
 #include "geofencemodeluavoproxy.h"
 
 namespace Ui {
-class GeofenceDialog;
+class GeoFenceDialog;
 }
 
-class GeofenceDialog : public QDialog
+class GeoFenceDialog : public QDialog
 {
     Q_OBJECT
     
 public:
-    explicit GeofenceDialog(QWidget *parent = 0);
-    ~GeofenceDialog();
+    explicit GeoFenceDialog(QWidget *parent = 0);
+    ~GeoFenceDialog();
 
-    void setModel(GeoFenceVerticesDataModel *model,QItemSelectionModel *selection);
+    void setModel(GeoFenceVerticesDataModel *verticesModel, QItemSelectionModel *selection, GeoFenceFacesDataModel *facesModel, QItemSelectionModel *selection);
 
 private slots:
     void rowsInserted ( const QModelIndex & parent, int start, int end );
@@ -73,10 +73,10 @@ private slots:
     //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 private:
-    Ui::GeofenceDialog *ui;
+    Ui::GeoFenceDialog *ui;
 
     GeoFenceVerticesDataModel *geofenceVerticesDataModel;
-    GeoFenceVerticesDataModel *geofenceFacesDataModel;
+    GeoFenceFacesDataModel *geofenceFacesDataModel;
 
     GeoFenceModelUavoProxy  *proxy;
 };

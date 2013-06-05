@@ -36,14 +36,12 @@ class GeoFenceModelUavoProxy:public QObject
 {
     Q_OBJECT
 public:
-    explicit GeoFenceModelUavoProxy(QObject *parent, GeoFenceVerticesDataModel *model);
+    explicit GeoFenceModelUavoProxy(QObject *parent, GeoFenceVerticesDataModel *verticesModel, GeoFenceFacesDataModel *facesModel);
 
 private:
     //! Robustly upload a geofence (like smart save)
-    bool robustUpdate(GeoFenceVertices::DataFields geofenceVerticesData, GeoFenceFaces::DataFields geofenceFacesData, int instance);
-
-    //! Fetch the home LLA position
-    bool getHomeLocation(double *homeLLA);
+    bool robustUpdateVertices(GeoFenceVertices::DataFields geofenceVerticesData, int instance);
+    bool robustUpdateFaces(GeoFenceFaces::DataFields geofenceFacesData, int instance);
 
 public slots:
     //! Cast from the internal representation to the UAVOs
@@ -63,7 +61,8 @@ private:
     UAVObjectManager *objManager;
     GeoFenceFaces *geofenceFaces;
     GeoFenceVertices *geofenceVertices;
-    GeoFenceVerticesDataModel *myModel;
+    GeoFenceVerticesDataModel *myVerticesModel;
+    GeoFenceFacesDataModel *myFacesModel;
 
     //! Track if each geofence was updated
     QMap<int, bool>  geofenceTransactionResult;

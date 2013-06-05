@@ -1,13 +1,12 @@
 /**
  ******************************************************************************
  * @file       geofenceeditorplugin.cpp
- * @author     Tau Labs, http://taulabs.org Copyright (C) 2013.
- *
+ * @author     Tau Labs, http://taulabs.org, Copyright (C) 2012-2013
  * @addtogroup GCSPlugins GCS Plugins
  * @{
- * @addtogroup GeoFenceEditorGadgetPlugin GeoFence Editor Gadget Plugin
+ * @addtogroup GeoFenceEditorGadgetPlugin Geo-fence Editor Gadget Plugin
  * @{
- * @brief A gadget to edit a geofence mesh
+ * @brief A gadget to edit a list of waypoints
  *****************************************************************************/
 /*
  * This program is free software; you can redistribute it and/or modify
@@ -26,7 +25,6 @@
  */
 #include "geofenceeditorplugin.h"
 #include "geofenceeditorgadgetfactory.h"
-#include <QDebug>
 #include <QtPlugin>
 #include <QStringList>
 #include <extensionsystem/pluginmanager.h>
@@ -42,14 +40,37 @@ GeoFenceEditorPlugin::~GeoFenceEditorPlugin()
    // Do nothing
 }
 
+/**
+ * @brief GeoFenceEditorPlugin::initialize Initialize the plugin which includes
+ * creating the new data model
+ */
 bool GeoFenceEditorPlugin::initialize(const QStringList& args, QString *errMsg)
 {
-   Q_UNUSED(args);
-   Q_UNUSED(errMsg);
-   mf = new GeoFenceEditorGadgetFactory(this);
-   addAutoReleasedObject(mf);
+    Q_UNUSED(args);
+    Q_UNUSED(errMsg);
 
-   return true;
+    // Create a factory for making gadgets
+    mf = new GeoFenceEditorGadgetFactory(this);
+    addAutoReleasedObject(mf);
+
+    // Create the data model for the flight plan
+    verticesDataModel = new GeoFenceVerticesDataModel(this);
+    addAutoReleasedObject(verticesDataModel);
+    facesDataModel = new GeoFenceFacesDataModel(this);
+    addAutoReleasedObject(facesDataModel);
+
+    // Create a selector and add it to the plugin
+    verticesSelection = new QItemSelectionModel(verticesDataModel);
+    addAutoReleasedObject(verticesSelection);
+
+    facesSelection = new QItemSelectionModel(facesDataModel);
+    addAutoReleasedObject(facesSelection);
+
+//    // Create a common dialog to be used by the map and path planner
+//    waypointDialog = new WaypointDialog(NULL, verticesDataModel, verticesSelection);
+//    addAutoReleasedObject(waypointDialog);
+
+    return true;
 }
 
 void GeoFenceEditorPlugin::extensionsInitialized()

@@ -1,12 +1,12 @@
 /**
  ******************************************************************************
- * @file       geofencegadget.cpp
+ * @file       geofenceeditor_global.h
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2013.
  * @addtogroup GCSPlugins GCS Plugins
  * @{
- * @addtogroup GeoFenceEditorGadgetPlugin Geo-fence Editor Gadget Plugin
+ * @addtogroup Geo-fence Editor Plugin
  * @{
- * @brief A gadget to edit a list of waypoints
+ * @brief global include for the library
  *****************************************************************************/
 /*
  * This program is free software; you can redistribute it and/or modify
@@ -23,25 +23,17 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-#include "geofenceeditorgadget.h"
-#include "geofenceeditorgadgetwidget.h"
 
-#include "extensionsystem/pluginmanager.h"
-#include "uavobjectmanager.h"
-#include "uavobject.h"
+#ifndef GEOFENCEEDITOR_GLOBAL_H
+#define GEOFENCEEDITOR_GLOBAL_H
 
-GeoFenceEditorGadget::GeoFenceEditorGadget(QString classId, GeoFenceEditorGadgetWidget *widget, QWidget *parent) :
-        IUAVGadget(classId, parent),
-        m_widget(widget)
-{
-}
+#include <QtCore/qglobal.h>
 
-GeoFenceEditorGadget::~GeoFenceEditorGadget()
-{
-    delete m_widget;
-}
+#if defined(GEOFENCEEDITOR_LIBRARY)
+#  define GEOFENCEEDITOR_EXPORT Q_DECL_EXPORT
+#else
+#  define GEOFENCEEDITOR_EXPORT Q_DECL_IMPORT
+#endif
 
-void GeoFenceEditorGadget::loadConfiguration(IUAVGadgetConfiguration* config)
-{
-    Q_UNUSED(config);
-}
+#endif // GEOFENCEEDITOR_GLOBAL_H
+

@@ -1,13 +1,12 @@
 /**
  ******************************************************************************
  * @file       geofenceeditorplugin.h
- * @author     Tau Labs, http://taulabs.org Copyright (C) 2013.
- *
+ * @author     Tau Labs, http://taulabs.org, Copyright (C) 2013.
  * @addtogroup GCSPlugins GCS Plugins
  * @{
- * @addtogroup GeoFenceEditorGadgetPlugin GeoFence Editor Gadget Plugin
+ * @addtogroup GeoFenceEditorGadgetPlugin Geo-fence Editor Gadget Plugin
  * @{
- * @brief A gadget to edit a geofence mesh
+ * @brief A gadget to edit a list of waypoints
  *****************************************************************************/
 /*
  * This program is free software; you can redistribute it and/or modify
@@ -25,10 +24,16 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef GEOFEENCEEDITORPLUGIN_H
-#define GEOFEENCEEDITORPLUGIN_H
+#ifndef GEOFENCEEDITORPLUGIN_H
+#define GEOFENCEEDITORPLUGIN_H
+
+#include <QItemSelectionModel>
 
 #include <extensionsystem/iplugin.h>
+#include "geofenceverticesdatamodel.h"
+#include "geofencefacesdatamodel.h"
+#include "geofencemodeluavoproxy.h"
+//#include "waypointdialog.h"
 
 class GeoFenceEditorGadgetFactory;
 
@@ -43,5 +48,10 @@ public:
    void shutdown();
 private:
    GeoFenceEditorGadgetFactory *mf;
+   GeoFenceVerticesDataModel  *verticesDataModel;
+   GeoFenceFacesDataModel     *facesDataModel;
+   QItemSelectionModel        *verticesSelection;
+   QItemSelectionModel        *facesSelection;
+//   WaypointDialog           *waypointDialog;
 };
-#endif /* GEOFEENCEEDITORPLUGIN_H */
+#endif /* GEOFENCEEDITORPLUGIN_H */

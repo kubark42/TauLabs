@@ -1,9 +1,7 @@
 /**
  ******************************************************************************
- *
  * @file       geofencedialog.cpp
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2012.
- * @author     Tau Labs, http://taulabs.org Copyright (C) 2013.
+ * @author     Tau Labs, http://taulabs.org, Copyright (C) 2013.
  * @addtogroup GCSPlugins GCS Plugins
  * @{
  * @addtogroup OPMapPlugin OpenPilot Map Plugin
@@ -26,7 +24,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#include "ui_geofencedialog.h"
+#include "ui_geofence_dialog.h"
 
 #include "geofencedialog.h"
 #include "geofencemodeluavoproxy.h"
@@ -34,37 +32,38 @@
 #include <QFileDialog>
 #include "extensionsystem/pluginmanager.h"
 
-GeofenceDialog::GeofenceDialog(QWidget *parent) :
+GeoFenceDialog::GeoFenceDialog(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::GeofenceDialog)
+    ui(new Ui::GeoFenceDialog)
 {
     ui->setupUi(this);
 }
 
-GeofenceDialog::~GeofenceDialog()
+GeoFenceDialog::~GeoFenceDialog()
 {
     delete ui;
 }
 
-void GeofenceDialog::setModel(GeoFenceVerticesDataModel *model, QItemSelectionModel *selection)
+void GeoFenceDialog::setModel(GeoFenceVerticesDataModel *verticesModel, QItemSelectionModel *verticesSelection, GeoFenceFacesDataModel *facesModel, QItemSelectionModel *facesSelection)
 {
-    geofenceVerticesDataModel=model;
+    geofenceVerticesDataModel = verticesModel;
     ui->tvGeoVerticesFence->setModel(geofenceVerticesDataModel);
-    ui->tvGeoVerticesFence->setSelectionModel(selection);
+    ui->tvGeoVerticesFence->setSelectionModel(verticesSelection);
     ui->tvGeoVerticesFence->setSelectionBehavior(QAbstractItemView::SelectRows);
     connect(geofenceVerticesDataModel, SIGNAL(rowsInserted(const QModelIndex&, int, int)), this, SLOT(rowsInserted(const QModelIndex&, int, int)));
 //    ui->tvGeoFence->resizeColumnsToContents();
 
-//    ui->tvGeoFacesFence->setModel(geofenceFacesDataModel);
-//    ui->tvGeoFacesFence->setSelectionModel(selection);
-//    ui->tvGeoFacesFence->setSelectionBehavior(QAbstractItemView::SelectRows);
-//    connect(geoFenceDataModel,SIGNAL(rowsInserted(const QModelIndex&,int,int)),this,SLOT(rowsInserted(const QModelIndex&,int,int)));
+    geofenceFacesDataModel = facesModel;
+    ui->tvGeoFacesFence->setModel(geofenceFacesDataModel);
+    ui->tvGeoFacesFence->setSelectionModel(facesSelection);
+    ui->tvGeoFacesFence->setSelectionBehavior(QAbstractItemView::SelectRows);
+    connect(geofenceFacesDataModel, SIGNAL(rowsInserted(const QModelIndex&, int, int)), this, SLOT(rowsInserted(const QModelIndex&, int, int)));
 
-    proxy = new GeoFenceModelUavoProxy(this, model);
+    proxy = new GeoFenceModelUavoProxy(this, verticesModel, facesModel);
 
 }
 
-void GeofenceDialog::rowsInserted(const QModelIndex &parent, int start, int end)
+void GeoFenceDialog::rowsInserted(const QModelIndex &parent, int start, int end)
 {
     Q_UNUSED(parent);
     Q_UNUSED(start);
@@ -74,22 +73,22 @@ void GeofenceDialog::rowsInserted(const QModelIndex &parent, int start, int end)
 
 // SHOULD BE IN A WIDGET
 //VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//
-void GeofenceDialog::on_tbAdd_clicked()
+void GeoFenceDialog::on_tbAdd_clicked()
 {
     ui->tvGeoVerticesFence->model()->insertRow(ui->tvGeoVerticesFence->model()->rowCount());
 }
 
-void GeofenceDialog::on_tbDelete_clicked()
+void GeoFenceDialog::on_tbDelete_clicked()
 {
     ui->tvGeoVerticesFence->model()->removeRow(ui->tvGeoVerticesFence->selectionModel()->currentIndex().row());
 }
 
-void GeofenceDialog::on_tbInsert_clicked()
+void GeoFenceDialog::on_tbInsert_clicked()
 {
     ui->tvGeoVerticesFence->model()->insertRow(ui->tvGeoVerticesFence->selectionModel()->currentIndex().row());
 }
 
-void GeofenceDialog::on_tbReadFromFile_clicked()
+void GeoFenceDialog::on_tbReadFromFile_clicked()
 {
     if(!geofenceVerticesDataModel)
         return;
@@ -97,7 +96,7 @@ void GeofenceDialog::on_tbReadFromFile_clicked()
     geofenceVerticesDataModel->readFromFile(fileName);
 }
 
-void GeofenceDialog::on_tbSaveToFile_clicked()
+void GeoFenceDialog::on_tbSaveToFile_clicked()
 {
     if(!geofenceVerticesDataModel)
         return;
@@ -106,11 +105,11 @@ void GeofenceDialog::on_tbSaveToFile_clicked()
 }
 
 /**
- * @brief GeofenceDialog::on_tbDetails_clicked Display a dialog to show
+ * @brief GeoFenceDialog::on_tbDetails_clicked Display a dialog to show
  * and edit details of a vertex.  The waypoint selected initially will be the
  * highlighted one.
  */
-void GeofenceDialog::on_tbDetails_clicked()
+void GeoFenceDialog::on_tbDetails_clicked()
 {
     ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
     Q_ASSERT(pm);
@@ -123,19 +122,19 @@ void GeofenceDialog::on_tbDetails_clicked()
 }
 
 /**
- * @brief GeofenceDialog::on_tbSendToUAV_clicked Use the proxy to send
+ * @brief GeoFenceDialog::on_tbSendToUAV_clicked Use the proxy to send
  * the data from the flight model to the UAV
  */
-void GeofenceDialog::on_tbSendToUAV_clicked()
+void GeoFenceDialog::on_tbSendToUAV_clicked()
 {
     proxy->modelToObjects();
 }
 
 /**
- * @brief GeofenceDialog::on_tbFetchFromUAV_clicked Use the flight model to
+ * @brief GeoFenceDialog::on_tbFetchFromUAV_clicked Use the flight model to
  * get data from the UAV
  */
-void GeofenceDialog::on_tbFetchFromUAV_clicked()
+void GeoFenceDialog::on_tbFetchFromUAV_clicked()
 {
     proxy->objectsToModel();
     ui->tvGeoVerticesFence->resizeColumnsToContents();

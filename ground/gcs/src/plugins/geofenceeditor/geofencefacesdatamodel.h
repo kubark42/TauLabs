@@ -1,9 +1,8 @@
 /**
  ******************************************************************************
  *
- * @file       geofenceverticesdatamodel.h
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2012.
- * @author     Tau Labs, http://taulabs.org Copyright (C) 2013.
+ * @file       geofencefacesdatamodel.h
+ * @author     Tau Labs, http://taulabs.org, Copyright (C) 2013.
  * @addtogroup GCSPlugins GCS Plugins
  * @{
  * @addtogroup OPMapPlugin OpenPilot Map Plugin
@@ -25,35 +24,32 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-#ifndef GEOFENCEVERTICESDATAMODEL_H
-#define GEOFENCEVERTICESDATAMODEL_H
+#ifndef GEOFENCEFACESDATAMODEL_H
+#define GEOFENCEFACESDATAMODEL_H
 
 #include <QAbstractTableModel>
 
-struct GeoFenceVerticesData{
-    double latitude;
-    double longitude;
-    double altitude;
-    int vertexId;
-//    int vertexPairId;
-//    int polygonId;
+struct GeoFenceFacesData{
+    int faceID;
+    int vertexA;
+    int vertexB;
+    int vertexC;
 };
 
-class GeoFenceVerticesDataModel : public QAbstractTableModel
+class QDomElement;
+
+class GeoFenceFacesDataModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
-    enum GeoFenceVerticesDataEnum{
-        GEO_LATITUDE,
-        GEO_LONGITUDE,
-        GEO_ALTITUDE,
-//        GEO_FACE_ID,
-        GEO_VERTEX_ID//,
-//        GEO_VERTEX_PAIR_ID,
-//        GEO_POLYGON_ID
+    enum GeoFenceFacesDataEnum{
+        GEO_FACE_ID,
+        GEO_VERTEX_A,
+        GEO_VERTEX_B,
+        GEO_VERTEX_C
     };
 
-    explicit GeoFenceVerticesDataModel(QObject *parent = 0);
+    explicit GeoFenceFacesDataModel(QObject *parent = 0);
     int rowCount(const QModelIndex &parent = QModelIndex()) const ;
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
@@ -64,18 +60,18 @@ public:
     bool insertRows ( int row, int count, const QModelIndex & parent = QModelIndex() );
     bool removeRows ( int row, int count, const QModelIndex & parent = QModelIndex() );
     bool writeToFile(QString filename);
-    void readFromFile(QString fileName);
+    void readFromFile(QDomElement root);
     
 signals:
     
 public slots:
 
 private:
-    QVariant getColumnByIndex(const GeoFenceVerticesData *row, const int index) const;
-    bool setColumnByIndex(GeoFenceVerticesData *row, const int index, const QVariant value);
+    QVariant getColumnByIndex(const GeoFenceFacesData *row, const int index) const;
+    bool setColumnByIndex(GeoFenceFacesData *row, const int index, const QVariant value);
 
-    QList<GeoFenceVerticesData*> dataStorage;
+    QList<GeoFenceFacesData*> dataStorage;
     int nextIndex;
 };
 
-#endif // GEOFENCEVERTICESDATAMODEL_H
+#endif // GEOFENCEFACESDATAMODEL_H

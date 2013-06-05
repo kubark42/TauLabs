@@ -47,10 +47,14 @@
 
 #include "openpilot.h"
 #include "coordinate_conversions.h"
+#include "physical_constants.h"
 
 #include "modulesettings.h"
 #include "geofencevertices.h"
 #include "geofencefaces.h"
+#include "geofencestatus.h"
+#include "gpsposition.h"
+#include "homelocation.h"
 #include "positionactual.h"
 #include "velocityactual.h"
 
@@ -58,20 +62,27 @@
 // Configuration
 //
 #define STACK_SIZE_BYTES   1500
-#define SAMPLE_PERIOD_MS   2000
+#define SAMPLE_PERIOD_MS   500
 #define TASK_PRIORITY      (tskIDLE_PRIORITY + 1)
 
 // Private functions
 static void geofenceTask(void *parameters);
 static bool test_line_triange_intersection(PositionActualData *positionActual, float lineCA[3], float lineBA[3], float vertexA[3], float t);
-static void set_manual_control_error(SystemAlarmsGeoFenceOptions error_code);
+static void set_geo_fence_error(SystemAlarmsGeoFenceOptions error_code);
 static bool check_enabled();
+
+//! Recompute the translation from LLA to NED
+static void HomeLocationUpdatedCb(UAVObjEvent * objEv);
+
+//! Convert LLH to NED
+static int32_t LLH2NED(int32_t LL[2], float height_AGL, float *NED);
 
 // Private types
 
 // Private variables
 static bool geofence_enabled = false;
 static xTaskHandle geofenceTaskHandle;
+static HomeLocationData homeLocation;
 
 /**
  * Initialise the geofence module
@@ -99,8 +110,15 @@ int32_t GeoFenceInitialize(void)
 	geofence_enabled = check_enabled();
 
 	if (geofence_enabled) {
+		// Initialize UAVOs
+		GPSPositionInitialize();
+		HomeLocationInitialize();
 		GeoFenceFacesInitialize();
+		GeoFenceStatusInitialize();
 		GeoFenceVerticesInitialize();
+
+		HomeLocationConnectCallback(&HomeLocationUpdatedCb);
+
 		return 0;
 	}
 	
@@ -115,6 +133,11 @@ MODULE_INITCALL(GeoFenceInitialize, GeoFenceStart);
  */
 static void geofenceTask(void *parameters)
 {
+	GeoFenceStatusData geofenceStatusData;
+	memset(&geofenceStatusData, 0, sizeof(geofenceStatusData));
+
+	HomeLocationUpdatedCb((UAVObjEvent *)NULL);
+
 	while(1) {
 		vTaskDelay(SAMPLE_PERIOD_MS);
 
@@ -124,10 +147,14 @@ static void geofenceTask(void *parameters)
 		uint16_t num_vertices=UAVObjGetNumInstances(GeoFenceVerticesHandle());
 		uint16_t num_faces=UAVObjGetNumInstances(GeoFenceFacesHandle());
 
-		if (num_vertices < 4) // The fewest number of vertices requiered to make a 3D volume is 4.
+		if (num_vertices < 4) {// The fewest number of vertices requiered to make a 3D volume is 4.
+			set_geo_fence_error(SYSTEMALARMS_GEOFENCE_INSUFFICIENTVERTICES);
 			continue;
-		if (num_faces < 4) // The fewest number of faces requiered to make a 3D volume is 4.
+		}
+		if (num_faces < 4) {// The fewest number of faces requiered to make a 3D volume is 4.
+				set_geo_fence_error(SYSTEMALARMS_GEOFENCE_INSUFFICIENTFACES);
 			continue;
+		}
 
 		VelocityActualData velocityActualData;
 		PositionActualData positionActual_now;
@@ -145,6 +172,7 @@ static void geofenceTask(void *parameters)
 		
 		//TODO: It's silly to recreate the normal vector and offset each loop. The equation for the plane should
 		// be computed only when the vertices are changed. However, that is much less RAM efficient.
+
 		for (uint16_t i=0; i<num_vertices; i++) {
 			GeoFenceVerticesData geofenceVerticesData;
 			GeoFenceFacesData geofenceFacesData;
@@ -152,14 +180,36 @@ static void geofenceTask(void *parameters)
 			//Get the face of interest
 			GeoFenceFacesInstGet(i, &geofenceFacesData);
 			
-			//Get the three face vertices. Order is important!
+			//Get the three face vertices and convert into NED. Vertex order is important!
 			GeoFenceVerticesInstGet(geofenceFacesData.Vertices[0], &geofenceVerticesData);
-			float vertexA[3]={geofenceVerticesData.Vertex[0], geofenceVerticesData.Vertex[1], geofenceVerticesData.Vertex[2]};
+			int32_t vertexA_LLH[2]={geofenceVerticesData.Latitude, geofenceVerticesData.Longitude};
+			float vertexA[3];
+			LLH2NED(vertexA_LLH, geofenceVerticesData.Height, vertexA);
+
 			GeoFenceVerticesInstGet(geofenceFacesData.Vertices[1], &geofenceVerticesData);
-			float vertexB[3]={geofenceVerticesData.Vertex[0], geofenceVerticesData.Vertex[1], geofenceVerticesData.Vertex[2]};
+			int32_t vertexB_LLH[2]={geofenceVerticesData.Latitude, geofenceVerticesData.Longitude};
+			float vertexB[3];
+			LLH2NED(vertexB_LLH, geofenceVerticesData.Height, vertexB);
+
 			GeoFenceVerticesInstGet(geofenceFacesData.Vertices[2], &geofenceVerticesData);
-			float vertexC[3]={geofenceVerticesData.Vertex[0], geofenceVerticesData.Vertex[1], geofenceVerticesData.Vertex[2]};
-			
+			int32_t vertexC_LLH[2]={geofenceVerticesData.Latitude, geofenceVerticesData.Longitude};
+			float vertexC[3];
+			LLH2NED(vertexC_LLH, geofenceVerticesData.Height, vertexC);
+
+			if (i == 0) {
+				geofenceStatusData.Status[0] = vertexA[0];
+				geofenceStatusData.Status[1] = vertexA[1];
+				geofenceStatusData.Status[2] = vertexA[2];
+				geofenceStatusData.Status[3] = vertexB[0];
+				geofenceStatusData.Status[4] = vertexB[1];
+				geofenceStatusData.Status[5] = vertexB[2];
+				geofenceStatusData.Status[6] = vertexC[0];
+				geofenceStatusData.Status[7] = vertexC[1];
+				geofenceStatusData.Status[8] = vertexC[2];
+
+				GeoFenceStatusSet(&geofenceStatusData);
+			}
+
 			
 			//From: http://adrianboeing.blogspot.com/2010/02/intersection-of-convex-hull-with-line.html
 			float lineBA[3]={vertexB[0]-vertexA[0], vertexB[1]-vertexA[1], vertexB[2]-vertexA[2]};
@@ -198,16 +248,19 @@ static void geofenceTask(void *parameters)
 				sumCrossingsNow++;
 			}
 		}
+
+		geofenceStatusData.Status[9] = sumCrossingsSoon;
+		geofenceStatusData.Status[10] = sumCrossingsNow;
 	
 		//Test if we have crossed the geo-fence
 		if (sumCrossingsSoon % 2) {	//If there are an odd number of faces crossed, then the UAV is and will be inside the polyhedron. 
-			set_manual_control_error(SYSTEMALARMS_GEOFENCE_LEAVINGBOUNDARY);
+			set_geo_fence_error(SYSTEMALARMS_GEOFENCE_NONE);
 		}
-		else if (sumCrossingsNow % 2) {	//If there are an odd number of faces crossed, then the UAV is inside the polyhedron, but on its current course will soon leave the polygon. 
-			set_manual_control_error(SYSTEMALARMS_GEOFENCE_LEFTBOUNDARY);
+		else if (sumCrossingsNow % 2) {	//If sumCrossingsSoon is even but sumCrossingsNow is odd, then the UAV is inside the polyhedron but on its current course will soon leave.
+			set_geo_fence_error(SYSTEMALARMS_GEOFENCE_LEAVINGBOUNDARY);
 		}
-		else{ //If there are an even number, then the UAV is outside the polyhedron.
-			set_manual_control_error(SYSTEMALARMS_GEOFENCE_NONE);
+		else { //If sumCrossingsNow is even, then the UAV is outside the polyhedron.
+			set_geo_fence_error(SYSTEMALARMS_GEOFENCE_LEFTBOUNDARY);
 		}
 		
 	}
@@ -290,10 +343,10 @@ if (module_state[MODULESETTINGS_ADMINSTATE_VTOLPATHFOLLOWER] == MODULESETTINGS_A
  * @param[in] error code
  */
 /**
- * @brief set_manual_control_error
+ * @brief set_geo_fence_error
  * @param error_code
  */
-static void set_manual_control_error(SystemAlarmsGeoFenceOptions error_code)
+static void set_geo_fence_error(SystemAlarmsGeoFenceOptions error_code)
 {
 	// Get the severity of the alarm given the error code
 	SystemAlarmsAlarmOptions severity;
@@ -306,6 +359,12 @@ static void set_manual_control_error(SystemAlarmsGeoFenceOptions error_code)
 		break;
 	case SYSTEMALARMS_GEOFENCE_LEFTBOUNDARY:
 		severity = SYSTEMALARMS_ALARM_CRITICAL;
+		break;
+	case SYSTEMALARMS_GEOFENCE_INSUFFICIENTVERTICES:
+		severity = SYSTEMALARMS_ALARM_ERROR;
+		break;
+	case SYSTEMALARMS_GEOFENCE_INSUFFICIENTFACES:
+		severity = SYSTEMALARMS_ALARM_ERROR;
 		break;
 	default:
 		severity = SYSTEMALARMS_ALARM_ERROR;
@@ -322,6 +381,55 @@ static void set_manual_control_error(SystemAlarmsGeoFenceOptions error_code)
 
 	// AlarmSet checks only updates on toggle
 	AlarmsSet(SYSTEMALARMS_ALARM_GEOFENCE, (uint8_t) severity);
+}
+
+
+/**
+ * @brief Convert the Lat-Lon-Height position into NED coordinates
+ * @note this method uses a taylor expansion around the home coordinates
+ * to convert to NED which allows it to be done with all floating
+ * calculations
+ * @param[in] World frame coordinates, (Lat, Lon, Height above-ground-level)
+ * @param[out] NED frame coordinates
+ * @returns 0 for success, -1 for failure
+ */
+static float T[3];
+static float geoidSeparation;
+static int32_t LLH2NED(int32_t LL[2], float height_AGL, float *NED)
+{
+	float dL[3] = { (LL[0] - homeLocation.Latitude) / 10.0e6f * DEG2RAD,
+		(LL[1] - homeLocation.Longitude) / 10.0e6f * DEG2RAD,
+		height_AGL
+	};
+
+	NED[0] = T[0] * dL[0];
+	NED[1] = T[1] * dL[1];
+	NED[2] = T[2] * dL[2];
+
+	return 0;
+}
+
+
+/**
+ * @brief HomeLocationUpdatedCb Recompute the translation from LLH to NED
+ * @param objEv
+ */
+static void HomeLocationUpdatedCb(UAVObjEvent *objEv)
+{
+	float lat, alt;
+
+	HomeLocationGet(&homeLocation);
+
+	// Compute vector for converting deltaLLA to NED
+	lat = homeLocation.Latitude / 10.0e6f * DEG2RAD;
+	alt = homeLocation.Altitude;
+
+	T[0] = alt + 6.378137E6f;
+	T[1] = cosf(lat) * (alt + 6.378137E6f);
+	T[2] = -1.0f;
+
+	GPSPositionGeoidSeparationGet(&geoidSeparation);
+
 }
 
 

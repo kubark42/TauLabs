@@ -1,0 +1,11 @@
+<xml>
+    <object name="GeoFenceStatus" singleinstance="true" settings="false">
+        <description>Triangular face in the geofence.</description>
+        <field name="Status" units="-" type="float" elements="30"/>
+		 
+        <access gcs="readwrite" flight="readwrite"/>
+        <telemetrygcs acked="false" updatemode="manual" period="0"/>
+        <telemetryflight acked="false" updatemode="periodic" period="500"/>
+        <logging updatemode="periodic" period="1000"/>
+    </object>
+</xml>

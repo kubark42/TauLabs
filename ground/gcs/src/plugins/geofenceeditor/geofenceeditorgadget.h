@@ -1,13 +1,12 @@
 /**
  ******************************************************************************
- * @file       waypointeditorgadget.h
- * @author     Tau Labs, http://taulabs.org Copyright (C) 2013.
- *
+ * @file       geofenceeditorgadget.h
+ * @author     Tau Labs, http://taulabs.org, Copyright (C) 2013.
  * @addtogroup GCSPlugins GCS Plugins
  * @{
- * @addtogroup GeoFenceEditorGadgetPlugin GeoFence Editor Gadget Plugin
+ * @addtogroup GeoFenceEditorGadgetPlugin Geo-fence Editor Gadget Plugin
  * @{
- * @brief A gadget to edit a geofence mesh
+ * @brief A gadget to edit a list of waypoints
  *****************************************************************************/
 /*
  * This program is free software; you can redistribute it and/or modify
