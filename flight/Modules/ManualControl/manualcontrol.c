@@ -120,7 +120,7 @@ static void manualControlTask(void *parameters)
 		// Process periodic data for each of the controllers, including reading
 		// all available inputs
 		failsafe_control_update();
-//		geofence_control_update();
+		geofence_control_update();
 		transmitter_control_update();
 		tablet_control_update();
 
@@ -133,7 +133,8 @@ static void manualControlTask(void *parameters)
 			control_selection = transmitter_control_selected_controller();
 		else
 			control_selection = CONTROL_SELECTION_GEOFENCE;
-		bool reset_controller_flag = control_selection != last_control_selection;
+
+		bool reset_controller_flag = (control_selection != last_control_selection);
 
 		switch(control_selection) {
 		case CONTROL_SELECTION_FAILSAFE:

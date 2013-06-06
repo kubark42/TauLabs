@@ -47,6 +47,7 @@ int32_t geofence_control_initialize()
 //! Perform any updates to the geofence controller
 int32_t geofence_control_update()
 {
+	// This is where we would hold the vehicle in geofence mode until it's safely back inside the boundary.
 	return 0;
 }
 
