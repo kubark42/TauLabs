@@ -67,7 +67,7 @@
 
 // Private functions
 static void geofenceTask(void *parameters);
-static bool test_line_triange_intersection(PositionActualData *positionActual, float lineCA[3], float lineBA[3], float vertexA[3], float t);
+//static bool test_line_triange_intersection(PositionActualData *positionActual, float lineCA[3], float lineBA[3], float vertexA[3], float t);
 static void set_geo_fence_error(SystemAlarmsGeoFenceOptions error_code);
 static bool check_enabled();
 
@@ -76,6 +76,10 @@ static void HomeLocationUpdatedCb(UAVObjEvent * objEv);
 
 //! Convert LLH to NED
 static int32_t LLH2NED(int32_t LL[2], float height_AGL, float *NED);
+
+//! Calculate ray-triangle intersection
+static bool intersect_triangle( const float V0[3], const float V1[3],const float V2[3], const float  O[3], const float  D[3], float *t);
+
 
 // Private types
 
@@ -141,8 +145,8 @@ static void geofenceTask(void *parameters)
 	while(1) {
 		vTaskDelay(SAMPLE_PERIOD_MS);
 
-		uint8_t sumCrossingsNow=0; //<-- This could just be a bool that is toggled each time there's a crossing
-		uint8_t sumCrossingsSoon=0; //<-- This could just be a bool that is toggled each time there's a crossing
+		uint8_t sum_crossings_buffer_zone = 0; //<-- This could just be a bool that is toggled each time there's a crossing
+		uint8_t sum_crossings_safe_zone = 0; //<-- This could just be a bool that is toggled each time there's a crossing
 		
 		uint16_t num_vertices=UAVObjGetNumInstances(GeoFenceVerticesHandle());
 		uint16_t num_faces=UAVObjGetNumInstances(GeoFenceFacesHandle());
@@ -157,18 +161,18 @@ static void geofenceTask(void *parameters)
 		}
 
 		VelocityActualData velocityActualData;
-		PositionActualData positionActual_now;
-		PositionActualData positionActual_soon;
+		PositionActualData positionActual;
+//		PositionActualData positionActual_soon;
 
 		//Load UAVOs
-		PositionActualGet(&positionActual_now);
+		PositionActualGet(&positionActual);
 		VelocityActualGet(&velocityActualData);
 
 		//Predict UAVO future location
-		float forwardTime = 3; //Predict 3 seconds into the future// TODO: should perhaps not be hardcoded
-		positionActual_soon.North = positionActual_now.North + velocityActualData.North*forwardTime;
-		positionActual_soon.East =  positionActual_now.East  + velocityActualData.East*forwardTime;
-		positionActual_soon.Down =  positionActual_now.Down  + velocityActualData.Down*forwardTime;
+		float safety_buffer_time = 3; //Predict 3 seconds into the future// TODO: should perhaps not be hardcoded
+//		positionActual_soon.North = positionActual.North + velocityActualData.North*safety_buffer_time;
+//		positionActual_soon.East =  positionActual.East  + velocityActualData.East*safety_buffer_time;
+//		positionActual_soon.Down =  positionActual.Down  + velocityActualData.Down*safety_buffer_time;
 		
 		//TODO: It's silly to recreate the normal vector and offset each loop. The equation for the plane should
 		// be computed only when the vertices are changed. However, that is much less RAM efficient.
@@ -211,55 +215,76 @@ static void geofenceTask(void *parameters)
 			}
 
 			
-			//From: http://adrianboeing.blogspot.com/2010/02/intersection-of-convex-hull-with-line.html
-			float lineBA[3]={vertexB[0]-vertexA[0], vertexB[1]-vertexA[1], vertexB[2]-vertexA[2]};
-			float lineCA[3]={vertexC[0]-vertexA[0], vertexC[1]-vertexA[1], vertexC[2]-vertexA[2]};
-			float norm[3];
-			CrossProduct(lineBA, lineCA, norm);
+//			//From: http://adrianboeing.blogspot.com/2010/02/intersection-of-convex-hull-with-line.html
+//			float lineBA[3]={vertexB[0]-vertexA[0], vertexB[1]-vertexA[1], vertexB[2]-vertexA[2]};
+//			float lineCA[3]={vertexC[0]-vertexA[0], vertexC[1]-vertexA[1], vertexC[2]-vertexA[2]};
+//			float norm[3];
+//			CrossProduct(lineBA, lineCA, norm);
 			
-			float d=DotProduct(norm,vertexA);
-			/* This is what the ray looks like, but we have optimized it out of the algorithm so it does not
-				explicitly appear in the calculations:
-					float ray={positionActual_soon[0]+1, positionActual_soon[1], positionActual_soon[2]};
-			*/
+//			float d=DotProduct(norm,vertexA);
+//			/* This is what the ray looks like, but we have optimized it out of the algorithm so it does not
+//				explicitly appear in the calculations:
+//					float ray={positionActual_soon[0]+1, positionActual_soon[1], positionActual_soon[2]};
+//			*/
 			
-			//Solve for line parameter t=d-n*x/(n*ray-x). However, take shortcut because we know that ray-x is [1;0;0]
-			if (fabs(norm[0]<1e-4)) { //If the value of (n*ray-x) is too small, then the ray is parallel to the plane
+//			//Solve for line parameter t=d-n*x/(n*ray-x). However, take shortcut because we know that ray-x is [1;0;0]
+//			if (fabs(norm[0]<1e-4)) { //If the value of (n*ray-x) is too small, then the ray is parallel to the plane
+//				continue;
+//			}
+			
+//			float NED_soon[3]={positionActual_soon.North, positionActual_soon.East, positionActual_soon.Down};
+			float NED_now[3] ={positionActual.North,  positionActual.East,  positionActual.Down};
+//			float t_soon =(d-DotProduct(norm,NED_soon))/norm[0];
+//			float t_now = (d-DotProduct(norm,NED_now) )/norm[0];
+
+			float D[3] = {velocityActualData.North, velocityActualData.East, velocityActualData.Down};
+			float t_now = 0;
+
+			// Test if ray falls inside triangle. No need to independently test for both t_soon and t_now ray, as they are identical rays
+			bool inside = intersect_triangle(vertexA, vertexB, vertexC, NED_now, D, &t_now);
+
+			// Check ray results
+			if (inside == false) // If no intersection, then continue
 				continue;
+			else if (t_now < 0) // If no positive intersection, then continue
+				continue;
+			else if (t_now < safety_buffer_time) { // The vehicle is in the safety buffer zone
+				sum_crossings_buffer_zone++;
 			}
+			else { // The vehicle is safely inside the geo-fence
+				sum_crossings_safe_zone++;
+				sum_crossings_buffer_zone++;
+			}
+
+//			//Only use the positive side of the ray, as any faces behind it do not intersect with the ray
+//			if (t_now < 0){
+// //			if (t_soon<0 && t_now < 0){
+//				continue;
+//			}
 			
-			float NED_soon[3]={positionActual_soon.North, positionActual_soon.East, positionActual_soon.Down};
-			float NED_now[3] ={positionActual_now.North,  positionActual_now.East,  positionActual_now.Down};
-			float t_soon=(d-DotProduct(norm,NED_soon))/norm[0];
-			float t_now= (d-DotProduct(norm,NED_now) )/norm[0];
+// //			//Test if ray falls inside triangle. No need to independently test for both t_soon and t_now ray, as they are identical rays
+// //			bool inside=test_line_triange_intersection(&positionActual_soon, lineCA, lineBA, vertexA, t_soon);
 			
 			//Only use the positive side of the ray, as any faces behind it do not intersect with the ray
-			if (t_soon<0 && t_now < 0){
-				continue;
-			}
-			
-			//Test if ray falls inside triangle. No need to independently test for both t_soon and t_now ray, as they are identical rays
-			bool 	inside=test_line_triange_intersection(&positionActual_soon, lineCA, lineBA, vertexA, t_soon);
-			
-			if (inside && t_soon > 0) {
-				sumCrossingsSoon++;
-			}
-			if (inside /*&& t_now > 0*/) { //No need to test t_now, as it's already implicit in the test several lines higher
-				sumCrossingsNow++;
-			}
+//			if (t_soon > 0) {
+//				sum_crossings_safe_zone++;
+//			}
+//			if (inside /*&& t_now > 0*/) { //No need to test t_now, as it's already implicit in the test several lines higher
+//				sum_crossings_buffer_zone++;
+//			}
 		}
 
-		geofenceStatusData.Status[9] = sumCrossingsSoon;
-		geofenceStatusData.Status[10] = sumCrossingsNow;
+		geofenceStatusData.Status[9] = sum_crossings_safe_zone;
+		geofenceStatusData.Status[10] = sum_crossings_buffer_zone;
 	
-		//Test if we have crossed the geo-fence
-		if (sumCrossingsSoon % 2) {	//If there are an odd number of faces crossed, then the UAV is and will be inside the polyhedron. 
+		//Tests if we have crossed the geo-fence
+		if (sum_crossings_safe_zone % 2) {	//If there are an odd number of faces crossed, then the UAV is and will be inside the polyhedron.
 			set_geo_fence_error(SYSTEMALARMS_GEOFENCE_NONE);
 		}
-		else if (sumCrossingsNow % 2) {	//If sumCrossingsSoon is even but sumCrossingsNow is odd, then the UAV is inside the polyhedron but on its current course will soon leave.
+		else if (sum_crossings_buffer_zone % 2) {	//If sum_crossings_safe_zone is even but sum_crossings_buffer_zone is odd, then the UAV is inside the polyhedron but is leaving soon.
 			set_geo_fence_error(SYSTEMALARMS_GEOFENCE_LEAVINGBOUNDARY);
 		}
-		else { //If sumCrossingsNow is even, then the UAV is outside the polyhedron.
+		else { //If sum_crossings_buffer_zone is even, then the UAV is outside the polyhedron.
 			set_geo_fence_error(SYSTEMALARMS_GEOFENCE_LEFTBOUNDARY);
 		}
 		
@@ -267,34 +292,103 @@ static void geofenceTask(void *parameters)
 	
 }
 
+#define EPSILON .000001f
 
 /**
- * Test if a line intersects a triangle
- * From: http://www.blackpawn.com/texts/pointinpoly/default.html
+ * @brief triangle_intersection "Fast Minimum Storage Ray Triange Intersection", Moller
+ * and Trumbore, 1997.
+ * @param[in] V0 VertexA
+ * @param[in] V1 VertexB
+ * @param[in] V2 VertexC
+ * @param[in] O 3D Ray origin
+ * @param[in] D 3D Ray direction
+ * @param[out] t intersection line parameter
+ * @return
  */
-
-static bool test_line_triange_intersection(PositionActualData *positionActual, float lineCA[3], float lineBA[3], float vertexA[3], float t)
+static bool intersect_triangle(const float V0[3],  // Triangle vertices
+                               const float V1[3],
+                               const float V2[3],
+                               const float  O[3],  // Ray origin
+                               const float  D[3],  // Ray direction
+                                     float *t)     // output
 {
-	float P[3]={positionActual->North+t, positionActual->East, positionActual->Down};
-	
-	float linePA[3]={P[0]-vertexA[0], P[1]-vertexA[1], P[2]-vertexA[2]};
-	
-	float dot00 = DotProduct(lineCA, lineCA);
-	float dot01 = DotProduct(lineCA, lineBA);
-	float dot02 = DotProduct(lineCA, linePA);
-	float dot11 = DotProduct(lineBA, lineBA);
-	float dot12 = DotProduct(lineBA, linePA);
-	
-	// Compute barycentric coordinates
-	float invDenom = 1.0f / (dot00 * dot11 - dot01 * dot01);
-	float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-	float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-	
-	//Test if point is inside triangle
-	bool 	inside=(u >= 0) && (v >= 0) && (u + v < 1.0f);
-	
-	return inside;
+	float edge1[3];
+	float edge2[3];
+	float P[3];
+	float Q[3];
+	float T[3];
+	float det;
+	float inv_det;
+	float u;
+	float v;
+
+	//Find vectors for two edges sharing V0
+	for (int i=0; i<3; i++) {
+		edge1[i] = V1[i] - V0[i];
+		edge2[i] = V2[i] - V0[i];
+	}
+
+	//Begin calculating determinant - also used to calculate u parameter
+	CrossProduct(D, edge2, P); // P = D x e2
+
+	//if determinant is near zero, ray lies in plane of triangle
+	det = DotProduct(edge1, P);
+
+	if(det > -EPSILON && det < EPSILON)
+		return 0;
+
+	//calculate distance from V0 to ray origin
+	for (int i=0; i<3; i++)
+		T[i] = O[i] - V0[i];
+
+	//Calculate u parameter and test bound
+	inv_det = 10.f / det;
+	u = DotProduct(T, P) * inv_det;
+	//The intersection lies outside of the triangle
+	if(u < 0.0f || u > 1.0f)
+		return 0;
+
+	//Prepare to test v parameter
+	CrossProduct(T, edge1, Q); // Q = T x e1;
+
+	//Calculate V parameter and test bound
+	v = DotProduct(D, Q) * inv_det;
+	//The intersection lies outside of the triangle
+	if(v < 0.0f || u + v  > 1.0f)
+		return 0;
+
+	*t = DotProduct(edge2, Q) * inv_det;
+	return 1;
 }
+
+
+///**
+// * Test if a line intersects a triangle
+// * From: http://www.blackpawn.com/texts/pointinpoly/default.html
+// */
+
+//static bool test_line_triange_intersection(PositionActualData *positionActual, float lineCA[3], float lineBA[3], float vertexA[3], float t)
+//{
+//	float P[3]={positionActual->North+t, positionActual->East, positionActual->Down};
+	
+//	float linePA[3]={P[0]-vertexA[0], P[1]-vertexA[1], P[2]-vertexA[2]};
+	
+//	float dot00 = DotProduct(lineCA, lineCA);
+//	float dot01 = DotProduct(lineCA, lineBA);
+//	float dot02 = DotProduct(lineCA, linePA);
+//	float dot11 = DotProduct(lineBA, lineBA);
+//	float dot12 = DotProduct(lineBA, linePA);
+	
+//	// Compute barycentric coordinates
+//	float invDenom = 1.0f / (dot00 * dot11 - dot01 * dot01);
+//	float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+//	float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+	
+//	//Test if point is inside triangle
+//	bool 	inside=(u >= 0) && (v >= 0) && (u + v < 1.0f);
+	
+//	return inside;
+//}
 
 
 static bool check_enabled()
