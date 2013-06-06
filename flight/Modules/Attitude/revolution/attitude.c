@@ -627,25 +627,28 @@ static int32_t setNavigationRaw()
 	// Flush these queues for avoid errors
 	xQueueReceive(baroQueue, &ev, 0);
 	if ( xQueueReceive(gpsQueue, &ev, 0) == pdTRUE && homeLocation.Set == HOMELOCATION_SET_TRUE ) {
-		float NED[3];
+		float NED[3] = {0,0,0};
 		// Transform the GPS position into NED coordinates
 		GPSPositionData gpsPosition;
 		GPSPositionGet(&gpsPosition);
-		getNED(&gpsPosition, NED);
+		if (gpsPosition.Satellites >= 6 && gpsPosition.PDOP < 4.0f)
+		{
+			getNED(&gpsPosition, NED);
 
-		NEDPositionData nedPosition;
-		NEDPositionGet(&nedPosition);
-		nedPosition.North = NED[0];
-		nedPosition.East = NED[1];
-		nedPosition.Down = NED[2];
-		NEDPositionSet(&nedPosition);
+			NEDPositionData nedPosition;
+			NEDPositionGet(&nedPosition);
+			nedPosition.North = NED[0];
+			nedPosition.East = NED[1];
+			nedPosition.Down = NED[2];
+			NEDPositionSet(&nedPosition);
 
-		PositionActualData positionActual;
-		PositionActualGet(&positionActual);
-		positionActual.North = NED[0];
-		positionActual.East = NED[1];
-		positionActual.Down = NED[2];
-		PositionActualSet(&positionActual);
+			PositionActualData positionActual;
+			PositionActualGet(&positionActual);
+			positionActual.North = NED[0];
+			positionActual.East = NED[1];
+			positionActual.Down = NED[2];
+			PositionActualSet(&positionActual);
+		}
 	}
 
 	if ( xQueueReceive(gpsVelQueue, &ev, 0) == pdTRUE ) {
