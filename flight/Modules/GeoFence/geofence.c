@@ -213,7 +213,12 @@ static void geofenceTask(void *parameters)
 
 				GeoFenceStatusSet(&geofenceStatusData);
 			}
-
+			if (i == 1) {
+				geofenceStatusData.Status[9] = vertexC[0];
+				geofenceStatusData.Status[10] = vertexC[1];
+				geofenceStatusData.Status[11] = vertexC[2];
+				GeoFenceStatusSet(&geofenceStatusData);
+			}
 			
 //			//From: http://adrianboeing.blogspot.com/2010/02/intersection-of-convex-hull-with-line.html
 //			float lineBA[3]={vertexB[0]-vertexA[0], vertexB[1]-vertexA[1], vertexB[2]-vertexA[2]};
@@ -238,10 +243,18 @@ static void geofenceTask(void *parameters)
 //			float t_now = (d-DotProduct(norm,NED_now) )/norm[0];
 
 			float D[3] = {velocityActualData.North, velocityActualData.East, velocityActualData.Down};
-			float t_now = 0;
+			// Handle the case where the vehicle is stopped, and thus there is no directionality to the velocity vector
+			if (D[0] == 0 && D[1] == 0 && D[2] == 0)
+				D[0] = 1;
+			float t_now = -1;
 
 			// Test if ray falls inside triangle. No need to independently test for both t_soon and t_now ray, as they are identical rays
 			bool inside = intersect_triangle(vertexA, vertexB, vertexC, NED_now, D, &t_now);
+
+			geofenceStatusData.Status[12+2*i] = t_now;
+			geofenceStatusData.Status[12+2*i+1] = inside == true;
+			GeoFenceStatusSet(&geofenceStatusData);
+
 
 			// Check ray results
 			if (inside == false) // If no intersection, then continue
@@ -274,8 +287,8 @@ static void geofenceTask(void *parameters)
 //			}
 		}
 
-		geofenceStatusData.Status[9] = sum_crossings_safe_zone;
-		geofenceStatusData.Status[10] = sum_crossings_buffer_zone;
+		geofenceStatusData.Status[21] = sum_crossings_safe_zone;
+		geofenceStatusData.Status[22] = sum_crossings_buffer_zone;
 	
 		//Tests if we have crossed the geo-fence
 		if (sum_crossings_safe_zone % 2) {	//If there are an odd number of faces crossed, then the UAV is and will be inside the polyhedron.
@@ -342,7 +355,7 @@ static bool intersect_triangle(const float V0[3],  // Triangle vertices
 		T[i] = O[i] - V0[i];
 
 	//Calculate u parameter and test bound
-	inv_det = 10.f / det;
+	inv_det = 1.0f / det;
 	u = DotProduct(T, P) * inv_det;
 	//The intersection lies outside of the triangle
 	if(u < 0.0f || u > 1.0f)
