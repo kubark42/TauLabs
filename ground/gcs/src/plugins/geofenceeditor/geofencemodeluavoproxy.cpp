@@ -419,12 +419,14 @@ GeoFenceModelPolyhedron GeoFenceModelUavoProxy::isPolyhedronClosed()
 
     // If all edges aren't used exactly twice, then the manifold has a boundary.
     // 1) Sort left-to-right
-    foreach(QVector<double> edge, edgeList) {
+    for(int i=0; i<edgeList.size(); i++) {
+        QVector<double> edge = edgeList.at(i);
         if(edge[0] > edge[1]) {
             double tmp = edge[0];
             edge[0] = edge[1];
             edge[1] = tmp;
         }
+        edgeList.replace(i, edge);
      }
 
     // 2) Sort rows

@@ -97,15 +97,31 @@ void GeoFenceEditorGadgetWidget::WalkGeometry(const GeometryPtr& geometry) {
                     importedVertices.append(newVertex);
                 }
 
+                // Populate face with vertices, and sorting the vertices by ascending order
                 switch (i) {
                 case 0:
                     newFace.vertexA = existingVertex;
                     break;
                 case 1:
-                    newFace.vertexB = existingVertex;
+                    if (existingVertex > newFace.vertexA)
+                        newFace.vertexB = existingVertex;
+                    else {
+                        newFace.vertexB = newFace.vertexA;
+                        newFace.vertexA = existingVertex;
+                    }
                     break;
                 case 2:
-                    newFace.vertexC = existingVertex;
+                    if (existingVertex > newFace.vertexB)
+                        newFace.vertexC = existingVertex;
+                    else if (existingVertex > newFace.vertexA) {
+                        newFace.vertexC = newFace.vertexB;
+                        newFace.vertexB = existingVertex;
+                    }
+                    else {
+                        newFace.vertexC = newFace.vertexB;
+                        newFace.vertexB = newFace.vertexA;
+                        newFace.vertexA = existingVertex;
+                    }
                     break;
                 }
             }
