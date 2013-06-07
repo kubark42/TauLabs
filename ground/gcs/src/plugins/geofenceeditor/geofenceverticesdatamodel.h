@@ -56,11 +56,12 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
     QVariant headerData(int section, Qt::Orientation orientation, int role) const;
-
     bool setData(const QModelIndex & index, const QVariant & value, int role = Qt::EditRole);
     Qt::ItemFlags flags(const QModelIndex & index) const ;
     bool insertRows ( int row, int count, const QModelIndex & parent = QModelIndex() );
     bool removeRows ( int row, int count, const QModelIndex & parent = QModelIndex() );
+
+    void replaceModel(QVector<GeoFenceVerticesData>);
     bool writeToFile(QString filename);
     void readFromFile(QDomElement root);
     

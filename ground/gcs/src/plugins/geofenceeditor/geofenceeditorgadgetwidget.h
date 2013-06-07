@@ -27,14 +27,44 @@
 #ifndef GEOFENCEEDITORGADGETWIDGET_H
 #define GEOFENCEEDITORGADGETWIDGET_H
 
-#include <QtGui/QLabel>
+#include <QLabel>
 #include <QItemSelectionModel>
 #include "geofenceverticesdatamodel.h"
 #include "geofencefacesdatamodel.h"
 #include "geofencemodeluavoproxy.h"
 #include "geofenceeditor_global.h"
 
+#include "kml/base/file.h"
+#include "kml/dom.h"
+#include "kml/engine.h"
+
+using kmldom::KmlFactory;
+using kmldom::BalloonStylePtr;
+using kmldom::ContainerPtr;
+using kmldom::DocumentPtr;
+using kmldom::ElementPtr;
+using kmldom::PlacemarkPtr;
+using kmldom::PolygonPtr;
+using kmldom::FeaturePtr;
+using kmldom::GeometryPtr;
+using kmldom::MultiGeometryPtr;
+using kmldom::OuterBoundaryIsPtr;
+using kmldom::LinearRingPtr;
+using kmldom::CoordinatesPtr;
+using kmldom::SnippetPtr;
+using kmldom::StylePtr;
+//using kmldom::SerializePretty;
+//using kmlengine::CreateBalloonText;
+using kmlengine::FeatureVisitor;
+using kmlengine::GetRootFeature;
+using kmlengine::KmlFile;
+using kmlengine::KmzFile;
+using kmlengine::KmlFilePtr;
+//using kmlengine::VisitFeatureHierarchy;
+using kmldom::KmlPtr;
+
 class Ui_GeoFenceDialog;
+
 
 class GEOFENCEEDITOR_EXPORT GeoFenceEditorGadgetWidget : public QLabel
 {
@@ -63,10 +93,17 @@ private slots:
     void on_tbFetchFromUAV_clicked();
 
 private:
+    void WalkGeometry(const GeometryPtr& geometry);
+    void WalkFeature(const FeaturePtr& feature);
+    void WalkContainer(const ContainerPtr& container);
+
     Ui_GeoFenceDialog  *ui;
     GeoFenceVerticesDataModel *verticesDataModel;
     GeoFenceFacesDataModel *facesDataModel;
     GeoFenceModelUavoProxy  *proxy;
+
+    QVector<GeoFenceVerticesData> importedVertices;
+    QVector<GeoFenceFacesData>    importedFaces;
 
 signals:
     void sendPathPlanToUAV();

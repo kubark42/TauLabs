@@ -6,7 +6,7 @@
  * @{
  * @addtogroup GeoFenceEditorGadgetPlugin Geo-fence Editor Gadget Plugin
  * @{
- * @brief A gadget to edit a list of waypoints
+ * @brief A gadget to edit a geofence
  *****************************************************************************/
 /*
  * This program is free software; you can redistribute it and/or modify

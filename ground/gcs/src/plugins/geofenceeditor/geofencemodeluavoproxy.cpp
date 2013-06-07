@@ -36,36 +36,12 @@
 #include "utils/coordinateconversions.h"
 #include "homelocation.h"
 
-#include "kml/dom.h"  // The KML DOM header.
-
 //! Initialize the model uavo proxy
 GeoFenceModelUavoProxy::GeoFenceModelUavoProxy(QObject *parent, GeoFenceVerticesDataModel *verticesModel, GeoFenceFacesDataModel *facesModel):
     QObject(parent),
     myVerticesModel(verticesModel),
     myFacesModel(facesModel)
 {
-    // Parse KML from a memory buffer.
-    std::string errors;
-    kmldom::ElementPtr element = kmldom::Parse(
-      "<kml>"
-        "<Placemark>"
-          "<name>hi</name>"
-          "<Point>"
-            "<coordinates>1,2,3</coordinates>"
-          "</Point>"
-        "</Placemark>"
-      "</kml>",
-      &errors);
-
-    // Convert the type of the root element of the parse.
-    const kmldom::KmlPtr kml = kmldom::AsKml(element);
-    const kmldom::PlacemarkPtr placemark =
-      kmldom::AsPlacemark(kml->get_feature());
-
-    // Access the value of the <name> element.
-    std::cout << "The Placemark name is: " << placemark->get_name()
-      << std::endl;
-
     ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
     objManager = pm->getObject<UAVObjectManager>();
     geofenceFaces = GeoFenceFaces::GetInstance(objManager);

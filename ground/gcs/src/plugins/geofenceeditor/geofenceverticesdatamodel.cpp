@@ -207,6 +207,23 @@ bool GeoFenceVerticesDataModel::writeToFile(QString fileName)
     return true;
 }
 
+void GeoFenceVerticesDataModel::replaceModel(QVector<GeoFenceVerticesData> importedVertices)
+{
+    removeRows(0,rowCount());
+
+    foreach(GeoFenceVerticesData data, importedVertices) {
+        // Create a local copy. This is necessary because the data model handles deleting the local data
+        GeoFenceVerticesData *data_ptr = new GeoFenceVerticesData;
+        data_ptr->latitude  = data.latitude;
+        data_ptr->longitude = data.longitude;
+        data_ptr->altitude  = data.altitude;
+        data_ptr->vertexId  = data.vertexId;
+
+        beginInsertRows(QModelIndex(), dataStorage.length(), dataStorage.length());
+        dataStorage.append(data_ptr);
+        endInsertRows();
+    }
+}
 
 void GeoFenceVerticesDataModel::readFromFile(QDomElement root)
 {

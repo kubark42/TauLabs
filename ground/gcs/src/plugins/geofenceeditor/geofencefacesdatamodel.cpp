@@ -172,15 +172,15 @@ bool GeoFenceFacesDataModel::writeToFile(QString fileName)
     QDomDocument doc("Geofence");
     QDomElement root = doc.createElement("dataModel");
     doc.appendChild(root);
-    QDomElement vertices = doc.createElement("faces");
-    root.appendChild(vertices);
+    QDomElement faces = doc.createElement("faces");
+    root.appendChild(faces);
 
     foreach(GeoFenceFacesData * obj,dataStorage)
     {
 
         QDomElement geofence = doc.createElement("face");
         geofence.setAttribute("number",dataStorage.indexOf(obj));
-        vertices.appendChild(geofence);
+        faces.appendChild(geofence);
         QDomElement field=doc.createElement("field");
         field.setAttribute("value", obj->faceID);
         field.setAttribute("name","faceID");
@@ -208,6 +208,26 @@ bool GeoFenceFacesDataModel::writeToFile(QString fileName)
 
     return true;
 }
+
+
+void GeoFenceFacesDataModel::replaceModel(QVector<GeoFenceFacesData> importedFaces)
+{
+    removeRows(0,rowCount());
+
+    foreach(GeoFenceFacesData data, importedFaces) {
+        // Create a local copy. This is necessary because the data model handles deleting the local data
+        GeoFenceFacesData *data_ptr = new GeoFenceFacesData;
+        data_ptr->faceID  = data.faceID;
+        data_ptr->vertexA = data.vertexA;
+        data_ptr->vertexB = data.vertexB;
+        data_ptr->vertexC = data.vertexC;
+
+        beginInsertRows(QModelIndex(), dataStorage.length(), dataStorage.length());
+        dataStorage.append(data_ptr);
+        endInsertRows();
+    }
+}
+
 void GeoFenceFacesDataModel::readFromFile(QDomElement root)
 {
     removeRows(0,rowCount());
