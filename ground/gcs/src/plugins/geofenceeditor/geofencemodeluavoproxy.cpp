@@ -36,12 +36,36 @@
 #include "utils/coordinateconversions.h"
 #include "homelocation.h"
 
+#include "kml/dom.h"  // The KML DOM header.
+
 //! Initialize the model uavo proxy
 GeoFenceModelUavoProxy::GeoFenceModelUavoProxy(QObject *parent, GeoFenceVerticesDataModel *verticesModel, GeoFenceFacesDataModel *facesModel):
     QObject(parent),
     myVerticesModel(verticesModel),
     myFacesModel(facesModel)
 {
+    // Parse KML from a memory buffer.
+    std::string errors;
+    kmldom::ElementPtr element = kmldom::Parse(
+      "<kml>"
+        "<Placemark>"
+          "<name>hi</name>"
+          "<Point>"
+            "<coordinates>1,2,3</coordinates>"
+          "</Point>"
+        "</Placemark>"
+      "</kml>",
+      &errors);
+
+    // Convert the type of the root element of the parse.
+    const kmldom::KmlPtr kml = kmldom::AsKml(element);
+    const kmldom::PlacemarkPtr placemark =
+      kmldom::AsPlacemark(kml->get_feature());
+
+    // Access the value of the <name> element.
+    std::cout << "The Placemark name is: " << placemark->get_name()
+      << std::endl;
+
     ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
     objManager = pm->getObject<UAVObjectManager>();
     geofenceFaces = GeoFenceFaces::GetInstance(objManager);
@@ -358,27 +382,6 @@ bool sortRows (QVector<double> i, QVector<double> j)
         return false;
 }
 
-//int main () {
-//  int myints[] = {32,71,12,45,26,80,53,33};
-//  std::vector<int> myvector (myints, myints+8);               // 32 71 12 45 26 80 53 33
-
-//  // using default comparison (operator <):
-//  std::sort (myvector.begin(), myvector.begin()+4);           //(12 32 45 71)26 80 53 33
-
-//  // using function as comp
-//  std::sort (myvector.begin()+4, myvector.end(), myfunction); // 12 32 45 71(26 33 53 80)
-
-//  // using object as comp
-//  std::sort (myvector.begin(), myvector.end(), myobject);     //(12 26 32 33 45 53 71 80)
-
-//  // print out content:
-//  std::cout << "myvector contains:";
-//  for (std::vector<int>::iterator it=myvector.begin(); it!=myvector.end(); ++it)
-//    std::cout << ' ' << *it;
-//  std::cout << '\n';
-
-//  return 0;
-//}
 
 /**
  * @brief GeoFenceModelUavoProxy::isPolyhedronClosed  Test if polyhedron is closed, i.e. if it's a polytope, i.e. if it's a closed manifold.
