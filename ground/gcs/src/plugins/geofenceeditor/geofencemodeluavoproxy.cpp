@@ -421,10 +421,6 @@ GeoFenceModelPolyhedron GeoFenceModelUavoProxy::isPolyhedronClosed()
         edgeList.append(edge);
     }
 
-    // If the number of edges is odd, then the manifold has a boundary, i.e. it is open
-    if ((edgeList.size() % 2) != 0)
-        return GEOFENCE_OPEN_UNEVEN_NUMBER_OF_FACES;
-
     // Check if all vertices are used
     for (int i=0; i<myVerticesModel->rowCount(); i++ ) {
         bool isUsed = false;
@@ -438,8 +434,12 @@ GeoFenceModelPolyhedron GeoFenceModelUavoProxy::isPolyhedronClosed()
             return GEOFENCE_OPEN_UNUSED_VERTICES;
     }
 
+    // If the number of edges is odd, then the manifold has a boundary, i.e. it is open
+    if ((edgeList.size() % 2) != 0)
+        return GEOFENCE_OPEN_UNEVEN_NUMBER_OF_FACES;
 
-    // Sort left-to-right
+    // If all edges aren't used exactly twice, then the manifold has a boundary.
+    // 1) Sort left-to-right
     foreach(QVector<double> edge, edgeList) {
         if(edge[0] > edge[1]) {
             double tmp = edge[0];
@@ -448,10 +448,10 @@ GeoFenceModelPolyhedron GeoFenceModelUavoProxy::isPolyhedronClosed()
         }
      }
 
-    // Sort rows
+    // 2) Sort rows
     std::sort(edgeList.begin(), edgeList.end(), sortRows);
 
-    // Test if each item appears in the list exactly twice.
+    // 3) Test if each item appears in the list exactly twice.
     for (int i=0; i < edgeList.size()-1; i+=2) {
         if ((edgeList[i][0] != edgeList[i+1][0]) && (edgeList[i][1] != edgeList[i+1][1])) {
             return GEOFENCE_OPEN_BOUNDARY_EDGES;
