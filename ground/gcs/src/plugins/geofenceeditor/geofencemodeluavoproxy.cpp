@@ -27,6 +27,7 @@
 
 #include <QDebug>
 #include <QEventLoop>
+#include <QMessageBox>
 #include <QTimer>
 #include "geofencemodeluavoproxy.h"
 #include "extensionsystem/pluginmanager.h"
@@ -53,6 +54,34 @@ GeoFenceModelUavoProxy::GeoFenceModelUavoProxy(QObject *parent, GeoFenceVertices
  */
 void GeoFenceModelUavoProxy::modelToObjects()
 {
+    // Test if polyhedron is closed
+    GeoFenceModelPolyhedron ret = isPolyhedronClosed();
+
+    switch (ret) {
+    case GEOFENCE_DUPLICATE_VERTICES:
+        QMessageBox::critical(new QWidget(),"Duplicate VertexID", "The geofence cannot be uploaded. There are duplicate Vertex IDs.");
+        return;
+        break;
+    case GEOFENCE_DUPLICATE_FACES:
+        QMessageBox::critical(new QWidget(),"Duplicate FaceID", "The geofence cannot be uploaded. There are duplicate Face IDs.");
+        return;
+        break;
+    case GEOFENCE_OPEN_UNEVEN_NUMBER_OF_FACES:
+        QMessageBox::critical(new QWidget(),"Open polyhedron", "An open geofence cannot be uploaded. It is not closed because it has an uneven number of faces.");
+        return;
+        break;
+    case GEOFENCE_OPEN_BOUNDARY_EDGES:
+        QMessageBox::critical(new QWidget(),"Open polyhedron", "An open geofence cannot be uploaded. It is not closed because at least one face edge is a boundary.");
+        return;
+        break;
+    case GEOFENCE_OPEN_UNUSED_VERTICES:
+        QMessageBox::critical(new QWidget(),"Unused vertices", "The geofence includes unused vertices, and cannot be uploaded.");
+        return;
+        break;
+    case GEOFENCE_CLOSED:
+        break;
+    }
+
     // Set metadata
     GeoFenceVertices *gfV = GeoFenceVertices::GetInstance(objManager, 0);
     GeoFenceFaces *gfF = GeoFenceFaces::GetInstance(objManager, 0);
@@ -103,7 +132,7 @@ void GeoFenceModelUavoProxy::modelToObjects()
 
         geofenceVerticesData.Latitude = lround(myVerticesModel->data(myVerticesModel->index(x, GeoFenceVerticesDataModel::GEO_LATITUDE)).toDouble() * 10e6);
         geofenceVerticesData.Longitude = lround(myVerticesModel->data(myVerticesModel->index(x, GeoFenceVerticesDataModel::GEO_LONGITUDE)).toDouble() * 10e6);
-        geofenceVerticesData.Height = myVerticesModel->data(myVerticesModel->index(x, GeoFenceVerticesDataModel::GEO_HEIGHT)).toDouble();
+        geofenceVerticesData.Altitude = myVerticesModel->data(myVerticesModel->index(x, GeoFenceVerticesDataModel::GEO_ALTITUDE)).toDouble();
 
         qDebug() << "Another vertices: " << x << " out of: "<< myVerticesModel->rowCount();
 
@@ -290,7 +319,7 @@ void GeoFenceModelUavoProxy::objectsToModel()
         // Store the data
         myVerticesModel->setData(myVerticesModel->index(x, GeoFenceVerticesDataModel::GEO_LATITUDE),  gfVdata.Latitude/10e6);
         myVerticesModel->setData(myVerticesModel->index(x, GeoFenceVerticesDataModel::GEO_LONGITUDE), gfVdata.Longitude/10e6);
-        myVerticesModel->setData(myVerticesModel->index(x, GeoFenceVerticesDataModel::GEO_HEIGHT),  gfVdata.Height);
+        myVerticesModel->setData(myVerticesModel->index(x, GeoFenceVerticesDataModel::GEO_ALTITUDE),  gfVdata.Altitude);
         myVerticesModel->setData(myVerticesModel->index(x, GeoFenceVerticesDataModel::GEO_VERTEX_ID), x);
     }
 
@@ -315,4 +344,119 @@ void GeoFenceModelUavoProxy::objectsToModel()
         myFacesModel->setData(myFacesModel->index(x, GeoFenceFacesDataModel::GEO_VERTEX_C), gfFdata.Vertices[GeoFenceFaces::VERTICES_C]);
         myFacesModel->setData(myFacesModel->index(x, GeoFenceFacesDataModel::GEO_FACE_ID),  x);
     }
+}
+
+bool sortRows (QVector<double> i, QVector<double> j)
+{
+    if (i[0] < j[0])
+        return true;
+    else if (i[0] > j[0])
+        return false;
+    else if (i[1] < j[1])
+        return true;
+    else
+        return false;
+}
+
+//int main () {
+//  int myints[] = {32,71,12,45,26,80,53,33};
+//  std::vector<int> myvector (myints, myints+8);               // 32 71 12 45 26 80 53 33
+
+//  // using default comparison (operator <):
+//  std::sort (myvector.begin(), myvector.begin()+4);           //(12 32 45 71)26 80 53 33
+
+//  // using function as comp
+//  std::sort (myvector.begin()+4, myvector.end(), myfunction); // 12 32 45 71(26 33 53 80)
+
+//  // using object as comp
+//  std::sort (myvector.begin(), myvector.end(), myobject);     //(12 26 32 33 45 53 71 80)
+
+//  // print out content:
+//  std::cout << "myvector contains:";
+//  for (std::vector<int>::iterator it=myvector.begin(); it!=myvector.end(); ++it)
+//    std::cout << ' ' << *it;
+//  std::cout << '\n';
+
+//  return 0;
+//}
+
+/**
+ * @brief GeoFenceModelUavoProxy::isPolyhedronClosed  Test if polyhedron is closed, i.e. if it's a polytope, i.e. if it's a closed manifold.
+ * @return
+ */
+GeoFenceModelPolyhedron GeoFenceModelUavoProxy::isPolyhedronClosed()
+{
+    // A polyhedron is closed if and only if each edge is shared by exactly two triangles
+    QVector< QVector<double> > edgeList;
+
+    // Check that all vertice and face IDs are unique
+    for (int i=0; i<myVerticesModel->rowCount(); i++ ) {
+        myVerticesModel->data(myVerticesModel->index(i, GeoFenceVerticesDataModel::GEO_VERTEX_ID)).toUInt();
+        for (int j=i+1; j<myVerticesModel->rowCount(); j++ ) {
+            if (myVerticesModel->data(myVerticesModel->index(i, GeoFenceFacesDataModel::GEO_FACE_ID)).toUInt() == myVerticesModel->data(myVerticesModel->index(j, GeoFenceFacesDataModel::GEO_FACE_ID)).toUInt())
+                return GEOFENCE_DUPLICATE_VERTICES;
+        }
+    }
+    for (int i=0; i<myFacesModel->rowCount(); i++ ) {
+        for (int j=i+1; j<myFacesModel->rowCount(); j++ ) {
+            if (myFacesModel->data(myFacesModel->index(i, GeoFenceFacesDataModel::GEO_FACE_ID)).toUInt() == myFacesModel->data(myFacesModel->index(j, GeoFenceFacesDataModel::GEO_FACE_ID)).toUInt())
+                return GEOFENCE_DUPLICATE_FACES;
+        }
+    }
+
+    // Compile list of all edges
+    for (int i=0; i<myFacesModel->rowCount(); i++ ) {
+        QVector<double> edge(2);
+
+        edge[0] = myFacesModel->data(myFacesModel->index(i, GeoFenceFacesDataModel::GEO_VERTEX_A)).toUInt();
+        edge[1] = myFacesModel->data(myFacesModel->index(i, GeoFenceFacesDataModel::GEO_VERTEX_B)).toUInt();
+        edgeList.append(edge);
+
+        edge[0] = myFacesModel->data(myFacesModel->index(i, GeoFenceFacesDataModel::GEO_VERTEX_B)).toUInt();
+        edge[1] = myFacesModel->data(myFacesModel->index(i, GeoFenceFacesDataModel::GEO_VERTEX_C)).toUInt();
+        edgeList.append(edge);
+
+        edge[0] = myFacesModel->data(myFacesModel->index(i, GeoFenceFacesDataModel::GEO_VERTEX_A)).toUInt();
+        edge[1] = myFacesModel->data(myFacesModel->index(i, GeoFenceFacesDataModel::GEO_VERTEX_C)).toUInt();
+        edgeList.append(edge);
+    }
+
+    // If the number of edges is odd, then the manifold has a boundary, i.e. it is open
+    if ((edgeList.size() % 2) != 0)
+        return GEOFENCE_OPEN_UNEVEN_NUMBER_OF_FACES;
+
+    // Check if all vertices are used
+    for (int i=0; i<myVerticesModel->rowCount(); i++ ) {
+        bool isUsed = false;
+        foreach(QVector<double> edge, edgeList) {
+            if(edge.contains(myVerticesModel->data(myVerticesModel->index(i, GeoFenceVerticesDataModel::GEO_VERTEX_ID)).toUInt())) {
+                isUsed = true;
+                break;
+            }
+        }
+        if (!isUsed)
+            return GEOFENCE_OPEN_UNUSED_VERTICES;
+    }
+
+
+    // Sort left-to-right
+    foreach(QVector<double> edge, edgeList) {
+        if(edge[0] > edge[1]) {
+            double tmp = edge[0];
+            edge[0] = edge[1];
+            edge[1] = tmp;
+        }
+     }
+
+    // Sort rows
+    std::sort(edgeList.begin(), edgeList.end(), sortRows);
+
+    // Test if each item appears in the list exactly twice.
+    for (int i=0; i < edgeList.size()-1; i+=2) {
+        if ((edgeList[i][0] != edgeList[i+1][0]) && (edgeList[i][1] != edgeList[i+1][1])) {
+            return GEOFENCE_OPEN_BOUNDARY_EDGES;
+        }
+    }
+
+    return GEOFENCE_CLOSED;
 }

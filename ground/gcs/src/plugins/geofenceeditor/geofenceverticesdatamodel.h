@@ -32,7 +32,7 @@
 struct GeoFenceVerticesData{
     double latitude;
     double longitude;
-    double height;
+    double altitude;
     int vertexId;
 //    int vertexPairId;
 //    int polygonId;
@@ -44,11 +44,11 @@ class GeoFenceVerticesDataModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
-    enum GeoFenceVerticesDataEnum{
+    enum GeoFenceVerticesDataEnum {
         GEO_VERTEX_ID,
         GEO_LATITUDE,
         GEO_LONGITUDE,
-        GEO_HEIGHT
+        GEO_ALTITUDE
     };
 
     explicit GeoFenceVerticesDataModel(QObject *parent = 0);

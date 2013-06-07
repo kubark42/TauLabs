@@ -204,7 +204,7 @@ void GeofenceModelMapProxy::vertexValuesChanged(GeoFenceVertexItem *wp)
 //    index=myVerticesModel->index(wp->Number(),GeoFenceVerticesDataModel::GEO_LONGITUDE);
 //    myVerticesModel->setData(index,wp->Coord().Lng(),Qt::EditRole);
 
-//    index=myVerticesModel->index(wp->Number(),GeoFenceVerticesDataModel::GEO_HEIGHT);
+//    index=myVerticesModel->index(wp->Number(),GeoFenceVerticesDataModel::GEO_ALTITUDE);
 //    myVerticesModel->setData(index,wp->Altitude(),Qt::EditRole);
 }
 

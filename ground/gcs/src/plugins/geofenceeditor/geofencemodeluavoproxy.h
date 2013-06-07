@@ -32,13 +32,26 @@
 #include "geofencefaces.h"
 #include "geofencevertices.h"
 
+enum GeoFenceModelPolyhedron {
+    GEOFENCE_CLOSED,
+    GEOFENCE_OPEN_UNEVEN_NUMBER_OF_FACES,
+    GEOFENCE_OPEN_BOUNDARY_EDGES,
+    GEOFENCE_OPEN_UNUSED_VERTICES,
+    GEOFENCE_DUPLICATE_FACES,
+    GEOFENCE_DUPLICATE_VERTICES,
+};
+
 class GeoFenceModelUavoProxy:public QObject
 {
+
     Q_OBJECT
 public:
     explicit GeoFenceModelUavoProxy(QObject *parent, GeoFenceVerticesDataModel *verticesModel, GeoFenceFacesDataModel *facesModel);
 
 private:
+    //! Test if geofence is closed
+    GeoFenceModelPolyhedron isPolyhedronClosed();
+
     //! Robustly upload a geofence (like smart save)
     bool robustUpdateVertices(GeoFenceVertices::DataFields geofenceVerticesData, int instance);
     bool robustUpdateFaces(GeoFenceFaces::DataFields geofenceFacesData, int instance);

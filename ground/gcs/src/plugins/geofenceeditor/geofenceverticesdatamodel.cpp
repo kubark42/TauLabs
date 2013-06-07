@@ -80,8 +80,8 @@ QVariant GeoFenceVerticesDataModel::headerData(int section, Qt::Orientation orie
              case GEO_LONGITUDE:
                  return QString(tr("Longitude"));
                  break;
-             case GEO_HEIGHT:
-                 return QString(tr("Height"));
+             case GEO_ALTITUDE:
+                 return QString(tr("Altitude"));
                  break;
              case GEO_VERTEX_ID:
                  return QString(tr("Vertex ID"));
@@ -126,14 +126,14 @@ bool GeoFenceVerticesDataModel::insertRows(int row, int count, const QModelIndex
         data=new GeoFenceVerticesData;
         data->latitude=0;
         data->longitude=0;
-        data->height=0;
+        data->altitude=0;
         data->vertexId = 0;
 
         if(rowCount()>0)
         {
             data->latitude=this->data(this->index(rowCount()-1, GEO_LATITUDE)).toDouble();
             data->longitude=this->data(this->index(rowCount()-1, GEO_LONGITUDE)).toDouble();
-            data->height=this->data(this->index(rowCount()-1, GEO_HEIGHT)).toDouble();
+            data->altitude=this->data(this->index(rowCount()-1, GEO_ALTITUDE)).toDouble();
             data->vertexId = nextIndex++;
         }
         dataStorage.insert(row,data);
@@ -190,8 +190,8 @@ bool GeoFenceVerticesDataModel::writeToFile(QString fileName)
         geofence.appendChild(field);
 
         field=doc.createElement("field");
-        field.setAttribute("value", obj->height);
-        field.setAttribute("name","height");
+        field.setAttribute("value", obj->altitude);
+        field.setAttribute("name","altitude");
         geofence.appendChild(field);
 
         field=doc.createElement("field");
@@ -237,8 +237,8 @@ void GeoFenceVerticesDataModel::readFromFile(QDomElement root)
                             data->latitude = field.attribute("value").toDouble();
                         else if(field.attribute("name") == "longitude")
                             data->longitude = field.attribute("value").toDouble();
-                        else if(field.attribute("name") == "height")
-                            data->height = field.attribute("value").toDouble();
+                        else if(field.attribute("name") == "altitude")
+                            data->altitude = field.attribute("value").toDouble();
                         else if(field.attribute("name") == "vertexId")
                             data->vertexId=field.attribute("value").toInt();
                     }
@@ -268,8 +268,8 @@ bool GeoFenceVerticesDataModel::setColumnByIndex(GeoFenceVerticesData  *row, con
         row->longitude = value.toDouble();
         retVal = true;
         break;
-    case GEO_HEIGHT:
-        row->height = value.toDouble();
+    case GEO_ALTITUDE:
+        row->altitude = value.toDouble();
         retVal = true;
         break;
     case GEO_VERTEX_ID:
@@ -289,8 +289,8 @@ QVariant GeoFenceVerticesDataModel::getColumnByIndex(const GeoFenceVerticesData 
     case GEO_LONGITUDE:
         return row->longitude;
         break;
-    case GEO_HEIGHT:
-        return row->height;
+    case GEO_ALTITUDE:
+        return row->altitude;
         break;
     case GEO_VERTEX_ID:
         return row->vertexId;

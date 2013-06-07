@@ -42,7 +42,7 @@ class GeoFenceFacesDataModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
-    enum GeoFenceFacesDataEnum{
+    enum GeoFenceFacesDataEnum {
         GEO_FACE_ID,
         GEO_VERTEX_A,
         GEO_VERTEX_B,

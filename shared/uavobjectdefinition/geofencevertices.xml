@@ -3,7 +3,7 @@
 		<description>Vertex in the geofence.</description>
 		<field name="Latitude" units="deg" type="int32" elements="1"/>
 		<field name="Longitude" units="deg" type="int32" elements="1"/>
-		<field name="Height" units="m" type="float" elements="1"/>
+		<field name="Altitude" units="m" type="float" elements="1"/>
 		
 		<access gcs="readwrite" flight="readwrite"/>
 		<telemetrygcs acked="false" updatemode="manual" period="0"/>
