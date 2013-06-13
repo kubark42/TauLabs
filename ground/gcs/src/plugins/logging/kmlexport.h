@@ -33,21 +33,24 @@
 using kmldom::KmlFactory;
 using kmldom::BalloonStylePtr;
 using kmldom::ContainerPtr;
+using kmldom::CoordinatesPtr;
 using kmldom::DocumentPtr;
 using kmldom::ElementPtr;
+using kmldom::FeaturePtr;
+using kmldom::GeometryPtr;
+using kmldom::IconStylePtr;
+using kmldom::IconStyleIconPtr;
+using kmldom::LinearRingPtr;
 using kmldom::LineStringPtr;
 using kmldom::LineStylePtr;
+using kmldom::MultiGeometryPtr;
+using kmldom::OuterBoundaryIsPtr;
 using kmldom::PlacemarkPtr;
 using kmldom::PointPtr;
 using kmldom::PolygonPtr;
-using kmldom::FeaturePtr;
-using kmldom::GeometryPtr;
-using kmldom::MultiGeometryPtr;
-using kmldom::OuterBoundaryIsPtr;
-using kmldom::LinearRingPtr;
-using kmldom::CoordinatesPtr;
 using kmldom::SnippetPtr;
 using kmldom::StylePtr;
+using kmldom::TimeSpanPtr;
 //using kmldom::SerializePretty;
 //using kmlengine::CreateBalloonText;
 using kmlengine::FeatureVisitor;
@@ -64,8 +67,16 @@ using kmldom::KmlPtr;
 #include <QMutexLocker>
 #include <QDebug>
 #include <QBuffer>
-#include "uavobjectmanager.h"
 #include <math.h>
+
+#include "./uavtalk/uavtalk.h"
+#include "uavobjectmanager.h"
+
+#include "homelocation.h"
+#include "positionactual.h"
+#include "velocityactual.h"
+
+
 
 // This struct holds the 4D LLA-Velocity coordinates
 struct LLAVCoordinates
@@ -76,26 +87,22 @@ struct LLAVCoordinates
     double velocity; //in [m/s]
 };
 
-class KmlExport : public QIODevice
+class KmlExport : public QObject
 {
     Q_OBJECT
 public:
-    explicit KmlExport(QObject *parent = 0);
+    explicit KmlExport(QString inputFileName, QString outputFileName);
     qint64 bytesAvailable() const;
     qint64 bytesToWrite() { return logFile.bytesToWrite(); }
-    bool open(OpenMode mode);
+    bool open();
     void setFileName(QString name) { logFile.setFileName(name); }
-    void close();
-    qint64 writeData(const char * data, qint64 dataSize);
-    qint64 readData(char * data, qint64 maxlen);
 
     bool startReplay();
     bool stopReplay();
-    void exportToKML(const QString &outputFileName = 0);
+    void exportToKML();
 
-public slots:
-
-protected slots:
+private slots:
+    void uavobjectUpdated(UAVObject *);
 
 signals:
     void readReady();
@@ -103,26 +110,35 @@ signals:
     void replayFinished();
 
 protected:
-    QByteArray dataBuffer;
-    QTimer timer;
-    QTime myTime;
     QFile logFile;
-    quint32 lastTimeStamp;
-//    quint32 lastPlayTime;
     QMutex mutex;
-
-    int lastPlayTimeOffset;
-//    double playbackSpeed;
 
 private:
     QList<quint32> timestampBuffer;
     QList<quint32> timestampPos;
-    quint32 timestampBufferIdx;
-    quint32 lastTimeStampPos;
-    quint32 firstTimestamp;
+
+    UAVTalk *kmlTalk;
+
+    HomeLocation *homeLocation;
+    PositionActual *positionActual;
+    VelocityActual *velocityActual;
+
+    DocumentPtr document;
+    KmlFactory *factory;
+
+    QString outputFileName;
+    LLAVCoordinates oldPoint;
+    quint32 timeStamp;
+    quint32 lastPlacemarkTime;
 
     void parseLogFile();
+    PlacemarkPtr CreateLineStringPlacemark(const LLAVCoordinates &startPoint, const LLAVCoordinates &endPoint);
+    PlacemarkPtr createTimestampPlacemark(const LLAVCoordinates &point, quint32 lastPlacemarkTime, quint32 newPlacemarkTime);
 };
+
+
+
+
 
 //! Jet color map, as defined by matlab. Generated with `jet(256)`.
 #define COLORMAP_JET { \

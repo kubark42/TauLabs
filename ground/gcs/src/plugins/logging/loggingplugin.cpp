@@ -366,6 +366,9 @@ bool LoggingPlugin::initialize(const QStringList& args, QString *errMsg)
 
 void LoggingPlugin::exportToKML()
 {
+    QString inputFileName("/Users/kenz/Desktop/kml-output-log.tll");
+    QString outputFileName("/Users/kenz/Desktop/TauLabs-2013-06-13_13-05-35.kml");
+
 /*
     // Get input file
     QString inputFileName = QFileDialog::getOpenFileName(NULL, tr("Open file"), QString(""), tr("Tau Labs Log (*.tll)"));
@@ -376,13 +379,13 @@ void LoggingPlugin::exportToKML()
     QString outputFileName = QFileDialog::getSaveFileName(NULL, tr("Export log"),
                                 tr("TauLabs-%0.kml").arg(QDateTime::currentDateTime().toString("yyyy-MM-dd_hh-mm-ss")),
                                 tr("Keyhole Markup Language (*.kml)"));
+
     if (outputFileName.isEmpty())
         return;
 */
-   KmlExport().exportToKML(/*outputFileName*/);
 
-//    KmlExport::export(inputFileName, outputFileName);
-
+    KmlExport kmlExport(inputFileName, outputFileName);
+    kmlExport.exportToKML();
 }
 
 /**
