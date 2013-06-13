@@ -320,7 +320,7 @@ PlacemarkPtr KmlExport::createTimestampPlacemark(const LLAVCoordinates &timestam
 
     PlacemarkPtr placemark = factory->CreatePlacemark();
     placemark->set_geometry(point);
-    placemark->set_description(QString("Latitude: %1\nLongitude: 2\nAltitude %3\nAirspeed %4\nGroundspeed %4\n").arg(timestampPoint.latitude).arg(timestampPoint.longitude).arg(timestampPoint.altitude).arg(-1).arg(timestampPoint.velocity).toStdString());
+    placemark->set_description(QString("Latitude: %1 deg\nLongitude: %2 deg\nAltitude: %3 m\nAirspeed: %4 m/s\nGroundspeed: %5 m/s\n").arg(timestampPoint.latitude).arg(timestampPoint.longitude).arg(timestampPoint.altitude).arg(-1).arg(timestampPoint.velocity).toStdString());
     placemark->set_style(style);
     placemark->set_timeprimitive(timeSpan);
     placemark->set_name(QString("%1").arg(timeStamp / 1000.0).toStdString());
