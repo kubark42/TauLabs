@@ -138,7 +138,7 @@ int32_t StabilizationInitialize()
 	return 0;
 }
 
-MODULE_INITCALL(StabilizationInitialize, StabilizationStart)
+MODULE_INITCALL(StabilizationInitialize, StabilizationStart);
 
 /**
  * Module task
@@ -436,6 +436,9 @@ static void stabilizationTask(void* parameters)
 #if defined(RATEDESIRED_DIAGNOSTICS)
 		RateDesiredSet(&rateDesired);
 #endif
+		//Pass flaps and spoilers through to the actuator UAVO
+		actuatorDesired.Flaps = stabDesired.Flaps;
+		actuatorDesired.Spoilers = stabDesired.Spoilers;
 
 		// Save dT
 		actuatorDesired.UpdateTime = dT * 1000;

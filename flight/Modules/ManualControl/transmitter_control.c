@@ -212,8 +212,10 @@ int32_t transmitter_control_update()
 		// until we decide to go to failsafe
 		if(cmd.Channel[n] == PIOS_RCVR_TIMEOUT)
 			valid_input_detected = false;
-		else
+		else {
+			// Scale channels to [-1,+1] range
 			scaledChannel[n] = scaleChannel(cmd.Channel[n], settings.ChannelMax[n],	settings.ChannelMin[n], settings.ChannelNeutral[n]);
+		}
 	}
 
 	// Check settings, if error raise alarm
@@ -276,6 +278,8 @@ int32_t transmitter_control_update()
 		cmd.Roll = 0;
 		cmd.Yaw = 0;
 		cmd.Pitch = 0;
+		cmd.Flaps = 0;
+		cmd.Spoilers = 0;
 		cmd.Collective = 0;
 
 		set_manual_control_error(SYSTEMALARMS_MANUALCONTROL_NORX);
@@ -283,7 +287,7 @@ int32_t transmitter_control_update()
 	} else if (valid_input_detected) {
 		set_manual_control_error(SYSTEMALARMS_MANUALCONTROL_NONE);
 
-		// Scale channels to -1 -> +1 range
+		// Assign scaled channels to UAVO
 		cmd.Roll           = scaledChannel[MANUALCONTROLSETTINGS_CHANNELGROUPS_ROLL];
 		cmd.Pitch          = scaledChannel[MANUALCONTROLSETTINGS_CHANNELGROUPS_PITCH];
 		cmd.Yaw            = scaledChannel[MANUALCONTROLSETTINGS_CHANNELGROUPS_YAW];
@@ -710,7 +714,9 @@ static void update_actuator_desired(ManualControlCommandData * cmd)
 	actuator.Roll = cmd->Roll;
 	actuator.Pitch = cmd->Pitch;
 	actuator.Yaw = cmd->Yaw;
-	actuator.Throttle = (cmd->Throttle < 0) ? -1 : cmd->Throttle;
+	actuator.Flaps = (cmd->Flaps < -0.95) ? -1 : cmd->Flaps;           //Use 95% in order to ensure that the flaps stay shut, despite TX jitter
+	actuator.Spoilers = (cmd->Spoilers < -0.95) ? -1 : cmd->Spoilers;  //Use 95% in order to ensure that the spoilers stay shut, despite TX jitter
+	actuator.Throttle = (cmd->Throttle < 0) ? -1 : cmd->Throttle;      //Use 0% in order to ensure that the throttle stays at 0, despite TX jitter
 	ActuatorDesiredSet(&actuator);
 }
 
@@ -782,7 +788,10 @@ static void update_stabilization_desired(ManualControlCommandData * cmd, ManualC
 	     (stab_settings[2] == STABILIZATIONDESIRED_STABILIZATIONMODE_COORDINATEDFLIGHT) ? cmd->Yaw :
 	     0; // this is an invalid mode
 
-	stabilization.Throttle = (cmd->Throttle < 0) ? -1 : cmd->Throttle;
+	stabilization.Flaps = (cmd->Flaps < -0.95) ? -1 : cmd->Flaps;          //Use 95% in order to ensure that the flaps stay shut, despite TX jitter
+	stabilization.Spoilers = (cmd->Spoilers < -0.95) ? -1 : cmd->Spoilers; //Use 95% in order to ensure that the spoilers stay shut, despite TX jitter
+	stabilization.Throttle = (cmd->Throttle < 0) ? -1 : cmd->Throttle;     //Use 0% in order to ensure that the throttle stays at 0, despite TX jitter
+
 	StabilizationDesiredSet(&stabilization);
 }
 
