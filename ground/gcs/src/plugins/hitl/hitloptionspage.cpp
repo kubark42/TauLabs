@@ -81,8 +81,8 @@ QWidget *HITLOptionsPage::createPage(QWidget *parent)
     m_optionsPage->dataPath->setPath(config->Settings().dataPath);
 
     m_optionsPage->inputCommandCheckbox->setChecked(config->Settings().inputCommand);
-    m_optionsPage->manualControlRadioButton->setChecked(config->Settings().manualControlEnabled);
-    m_optionsPage->gcsReceiverRadioButton->setChecked(config->Settings().gcsReceiverEnabled);
+    m_optionsPage->rb_fc2simulator->setChecked(config->Settings().fc2SimulatorEnabled);
+    m_optionsPage->rb_simulator2fc->setChecked(config->Settings().simulator2FcEnabled);
 
     m_optionsPage->startSim->setChecked(config->Settings().startSim);
     m_optionsPage->noiseCheckBox->setChecked(config->Settings().addNoise);
@@ -158,8 +158,8 @@ void HITLOptionsPage::apply()
     settings.minOutputPeriod = m_optionsPage->minOutputPeriodSpinbox->value();
 
     settings.inputCommand = m_optionsPage->inputCommandCheckbox->isChecked();
-    settings.manualControlEnabled = m_optionsPage->manualControlRadioButton->isChecked();
-    settings.gcsReceiverEnabled = m_optionsPage->gcsReceiverRadioButton->isChecked();
+    settings.fc2SimulatorEnabled = m_optionsPage->rb_fc2simulator->isChecked();
+    settings.simulator2FcEnabled = m_optionsPage->rb_simulator2fc->isChecked();
 
     settings.attActHW = m_optionsPage->attActHW->isChecked();
     settings.attActSim = m_optionsPage->attActSim->isChecked();

@@ -286,11 +286,6 @@ void Simulator::setupUAVObjects()
         setupInputObject(actCommand, settings.minOutputPeriod);
     }
 
-    if (settings.gcsReceiverEnabled) {
-        setupOutputObject(gcsReceiver, settings.minOutputPeriod);
-    } else if (settings.manualControlEnabled) {
-        setupOutputObject(manCtrlCommand, settings.minOutputPeriod);
-    }
 
     if (settings.gpsPositionEnabled){
         setupOutputObject(gpsPos, settings.gpsPosRate);
@@ -637,7 +632,7 @@ void Simulator::updateUAVOs(Output2Hardware out){
     }
 
     /*******************************/
-    if (settings.gcsReceiverEnabled) {
+    if (settings.simulator2FcEnabled) {
         if (gcsRcvrTime.msecsTo(currentTime) >= settings.minOutputPeriod) {
             GCSReceiver::DataFields gcsRcvrData;
             memset(&gcsRcvrData, 0, sizeof(GCSReceiver::DataFields));
@@ -649,10 +644,8 @@ void Simulator::updateUAVOs(Output2Hardware out){
             gcsReceiver->setData(gcsRcvrData);
 
             gcsRcvrTime=gcsRcvrTime.addMSecs(settings.minOutputPeriod);
-
         }
     }
-
 
     /*******************************/
     if (settings.gpsPositionEnabled) {
