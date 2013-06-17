@@ -154,8 +154,8 @@ typedef struct _CONNECTION
     quint16 gpsPosRate;
 
     bool inputCommand;
-    bool gcsReceiverEnabled;
-    bool manualControlEnabled;
+    bool fc2SimulatorEnabled;
+    bool simulator2FcEnabled;
     quint16 minOutputPeriod;
 
     bool airspeedActualEnabled;

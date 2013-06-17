@@ -994,7 +994,7 @@
                   <number>0</number>
                  </property>
                  <item>
-                  <widget class="QRadioButton" name="manualControlRadioButton">
+                  <widget class="QRadioButton" name="rb_fc2simulator">
                    <property name="enabled">
                     <bool>true</bool>
                    </property>
@@ -1005,7 +1005,7 @@
                     </font>
                    </property>
                    <property name="text">
-                    <string>from hardware to simulator (via ManualCtrl)</string>
+                    <string>from hardware to simulator</string>
                    </property>
                    <property name="checked">
                     <bool>true</bool>
@@ -1013,9 +1013,9 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QRadioButton" name="gcsReceiverRadioButton">
+                  <widget class="QRadioButton" name="rb_simulator2fc">
                    <property name="text">
-                    <string>from simulator to hardware (via GCSReceiver)</string>
+                    <string>from simulator to hardware</string>
                    </property>
                    <property name="checked">
                     <bool>false</bool>
