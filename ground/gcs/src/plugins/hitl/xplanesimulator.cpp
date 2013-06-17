@@ -103,7 +103,7 @@ bool XplaneSimulator::setupProcess()
  */
 void XplaneSimulator::transmitUpdate()
 {
-    if (settings.manualControlEnabled) {
+    if (settings.fc2SimulatorEnabled) {
         //Read ActuatorDesired from autopilot
         ActuatorDesired::DataFields actData = actDesired->getData();
         float ailerons = actData.Roll;

@@ -36,7 +36,7 @@ HITLConfiguration::HITLConfiguration(QString classId, QSettings* qSettings, QObj
     settings.simulatorId = "";
     settings.binPath = "";
     settings.dataPath = "";
-    settings.manualControlEnabled = true;
+    settings.fc2SimulatorEnabled = true;
     settings.startSim = false;
     settings.addNoise = false;
     settings.hostAddress = "127.0.0.1";
@@ -61,8 +61,8 @@ HITLConfiguration::HITLConfiguration(QString classId, QSettings* qSettings, QObj
     settings.groundTruthRate     = 100;
 
     settings.inputCommand        = false;
-    settings.gcsReceiverEnabled  = false;
-    settings.manualControlEnabled= false;
+    settings.simulator2FcEnabled  = false;
+    settings.fc2SimulatorEnabled= false;
     settings.minOutputPeriod     = 100;
 
     settings.airspeedActualEnabled= false;
@@ -88,12 +88,12 @@ HITLConfiguration::HITLConfiguration(QString classId, QSettings* qSettings, QObj
 
         settings.inputCommand        = qSettings->value("inputCommand").toBool();
         if(settings.inputCommand){
-            settings.gcsReceiverEnabled  = qSettings->value("gcsReceiverEnabled").toBool();
-            settings.manualControlEnabled= qSettings->value("manualControlEnabled").toBool();
+            settings.simulator2FcEnabled  = qSettings->value("simulator2FcEnabled").toBool();
+            settings.fc2SimulatorEnabled= qSettings->value("fc2SimulatorEnabled").toBool();
         }
         else{
-            settings.gcsReceiverEnabled  = false;
-            settings.manualControlEnabled= false;
+            settings.simulator2FcEnabled  = false;
+            settings.fc2SimulatorEnabled= false;
         }
 
         settings.attRawEnabled       = qSettings->value("attRawEnabled").toBool();
@@ -155,8 +155,8 @@ void HITLConfiguration::saveConfig(QSettings* qSettings) const {
     qSettings->setValue("startSim", settings.startSim);
 
     qSettings->setValue("inputCommand", settings.inputCommand);
-    qSettings->setValue("gcsReceiverEnabled", settings.gcsReceiverEnabled);
-    qSettings->setValue("manualControlEnabled", settings.manualControlEnabled);
+    qSettings->setValue("simulator2FcEnabled", settings.simulator2FcEnabled);
+    qSettings->setValue("fc2SimulatorEnabled", settings.fc2SimulatorEnabled);
 
     qSettings->setValue("attRawEnabled", settings.attRawEnabled);
     qSettings->setValue("attRawRate", settings.attRawRate);

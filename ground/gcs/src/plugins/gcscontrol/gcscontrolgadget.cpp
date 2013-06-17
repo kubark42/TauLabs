@@ -27,10 +27,14 @@
 #include "gcscontrolgadget.h"
 #include "gcscontrolgadgetwidget.h"
 #include "gcscontrolgadgetconfiguration.h"
+#include "ui_gcscontrol.h"
+
 #include "extensionsystem/pluginmanager.h"
 #include "uavobjectmanager.h"
 #include "uavobject.h"
 #include <QDebug>
+
+#include "manualcontrolsettings.h"
 
 #define JOYSTICK_UPDATE_RATE 50
 
@@ -43,7 +47,14 @@ GCSControlGadget::GCSControlGadget(QString classId, GCSControlGadgetWidget *widg
     connect(getManualControlCommand(),SIGNAL(objectUpdated(UAVObject*)),this,SLOT(manualControlCommandUpdated(UAVObject*)));
     connect(widget,SIGNAL(sticksChanged(double,double,double,double)),this,SLOT(sticksChangedLocally(double,double,double,double)));
     connect(widget,SIGNAL(controlEnabled(bool)), this, SLOT(enableControl(bool)));
+    connect(widget->getUI()->comboBoxFlightMode, SIGNAL(currentIndexChanged(int)), this, SLOT(selectFlightMode(int)));
     connect(this,SIGNAL(sticksChangedRemotely(double,double,double,double)),widget,SLOT(updateSticks(double,double,double,double)));
+
+    // Connect object updated events from ManualControlCommand UAVObject in
+    // order to also update check boxes and dropdown.
+    ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
+    UAVObjectManager *objManager = pm->getObject<UAVObjectManager>();
+    connect(ManualControlCommand::GetInstance(objManager), SIGNAL(objectUpdated(UAVObject*)), this, SLOT(manualControlCommandChanged(UAVObject*)));
 
     manualControlCommandUpdated(getManualControlCommand());
 
@@ -130,10 +141,10 @@ void GCSControlGadget::enableControl(bool enable)
         {
             mccInitialData = mdata = obj->getMetadata();
             UAVObject::SetFlightAccess(mdata, UAVObject::ACCESS_READONLY);
-            UAVObject::SetFlightTelemetryUpdateMode(mdata, UAVObject::UPDATEMODE_ONCHANGE);
+            UAVObject::SetFlightTelemetryUpdateMode(mdata, UAVObject::UPDATEMODE_MANUAL);
             UAVObject::SetGcsTelemetryAcked(mdata, false);
-            UAVObject::SetGcsTelemetryUpdateMode(mdata, UAVObject::UPDATEMODE_ONCHANGE);
-            mdata.gcsTelemetryUpdatePeriod = 100;
+            UAVObject::SetGcsTelemetryUpdateMode(mdata, UAVObject::UPDATEMODE_PERIODIC);
+            mdata.gcsTelemetryUpdatePeriod = 50;
         }
         else
             mdata = mccInitialData;
@@ -599,3 +610,76 @@ double GCSControlGadget::wrap(double input)
     while (input <-1.0)input += 2.0;
     return input;
 }
+/*!
+  \brief Called when the flight mode drop down is changed and sets the ManualControlCommand->FlightMode accordingly
+  */
+void GCSControlGadget::selectFlightMode(int state)
+{
+    ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
+    UAVObjectManager *objManager = pm->getObject<UAVObjectManager>();
+    if(!gcsReceiverMode) {
+        UAVDataObject* obj = dynamic_cast<UAVDataObject*>( objManager->getObject(QString("FlightStatus")) );
+        UAVObjectField * field = obj->getField("FlightMode");
+        field->setValue(field->getOptions()[state]);
+        obj->updated();
+    } else {
+        ManualControlSettings *manualControlSettings = ManualControlSettings::GetInstance(objManager);
+        ManualControlSettings::DataFields manualControlSettingsData = manualControlSettings->getData();
+
+        // Convert index number into percentage
+        GCSControlGadgetWidget *widget = static_cast<GCSControlGadgetWidget *>(m_widget);
+        int currentIndex = widget->getUI()->comboBoxFlightMode->currentIndex();
+        quint16 newFlightModeOutput;
+
+        // Check if this it middle of the channel
+        if (2*currentIndex + 1 == manualControlSettingsData.FlightModeNumber) {
+            newFlightModeOutput = manualControlSettingsData.ChannelNeutral[ManualControlSettings::CHANNELNEUTRAL_FLIGHTMODE];
+        }
+        else {
+            double stepWidth = 2.0 / manualControlSettingsData.FlightModeNumber;
+            double newFlightModeOutputPct = -1 + stepWidth * (widget->getUI()->comboBoxFlightMode->currentIndex() + 0.5);
+
+            // Check if FlightMode channel is reversed
+            if (manualControlSettingsData.ChannelMax[ManualControlSettings::CHANNELMAX_FLIGHTMODE] > manualControlSettingsData.ChannelMin[ManualControlSettings::CHANNELMIN_FLIGHTMODE]) {
+                if (2*currentIndex + 1 < manualControlSettingsData.FlightModeNumber) {
+                    newFlightModeOutput = manualControlSettingsData.ChannelNeutral[ManualControlSettings::CHANNELNEUTRAL_FLIGHTMODE] +
+                            newFlightModeOutputPct * (manualControlSettingsData.ChannelNeutral[ManualControlSettings::CHANNELNEUTRAL_FLIGHTMODE] - manualControlSettingsData.ChannelMin[ManualControlSettings::CHANNELMIN_FLIGHTMODE]);
+                } else {
+                    newFlightModeOutput = manualControlSettingsData.ChannelNeutral[ManualControlSettings::CHANNELNEUTRAL_FLIGHTMODE] +
+                            newFlightModeOutputPct * (manualControlSettingsData.ChannelMax[ManualControlSettings::CHANNELMAX_FLIGHTMODE] - manualControlSettingsData.ChannelNeutral[ManualControlSettings::CHANNELNEUTRAL_FLIGHTMODE]);
+                }
+            }
+            else { // FlightMode channel is reversed
+                if (2*currentIndex + 1 < manualControlSettingsData.FlightModeNumber) {
+                    newFlightModeOutput = manualControlSettingsData.ChannelNeutral[ManualControlSettings::CHANNELNEUTRAL_FLIGHTMODE] +
+                            newFlightModeOutputPct * (manualControlSettingsData.ChannelNeutral[ManualControlSettings::CHANNELNEUTRAL_FLIGHTMODE] - manualControlSettingsData.ChannelMax[ManualControlSettings::CHANNELMAX_FLIGHTMODE]);
+                } else {
+                    newFlightModeOutput = manualControlSettingsData.ChannelNeutral[ManualControlSettings::CHANNELNEUTRAL_FLIGHTMODE] +
+                            newFlightModeOutputPct * (manualControlSettingsData.ChannelMin[ManualControlSettings::CHANNELMIN_FLIGHTMODE] - manualControlSettingsData.ChannelNeutral[ManualControlSettings::CHANNELNEUTRAL_FLIGHTMODE]);
+                }
+            }
+        }
+
+        GCSReceiver *gcsReceiver = GCSReceiver::GetInstance(objManager);
+        GCSReceiver::DataFields gcsReceiverData = gcsReceiver->getData();
+        gcsReceiverData.Channel[4] = newFlightModeOutput;
+        gcsReceiver->setData(gcsReceiverData);
+        gcsReceiver->updated();
+    }
+}
+
+void GCSControlGadget::manualControlCommandChanged(UAVObject * obj)
+{
+    Q_UNUSED(obj);
+
+    if (gcsReceiverMode)
+        return;
+
+    ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
+    UAVObjectManager *objManager = pm->getObject<UAVObjectManager>();
+    UAVDataObject* flightStatus = dynamic_cast<UAVDataObject*>( objManager->getObject(QString("FlightStatus")) );
+    GCSControlGadgetWidget *widget = static_cast<GCSControlGadgetWidget *>(m_widget);
+    widget->getUI()->comboBoxFlightMode->setCurrentIndex(widget->getUI()->comboBoxFlightMode->findText(flightStatus->getField("FlightMode")->getValue().toString()));
+    widget->getUI()->checkBoxArmed->setChecked(flightStatus->getField("Armed")->getValue() == "Armed");
+}
+
