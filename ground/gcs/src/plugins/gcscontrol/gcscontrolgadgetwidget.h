@@ -46,6 +46,7 @@ public:
     bool getGCSControl(void);
     void setUDPControl(bool newState);
     bool getUDPControl(void);
+    Ui_GCSControl *getUI(void) {return m_gcscontrol;}
 
 signals:
     //! Emitted whenever the UI is clicked on to indicate the new stick positions
@@ -53,6 +54,9 @@ signals:
     void controlEnabled(bool);
 
 public slots:
+    //! Called when the flight mode settings are updated
+    void populateFlightModeComboBox();
+
     //! Signals from parent gadget indicating change from the remote system
     void updateSticks(double leftX, double leftY, double rightX, double rightY);
 
@@ -63,13 +67,11 @@ public slots:
 protected slots:
     void toggleControl(int state);
     void toggleArmed(int state);
-    void selectFlightMode(int state);
-    void mccChanged(UAVObject *);
     void toggleUDPControl(int state);
 
 private:
     Ui_GCSControl *m_gcscontrol;
-    double leftX,leftY,rightX,rightY;
+    static double leftX,leftY,rightX,rightY;
 };
 
 #endif /* GCSControlGADGETWIDGET_H_ */

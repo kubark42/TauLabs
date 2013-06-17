@@ -103,7 +103,7 @@ bool FGSimulator::setupProcess()
                  "--vc=100 " +
                  "--log-level=alert " +
                  "--generic=socket,out,20," + settings.hostAddress + "," + QString::number(settings.inPort) + ",udp,opfgprotocol");
-    if(settings.manualControlEnabled) // <--[BCH] What does this do? Why does it depend on ManualControl?
+    if(settings.fc2SimulatorEnabled) // <--[BCH] What does this do? Why does it depend on ManualControl?
     {
         args.append(" --generic=socket,in,400," + settings.remoteAddress + "," + QString::number(settings.outPort) + ",udp,opfgprotocol");
     }
@@ -204,7 +204,7 @@ void FGSimulator::transmitUpdate()
         // V2.0 does not currently work with --generic-protocol
     }
     
-    if(settings.manualControlEnabled)
+    if(settings.fc2SimulatorEnabled)
     {
         actData.Roll = ailerons;
         actData.Pitch = -elevator;

@@ -65,6 +65,10 @@ public:
 
     void loadConfiguration(IUAVGadgetConfiguration* config);
 
+private slots:
+    void selectFlightMode(int state);
+    void manualControlCommandChanged(UAVObject *);
+
 private:
     //! Get the handle to the ManualControlCommand object
     ManualControlCommand* getManualControlCommand();
