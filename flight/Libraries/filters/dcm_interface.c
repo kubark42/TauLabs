@@ -40,20 +40,20 @@ static int32_t dcm_interface_get_state(uintptr_t id, float pos[3], float vel[3],
 		float attitude[4], float gyro_bias[3], float airspeed[1]);
 
 struct filter_driver dcm_filter_driver = {
-	.class = FILTER_CLASS_S3,
+	.class = FILTER_CLASS_SE3P,
 
 	// this will initialize the SE(3)+ infrastrcture too
 	.init = dcm_interface_init,
 
 	// connects the SE(3)+ queues
-	.start = filter_infrastructure_se3_start,
+	.start = filter_infrastructure_se3p_start,
 	.reset = dcm_interface_reset,
-	.process = filter_infrastructure_se3_process,
+	.process = filter_infrastructure_se3p_process,
 	.sub_driver = {
-		.driver_s3 = {
+		.driver_se3p = {
 			.update_filter = dcm_interface_update,
 			.get_state = dcm_interface_get_state,
-			.magic = FILTER_S3_MAGIC,
+			.magic = FILTER_SE3P_MAGIC,
 		}
 	}
 };
@@ -64,7 +64,7 @@ enum dcm_interface_magic {
 };
 
 struct dcm_interface_data {
-	struct filter_infrastructure_se3_data *s3_data;
+	struct filter_infrastructure_se3_data *se3p_data;
 	enum dcm_interface_magic magic;
 };
 
@@ -75,7 +75,7 @@ static struct dcm_interface_data * dcm_interface_alloc()
 }
 
 /**
- * Initialize this INSGPS filter and the SE(3)+ infrastructure
+ * Initialize this DCM filter and the SE(3)+ infrastructure
  * @param[out]  id   the handle for this filter instance
  * @return 0 if successful, -1 if not
  */
@@ -87,7 +87,7 @@ static int32_t dcm_interface_init(uintptr_t *id)
 		return -1;
 
 	// Initialize the infrastructure
-	if (filter_infrastructure_se3_init(&dcm_interface_data->s3_data) != 0)
+	if (filter_infrastructure_se3_init(&dcm_interface_data->se3p_data) != 0)
 		return -2;
 	
 	// Return the handle
@@ -129,7 +129,7 @@ static int32_t dcm_interface_update(uintptr_t id, float gyros[3], float accels[3
 }
 
 /**
- * get_state Retrieve the state from the S(3) filter
+ * get_state Retrieve the state from the SE(3)+ filter
  * any param can be null indicating it is not being fetched
  * @param[in]  id        the running filter handle
  * @param[out] pos       the updated position in NED [m]

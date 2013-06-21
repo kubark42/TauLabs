@@ -37,7 +37,7 @@ static int32_t insgps_interface_get_state(uintptr_t id, float pos[3], float vel[
 		float attitude[4], float gyro_bias[3], float airspeed[1]);
 
 struct filter_driver {
-	.class = FILTER_CLASS_S3,
+	.class = FILTER_CLASS_SE3P,
 
 	// this will initialize the SE(3)+ infrastrcture too
 	.init = insgps_interface_init,
@@ -46,10 +46,10 @@ struct filter_driver {
 	.start = filter_infrastructure_se3_start,
 	.reset = insgps_interface_reset,
 	.process = filter_infrastructure_se3_process,
-	.driver_s3 = {
+	.driver_se3p = {
 		.update_filter = insgps_interface_update,
 		.get_state = insgps_interface_get_state,
-		.magic = FILTER_S3_MAGIC,
+		.magic = FILTER_SE3P_MAGIC,
 	}
 } insgps_filter_driver;
 
@@ -59,7 +59,7 @@ enum insgps_interface_magic {
 }
 
 struct insgps_interface_data {
-	struct filter_infrastructure_se3_data *s3_data;
+	struct filter_infrastructure_se3_data *se3p_data;
 	enum insgps_interface_magic magic;
 };
 
@@ -81,7 +81,7 @@ static int32_t insgps_interface_init(uintptr_t *id)
 		return -1;
 
 	// Initialize the infrastructure
-	if (filter_infrastructure_se3_init(&insgps_interface_data->s3_data) != 0)
+	if (filter_infrastructure_se3_init(&insgps_interface_data->se3p_data) != 0)
 		return -2;
 	
 	// Return the handle

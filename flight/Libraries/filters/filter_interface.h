@@ -30,7 +30,7 @@
 #define FILTER_INTERFACE_H
 
 enum filter_class {
-	FILTER_CLASS_S3,      // uses infrastructure to ease S(3) filters
+	FILTER_CLASS_SE3P,      // uses infrastructure to ease S(3) filters
 	FILTER_CLASS_GENERIC, // generic filter which does all its own work
 };
 
@@ -44,12 +44,12 @@ enum filter_return_codes {
 
 /***** infrastructure for standard S(3) filter using our core sensors *****/
 
-enum filter_s3_magic {
-	FILTER_S3_MAGIC = 0x38583fbc,
+enum FILTER_SE3P_MAGIC {
+	FILTER_SE3P_MAGIC = 0x38583fbc,
 };
 
-//! Driver for an S3 filter using standard core sensors
-struct filter_s3 {
+//! Driver for an SE3P filter using standard core sensors
+struct filter_se3p {
 	/**
 	 * get_sensors Compute one time step of the filter
 	 * @param[in] id        the running filter handle
@@ -80,7 +80,7 @@ struct filter_s3 {
 	int32_t (*get_state)(uintptr_t id, float pos[3], float vel[3],
 		float attitude[4], float gyro_bias[3], float airspeed[1]);
 
-	//! To check the filter driver is valid, must be FILTER_S3_MAGIC
+	//! To check the filter driver is valid, must be FILTER_SE3P_MAGIC
 	int32_t magic;
 
 };
@@ -92,7 +92,7 @@ enum filter_generic_magic {
 	FILTER_GENERIC_MAGIC = 0xbed387ab,
 };
 
-//! Driver for an S3 filter using standard core sensors
+//! Driver for an SE3P filter using standard core sensors
 struct filter_generic {
 	/**
 	 * get_sensors Get sensor data directly from desired UAVOS or queues
@@ -161,7 +161,7 @@ struct filter_driver {
 	 * as well as magic to validate the sub-driver.
 	 */
 	union {
-		struct filter_s3       driver_s3;        //! sub-driver for SE(3)+ filters
+		struct filter_se3p       driver_se3p;        //! sub-driver for SE(3)+ filters
 		struct filter_generic  driver_generic;   //! sub-driver for the generic filters
 	} sub_driver;
 };

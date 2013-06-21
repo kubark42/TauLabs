@@ -4,7 +4,7 @@
  * @{
  * @file       filter_inferface.c
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2013
- * @brief      Infrastructure for managing S3 filters
+ * @brief      Infrastructure for managing SE(3)+ filters
  *
  * @see        The GNU Public License (GPL) Version 3
  *
@@ -40,8 +40,8 @@ bool filter_interface_validate(struct filter_driver *filter, uintptr_t id)
 		return false;
 
 	switch (filter->class) {
-	case FILTER_CLASS_S3:
-		return (filter->sub_driver.driver_s3.magic == FILTER_S3_MAGIC);
+	case FILTER_CLASS_SE3P:
+		return (filter->sub_driver.driver_se3p.magic == FILTER_SE3P_MAGIC);
 	case FILTER_CLASS_GENERIC:
 		return (filter->sub_driver.driver_generic.magic == FILTER_GENERIC_MAGIC);
 	}
