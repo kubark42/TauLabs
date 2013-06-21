@@ -41,6 +41,7 @@ struct filter_infrastructure_se3p_data {
 	xQueueHandle accelQueue;
 	xQueueHandle magQueue;
 	xQueueHandle baroQueue;
+	xQueueHandle airspeedQueue;
 	xQueueHandle gpsPosQueue;
 	xQueueHandle gpsVelQueue;
 };

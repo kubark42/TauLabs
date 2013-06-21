@@ -31,8 +31,10 @@
 #include "physical_constants.h"
 
 #include "accels.h"
+#include "airspeedactual.h"
 #include "attitudeactual.h"
 #include "attitudesettings.h"
+#include "baroairspeed.h"
 #include "baroaltitude.h"
 #include "flightstatus.h"
 #include "gpsposition.h"
@@ -78,6 +80,9 @@ int32_t filter_infrastructure_se3p_init(struct filter_infrastructure_se3p_data *
 	AttitudeActualInitialize();
 	AttitudeSettingsInitialize();
 	SensorSettingsInitialize();
+	BaroAltitudeInitialize();
+	BaroAirspedeInitialize();
+	AirspeedActualInitialize();
 	NEDPositionInitialize();
 	PositionActualInitialize();
 	VelocityActualInitialize();
@@ -87,6 +92,7 @@ int32_t filter_infrastructure_se3p_init(struct filter_infrastructure_se3p_data *
 	se3p_data->accelQueue = xQueueCreate(1, sizeof(UAVObjEvent));
 	se3p_data->magQueue = xQueueCreate(2, sizeof(UAVObjEvent));
 	se3p_data->baroQueue = xQueueCreate(1, sizeof(UAVObjEvent));
+	se3p_data->airspeedQueue = xQueueCreate(1, sizeof(UAVObjEvent));
 	se3p_data->gpsPosQueue = xQueueCreate(1, sizeof(UAVObjEvent));
 	se3p_data->gpsVelQueue = xQueueCreate(1, sizeof(UAVObjEvent));
 
@@ -104,6 +110,8 @@ int32_t filter_infrastructure_se3p_start(uintptr_t id)
 		MagnetometerConnectQueue(se3p_data->magQueue);
 	if (BaroAltitudeHandle())
 		BaroAltitudeConnectQueue(se3p_data->baroQueue);
+	if (BaroAirspeedHandle())
+		BaroAirspeedConnectQueue(se3p_data->airspeedQueue);
 	if (GPSPositionHandle())
 		GPSPositionConnectQueue(se3p_data->gpsPosQueue);
 	if (GPSVelocityHandle())
@@ -147,6 +155,7 @@ int32_t filter_infrastructure_se3p_process(struct filter_driver *upper_driver, u
 	AccelsData accelsData;
 	MagnetometerData magData;
 	BaroAltitudeData baroData;
+	BaroAirspeedData airspeedData;
 	GPSPositionData gpsPosition;
 	GPSVelocityData gpsVelocity;
 	float NED[3];
@@ -182,6 +191,11 @@ int32_t filter_infrastructure_se3p_process(struct filter_driver *upper_driver, u
 		vel = &gpsVelocity.North;
 	}
 
+	if (xQueueReceive(se3p_data->airspeedQueue, &ev, 0 / portTICK_RATE_MS) == pdTRUE) {
+		BaroAirspeedGet(&airspeedData);
+		airspeed = &airspeedData.TrueAirspeed;
+	}
+
 	/* 2. compute update */
 	driver->update_filter(id, gyros, accels, mag, pos, vel, baro, airspeed, dt);
 
@@ -190,8 +204,9 @@ int32_t filter_infrastructure_se3p_process(struct filter_driver *upper_driver, u
 	float vel_state[3];
 	float q_state[4];
 	float gyro_bias_state[3];
+	float airspeed_state[4];
 
-	driver->get_state(id, pos_state, vel_state, q_state, gyro_bias_state, NULL);
+	driver->get_state(id, pos_state, vel_state, q_state, gyro_bias_state, airspeed_state);
 
 	// Store the data in UAVOs
 	PositionActualData positionActual;
@@ -213,6 +228,13 @@ int32_t filter_infrastructure_se3p_process(struct filter_driver *upper_driver, u
 	attitudeActual.q4 = q_state[3];
 	Quaternion2RPY(&attitudeActual.q1,&attitudeActual.Roll);
 	AttitudeActualSet(&attitudeActual);
+
+	AirspeedActualData = airspeedActual;
+	airspeedActual.TrueAirspeed = airspeed_state[0];
+	airspeedActual.CalibratedAirspeed = airspeed_state[1];
+	airspeedActual.alpha = airspeed_state[2];
+	airspeedActual.beta = airspeed_state[3];
+	AirspeedActualSet(&airspeedActual);
 
 	return 0;
 }
