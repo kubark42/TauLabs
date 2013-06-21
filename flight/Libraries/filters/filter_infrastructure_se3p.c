@@ -87,7 +87,7 @@ int32_t filter_infrastructure_se3p_init(struct filter_infrastructure_se3p_data *
 	se3p_data->accelQueue = xQueueCreate(1, sizeof(UAVObjEvent));
 	se3p_data->magQueue = xQueueCreate(1, sizeof(UAVObjEvent));
 	se3p_data->baroQueue = xQueueCreate(1, sizeof(UAVObjEvent));
-	se3p_data->gpsQueue = xQueueCreate(1, sizeof(UAVObjEvent));
+	se3p_data->gpsPosQueue = xQueueCreate(1, sizeof(UAVObjEvent));
 	se3p_data->gpsVelQueue = xQueueCreate(1, sizeof(UAVObjEvent));
 
 	return 0;
@@ -105,7 +105,7 @@ int32_t filter_infrastructure_se3p_start(uintptr_t id)
 	if (BaroAltitudeHandle())
 		BaroAltitudeConnectQueue(se3p_data->baroQueue);
 	if (GPSPositionHandle())
-		GPSPositionConnectQueue(se3p_data->gpsQueue);
+		GPSPositionConnectQueue(se3p_data->gpsPosQueue);
 	if (GPSVelocityHandle())
 		GPSVelocityConnectQueue(se3p_data->gpsVelQueue);
 
@@ -175,7 +175,7 @@ int32_t filter_infrastructure_se3p_process(struct filter_driver *upper_driver, u
 		baro = &baroData.Altitude;
 	}
 
-	if (xQueueReceive(se3p_data->gpsQueue, &ev, 0 / portTICK_RATE_MS) == pdTRUE) {
+	if (xQueueReceive(se3p_data->gpsPosQueue, &ev, 0 / portTICK_RATE_MS) == pdTRUE) {
 		GPSPositionGet(&gpsPosition);
 		getNED(&gpsPosition, NED);
 		pos = NED;
