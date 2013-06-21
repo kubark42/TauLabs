@@ -204,6 +204,12 @@ int32_t filter_infrastructure_se3p_process(struct filter_driver *upper_driver, u
 	driver->update_filter(id, gyros, accels, mag, pos, vel, baro, airspeed, dt);
 
 	/* 3. get the state update from the filter */
+
+	/* This section seems dangerous to me because it depends on the unique structure
+		of the UAVOs. If any one of them is changed, even in datatype, then many filter
+		functions will silently start returning bad results. Perhaps this is a spot where
+		it would be appropriate to use the UAVO struct typedefs, even if we're not using
+		the rest of the UAVO manager.*/
 	float pos_state[3];
 	float vel_state[3];
 	float q_state[4];
