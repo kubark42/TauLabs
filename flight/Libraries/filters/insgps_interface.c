@@ -26,7 +26,7 @@
  */
 
 #include "filter_interface.h"
-#include "filter_infrastructure_se3.h"
+#include "filter_infrastructure_se3p.h"
 
 static int32_t insgps_interface_init(uintptr_t id);
 static int32_t insgps_interface_reset(uintptr_t id);

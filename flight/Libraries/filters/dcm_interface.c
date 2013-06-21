@@ -26,7 +26,7 @@
  */
 
 #include "filter_interface.h"
-#include "filter_infrastructure_se3.h"
+#include "filter_infrastructure_se3p.h"
 
 #include "stdint.h"
 #include "stdbool.h"
