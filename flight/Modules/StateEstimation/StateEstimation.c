@@ -103,6 +103,7 @@ int32_t StateEstimationStart(void)
 	AttitudeActualSet(&attitude);
 
 	// Cannot trust the values to init right above if BL runs
+	// WHY DON'T UAVOS INITIALIZE TO 0 VIA memset?
 	GyrosBiasData gyrosBias;
 	GyrosBiasGet(&gyrosBias);
 	gyrosBias.x = 0;
@@ -118,7 +119,7 @@ int32_t StateEstimationStart(void)
 	return 0;
 }
 
-MODULE_INITCALL(StateEstimationInitialize, StateEstimationStart)
+MODULE_INITCALL(StateEstimationInitialize, StateEstimationStart);
 
 /**
  * Module thread, should not return.
