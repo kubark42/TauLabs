@@ -615,6 +615,11 @@ double GCSControlGadget::wrap(double input)
   */
 void GCSControlGadget::selectFlightMode(int state)
 {
+    // Check if the input is valid. The input will be -1 if, for instance, the
+    // combobox has been cleared and not yet repopulated.
+    if (state < 0)
+        return;
+
     ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
     UAVObjectManager *objManager = pm->getObject<UAVObjectManager>();
     if(!gcsReceiverMode) {
