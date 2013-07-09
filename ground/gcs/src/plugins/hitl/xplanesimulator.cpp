@@ -348,9 +348,9 @@ void XplaneSimulator::processUpdate(const QByteArray& dataBuf)
         out.velDown = -velZ;
 
         //Update gyroscope sensor data
-        out.rollRate = rollRate_rad;
-        out.pitchRate = pitchRate_rad;
-        out.yawRate = yawRate_rad;
+        out.rollRate = rollRate_rad * RAD2DEG;
+        out.pitchRate = pitchRate_rad * RAD2DEG;
+        out.yawRate = yawRate_rad * RAD2DEG;
 
         //Update accelerometer sensor data
         out.accX = accX;

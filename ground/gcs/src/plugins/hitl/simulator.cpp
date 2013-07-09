@@ -477,8 +477,8 @@ void Simulator::updateUAVOs(Output2Hardware out){
     groundTruthData.AccelerationXYZ[2]=out.accZ;
 
     groundTruthData.RPY[0]=out.roll;
-    groundTruthData.RPY[0]=out.pitch;
-    groundTruthData.RPY[0]=out.heading;
+    groundTruthData.RPY[1]=out.pitch;
+    groundTruthData.RPY[2]=out.heading;
 
     groundTruthData.AngularRates[0]=out.rollRate;
     groundTruthData.AngularRates[1]=out.pitchRate;
