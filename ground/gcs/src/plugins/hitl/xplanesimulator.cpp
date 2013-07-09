@@ -208,11 +208,11 @@ void XplaneSimulator::processUpdate(const QByteArray& dataBuf)
     float airspeed_keas = 0;
     float airspeed_ktas = 0;
     float groundspeed_ktgs = 0;
-    float alpha_D=0;
-    float beta_D=0;
-    float pitch = 0;
-    float roll = 0;
-    float heading = 0;
+    float alpha_deg=0;
+    float beta_deg=0;
+    float pitch_deg = 0;
+    float roll_deg = 0;
+    float heading_deg = 0;
     float pressure = 0;
     float temperature = 0;
     float velX = 0;
@@ -260,14 +260,14 @@ void XplaneSimulator::processUpdate(const QByteArray& dataBuf)
                 break;
 
             case XplaneSimulator::AoA:
-                alpha_D = *((float*)(buf.data()+4*1));
-                beta_D = *((float*)(buf.data()+4*2));
+                alpha_deg = *((float*)(buf.data()+4*1));
+                beta_deg = *((float*)(buf.data()+4*2));
                 break;
 
             case XplaneSimulator::PitchRollHeading:
-                pitch = *((float*)(buf.data()+4*1));
-                roll = *((float*)(buf.data()+4*2));
-                heading = *((float*)(buf.data()+4*3));
+                pitch_deg = *((float*)(buf.data()+4*1));
+                roll_deg = *((float*)(buf.data()+4*2));
+                heading_deg = *((float*)(buf.data()+4*3));
                 break;
 
                 /*
@@ -321,31 +321,31 @@ void XplaneSimulator::processUpdate(const QByteArray& dataBuf)
         out.longitude = longitude * 1e7;
         out.altitude = altitude_msl;
         out.agl = altitude_agl;
-        out.groundspeed = groundspeed_ktgs*1.15*1.6089/3.6; //Convert from [kts] to [m/s]
+        out.groundspeed = groundspeed_ktgs * KNOTS2M_PER_SECOND;
 
-        out.calibratedAirspeed = airspeed_keas*1.15*1.6089/3.6;  //Convert from [kts] to [m/s]
-        out.trueAirspeed = airspeed_ktas*1.15*1.6089/3.6;  //Convert from [kts] to [m/s]
-        out.angleOfAttack=alpha_D;
-        out.angleOfSlip=beta_D;
+        out.calibratedAirspeed = airspeed_keas * KNOTS2M_PER_SECOND;
+        out.trueAirspeed = airspeed_ktas * KNOTS2M_PER_SECOND;
+        out.angleOfAttack=alpha_deg;
+        out.angleOfSlip=beta_deg;
 
         // Update BaroAltitude object
         out.temperature = temperature;
         out.pressure = pressure;
 
         // Update attActual object
-        out.roll = roll;       //roll;
-        out.pitch = pitch;     // pitch
-        out.heading = heading; // yaw
+        out.roll = roll_deg;       //roll;
+        out.pitch = pitch_deg;     // pitch
+        out.heading = heading_deg; // yaw
 
 
-        out.dstN=dstY;
-        out.dstE=dstX;
-        out.dstD=-dstZ;
+        out.dstN = dstY;
+        out.dstE = dstX;
+        out.dstD =-dstZ;
 
         // Update VelocityActual.{North,East,Down}
         out.velNorth = velY;
-        out.velEast = velX;
-        out.velDown = -velZ;
+        out.velEast  = velX;
+        out.velDown  =-velZ;
 
         //Update gyroscope sensor data
         out.rollRate = rollRate_rad * RAD2DEG;
@@ -359,11 +359,6 @@ void XplaneSimulator::processUpdate(const QByteArray& dataBuf)
 
         updateUAVOs(out);
     }
-    // issue manual update
-    //attActual->updated();
-    //altActual->updated();
-    //posActual->updated();
-
 }
 
 
