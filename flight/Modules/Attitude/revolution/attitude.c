@@ -611,7 +611,7 @@ static int32_t updateAttitudeComplementary(bool first_run, bool secondary)
 	GyrosBiasGet(&gyrosBias);
 	gyrosBias.x -= accel_err[0] * attitudeSettings.AccelKi;
 	gyrosBias.y -= accel_err[1] * attitudeSettings.AccelKi;
-	gyrosBias.z -= mag_err[2] * attitudeSettings.MagKi;
+	gyrosBias.z -= accel_err[2] * attitudeSettings.AccelKi + mag_err[2] * attitudeSettings.MagKi;
 	GyrosBiasSet(&gyrosBias);
 
 	// Correct rates based on error, integral component dealt with in updateSensors
