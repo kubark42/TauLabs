@@ -57,6 +57,7 @@ OPTMODULES += GenericI2CSensor
 OPTMODULES += AltitudeHold
 OPTMODULES += PathManager
 OPTMODULES += FixedWingPathFollower
+OPTMODULES += MissionDirector
 OPTMODULES += VibrationAnalysis
 OPTMODULES += UAVOMavlinkBridge
 OPTMODULES += Battery

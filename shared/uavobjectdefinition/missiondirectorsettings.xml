@@ -1,0 +1,15 @@
+<xml>
+	<object name="MissionDirectorSettings" singleinstance="true" settings="true">
+		<description>The information from the tablet to the UAVO.</description>
+		<field name="TabletModeDesired" units="" type="enum" elements="1" defaultvalue="CameraPOI">
+			<options>
+				<option>CameraPOI</option>
+			</options>
+		</field>
+		
+		<access gcs="readwrite" flight="readwrite"/>
+		<telemetrygcs acked="false" updatemode="manual" period="0"/>
+		<telemetryflight acked="false" updatemode="throttled" period="100"/>
+		<logging updatemode="manual" period="0"/>
+	</object>
+</xml>

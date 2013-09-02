@@ -9,19 +9,20 @@
 				<elementname>Battery</elementname>
 				<elementname>CameraStab</elementname>
 				<elementname>ComUsbBridge</elementname>
-				<elementname>FixedWingPathFollower</elementname>
 				<elementname>Fault</elementname>
+				<elementname>FixedWingPathFollower</elementname>
+				<elementname>GenericI2CSensor</elementname>
+				<elementname>GroundPathFollower</elementname>
 				<elementname>GPS</elementname>
+				<elementname>MissionDirector</elementname>
 				<elementname>OveroSync</elementname>
 				<elementname>PathManager</elementname>
 				<elementname>PathPlanner</elementname>
 				<elementname>TxPID</elementname>
-				<elementname>VtolPathFollower</elementname>
-				<elementname>GroundPathFollower</elementname>
-				<elementname>GenericI2CSensor</elementname>
 				<elementname>UAVOMavlinkBridge</elementname>
 				<elementname>UAVORelay</elementname>
 				<elementname>VibrationAnalysis</elementname>
+				<elementname>VtolPathFollower</elementname>
 			</elementnames>
 		</field>
 

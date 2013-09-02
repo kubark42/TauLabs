@@ -1,0 +1,37 @@
+<xml>
+	<object name="MissionDirectorUserProgram" singleinstance="true" settings="true">
+		<description>Holds a user-defined mission director program</description>
+
+		<!-- Default values are a simple test for the VM -->
+		<field name="Program" units="" type="enum" defaultvalue="Disabled">
+			<elementnames>
+				<elementname>Mission0</elementname>
+				<elementname>Mission1</elementname>
+				<elementname>Mission2</elementname>
+				<elementname>Mission3</elementname>
+				<elementname>Mission4</elementname>
+				<elementname>Mission5</elementname>
+				<elementname>Mission6</elementname>
+				<elementname>Mission7</elementname>
+				<elementname>Mission8</elementname>
+			</elementnames>
+			<options>
+				<option>None</option>
+				<option>Start</option>
+				<option>Takeoff</option>
+				<option>Cruise</option>
+				<option>Loiter</option>
+				<option>Predined path</option>
+				<option>Search</option>
+				<option>Return to home</option>
+				<option>Land</option>
+				<option>Stop</option>
+			</options>
+		</field> 
+
+		<access gcs="readwrite" flight="readwrite"/>
+		<telemetrygcs acked="true" updatemode="onchange" period="0"/>
+		<telemetryflight acked="true" updatemode="onchange" period="0"/>
+		<logging updatemode="manual" period="0"/>
+	</object>
+</xml>

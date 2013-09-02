@@ -82,6 +82,9 @@ HEADERS += $$UAVOBJECT_SYNTHETICS/accels.h \
     $$UAVOBJECT_SYNTHETICS/magnetometer.h \
     $$UAVOBJECT_SYNTHETICS/manualcontrolsettings.h \
     $$UAVOBJECT_SYNTHETICS/manualcontrolcommand.h \
+    $$UAVOBJECT_SYNTHETICS/missiondirectorsettings.h \
+    $$UAVOBJECT_SYNTHETICS/missiondirectorstatus.h \
+    $$UAVOBJECT_SYNTHETICS/missiondirectoruserprogram.h \
     $$UAVOBJECT_SYNTHETICS/mixersettings.h \
     $$UAVOBJECT_SYNTHETICS/mixerstatus.h \
     $$UAVOBJECT_SYNTHETICS/modulesettings.h \
@@ -189,6 +192,9 @@ SOURCES += $$UAVOBJECT_SYNTHETICS/accels.cpp \
     $$UAVOBJECT_SYNTHETICS/magnetometer.cpp \
     $$UAVOBJECT_SYNTHETICS/manualcontrolsettings.cpp \
     $$UAVOBJECT_SYNTHETICS/manualcontrolcommand.cpp \
+    $$UAVOBJECT_SYNTHETICS/missiondirectorsettings.cpp \
+    $$UAVOBJECT_SYNTHETICS/missiondirectorstatus.cpp \
+    $$UAVOBJECT_SYNTHETICS/missiondirectoruserprogram.cpp \
     $$UAVOBJECT_SYNTHETICS/mixersettings.cpp \
     $$UAVOBJECT_SYNTHETICS/mixerstatus.cpp \
     $$UAVOBJECT_SYNTHETICS/modulesettings.cpp \
