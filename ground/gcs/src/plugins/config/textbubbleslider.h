@@ -51,9 +51,11 @@ private:
     void setMaxPixelWidth();
 
     QFont font;
+    QFontMetrics *fontMetrics;
     int maximumFontWidth;
     int maximumFontHeight;
     int slideHandleWidth;
+    int slideHandleHeight;
     int slideHandleMargin;
 
 };

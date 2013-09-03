@@ -25,8 +25,10 @@
 * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
+#include <QApplication>
 #include <QDebug>
 #include <QPainter>
+#include <QStyleOptionSlider>
 #include <QDebug>
 #include <qmath.h>
 
@@ -72,6 +74,8 @@ TextBubbleSlider::TextBubbleSlider(QSlider *copySlider, QWidget *parent) :
 void TextBubbleSlider::construct()
 {
     font = QFont("Arial", 13);
+    fontMetrics = new QFontMetrics(font);
+
     slideHandleMargin = 2; // This is a dubious way to set the margin. In reality, it should be read from the style sheet.
 }
 
@@ -118,13 +122,14 @@ void TextBubbleSlider::setMaxPixelWidth()
     }
 
     // Calculate maximum possible pixel width for string.
-    QFontMetrics fontMetrics(font);
-    maximumFontWidth = fontMetrics.width(QString("%1").arg(maximumWidthString));
-    maximumFontHeight = fontMetrics.height();
+    maximumFontWidth = fontMetrics->width(QString("%1").arg(maximumWidthString));
+    maximumFontHeight = fontMetrics->height();
 
     // Override stylesheet slider handle width
     slideHandleWidth = maximumFontWidth + 6;
+    slideHandleHeight= maximumFontHeight + 1;
     setStyleSheet(QString("QSlider::handle:horizontal { width: %1px; margin: -5px 0;}").arg(slideHandleWidth));
+//    setStyleSheet(QString("QSlider::handle:horizontal { width: %1px; margin: -5px 0; border-top: 10px solid transparent;} QSlider::groove {border-image: url(:images/input_selected.png) 0 12 0 10; border-top: 10px;}").arg(slideHandleWidth));
 }
 
 
@@ -164,10 +169,129 @@ void TextBubbleSlider::setMaximum(int max)
  */
 void TextBubbleSlider::paintEvent(QPaintEvent *paintEvent)
 {
-    // Pass paint event on to QSlider
-    QSlider::paintEvent(paintEvent);
+
+    if (maximum() != minimum()) {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+
+        int sliderWidth = width();
+        int sliderHeight = height();
+        int grooveY_origin = ceil(sliderHeight/2.0) - 5;
+        int triangleHeight = 5;
+
+
+        QPolygonF grooveLeft;
+        QPolygonF grooveRight;
+
+        double valuePosition;
+        double handlePosition;
+        if (!invertedAppearance()) {
+            handlePosition = (value()-minimum())/(double)(maximum()-minimum()) * (sliderWidth - (slideHandleWidth + slideHandleMargin) - 1);
+            valuePosition = ((slideHandleWidth)/2 + slideHandleMargin) + // First part finds handle center...
+                    handlePosition; //... and second part moves text with handle
+        } else {
+            handlePosition = (maximum()-value())/(double)(maximum()-minimum()) * (sliderWidth - (slideHandleWidth + slideHandleMargin) - 1);
+            valuePosition = ((slideHandleWidth)/2 + slideHandleMargin) + // First part finds handle center...
+                    handlePosition; //... and second part moves text with handle
+        }
+
+        // Find the percentage movement
+        double handlePercentage = handlePosition / sliderWidth;
+
+
+        // TODO: Add comment
+        float marginLeft;
+        float marginRight;
+        if (!invertedAppearance()) {
+            marginLeft = 1;
+            marginRight = 6;
+        } else {
+            marginLeft = 6;
+            marginRight = 1;
+        }
+
+        QPointF grooveTopLeft(2, height()/2.0f-marginLeft);
+        QPointF grooveBottomLeft(2, height()/2.0f+marginLeft*0+5);
+        QPointF grooveTopRight(width()-2, height()/2.0f-marginRight);
+        QPointF grooveBottomRight(width()-2, height()/2.0f+marginRight*0+5);
+
+        // Define the groove up to the slider
+        grooveLeft << grooveTopLeft <<
+                      grooveBottomLeft <<
+                      QPointF(valuePosition, grooveBottomLeft.y() + (grooveBottomRight.y()-grooveBottomLeft.y())*handlePercentage) <<
+                      QPointF(valuePosition, grooveTopLeft.y() + (grooveTopRight.y()-grooveTopLeft.y())*handlePercentage);
+
+        // Define the groove after the slider
+        grooveRight << QPointF(valuePosition, grooveBottomLeft.y() + (grooveBottomRight.y()-grooveBottomLeft.y())*handlePercentage) <<
+                       QPointF(valuePosition, grooveTopLeft.y() + (grooveTopRight.y()-grooveTopLeft.y())*handlePercentage) <<
+                       grooveTopRight <<
+                       grooveBottomRight;
+        painter.setPen(QPen(QColor(119,119,119)));
+
+        // Color order depends on inverted appearance
+        if (!invertedAppearance()) {
+            painter.setBrush(QBrush(QColor(249,117,76)));
+            painter.drawPolygon(grooveLeft);
+            painter.setBrush(QBrush(Qt::white));
+            painter.drawPolygon(grooveRight);
+        } else {
+            painter.setBrush(QBrush(Qt::white));
+            painter.drawPolygon(grooveLeft);
+            painter.setBrush(QBrush(QColor(249,117,76)));
+            painter.drawPolygon(grooveRight);
+        }
+
+
+        // If mouse cursor is inside handle, change the color
+        QPoint p = this->mapFromGlobal(QCursor::pos());
+        if (p.x() > ceil(valuePosition-slideHandleWidth/2.0) && p.x() < ceil(valuePosition+slideHandleWidth/2.0) &&
+                p.y() > ceil(sliderHeight/2.0 - slideHandleHeight/2.0) && p.y() < ceil(sliderHeight/2.0 + slideHandleHeight/2.0)) {
+            painter.setBrush(QBrush(QColor(235,235,235)));
+         } else {
+            painter.setBrush(QBrush(QColor(196,196,196)));
+        }
+        painter.drawRoundedRect(QRectF(ceil(valuePosition-slideHandleWidth/2.0), sliderHeight/2.0 - slideHandleHeight/2.0, slideHandleWidth, slideHandleHeight), 3, 3);
+
+        //        QStyle style;
+        //        QStyleOptionSlider   opt;
+        //        opt.initFrom( this );
+        //        opt.minimum        = minimum();
+        //        opt.maximum        = maximum();
+        //        opt.pageStep       = pageStep();
+        //        opt.singleStep     = singleStep();
+        //        opt.orientation    = orientation();
+        //        opt.sliderPosition = sliderPosition();
+        //        opt.sliderValue    = value();
+        //        opt.tickInterval   = tickInterval();
+        //        opt.tickPosition   = tickPosition();
+        //        opt.upsideDown     = invertedAppearance();
+
+
+    } else {
+        // Pass paint event on to QSlider
+        QSlider::paintEvent(paintEvent);
+/*
+        QStyleOptionSlider opt;
+        initStyleOption(&opt);
+
+        opt.subControls = QStyle::SC_SliderGroove | QStyle::SC_SliderHandle;
+
+        QRect groove_rect = style()->subControlRect(QStyle::CC_Slider, &opt, QStyle::SC_SliderGroove, this);
+        QRect rect(groove_rect.left() + 0.2 * groove_rect.width(), groove_rect.top(), 0.6 * groove_rect.width(), groove_rect.height());
+        QPainter painter(this);
+        painter.fillRect(rect, QBrush(Qt::red));
+*/
+    }
+
+//    // Pass paint event on to QSlider
+//    QSlider::paintEvent(paintEvent);
+
+
 
     /* Add numbers on top of handler */
+    // Create painter and set font
+    QPainter painter(this);
+    painter.setFont(font);
 
     // Calculate pixel position for text.
     int sliderWidth = width();
@@ -182,14 +306,28 @@ void TextBubbleSlider::paintEvent(QPaintEvent *paintEvent)
                 (maximum()-value())/(double)(maximum()-minimum()) * (sliderWidth - (slideHandleWidth + slideHandleMargin) - 1); //... and second part moves text with handle
     }
 
-    // Create painter and set font
-    QPainter painter(this);
-    painter.setFont(font);
-
     // Draw neutral value text. Verically center it in the handle
     QString neutralStringWidth = QString("%1").arg(value());
-    QFontMetrics fontMetrics(font);
-    int textWidth = fontMetrics.width(neutralStringWidth);
+    int textWidth = fontMetrics->width(neutralStringWidth);
     painter.drawText(QRectF(valuePos + maximumFontWidth - textWidth, ceil((sliderHeight - maximumFontHeight)/2.0), textWidth, maximumFontHeight),
                      neutralStringWidth);
+
+return;
+
+    // Draw triangle to represent direction
+    int grooveY_origin = ceil(sliderHeight/2.0) - 5;
+    int triangleHeight = 5;
+    painter.setRenderHint(QPainter::Antialiasing);
+    if (!invertedAppearance()) {
+        QPolygonF polygon;
+        polygon << QPointF(0, grooveY_origin) << QPointF(sliderWidth-1, grooveY_origin) << QPointF(sliderWidth-1, grooveY_origin-triangleHeight) << QPointF(0, grooveY_origin);
+        painter.drawPolygon(polygon);
+    }
+    else {
+        QPolygonF polygon;
+        polygon << QPointF(0, grooveY_origin) << QPointF(sliderWidth-1, grooveY_origin) << QPointF(0, grooveY_origin-triangleHeight) << QPointF(0, grooveY_origin);
+        painter.drawPolygon(polygon);
+    }
+
+
 }
