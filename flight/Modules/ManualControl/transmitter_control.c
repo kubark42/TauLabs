@@ -210,31 +210,31 @@ int32_t transmitter_control_update()
 //		return 0;
 //	}
 
-	if (settings.RssiType != MANUALCONTROLSETTINGS_RSSITYPE_NONE) {
+	if (rc_transmitter_settings.RssiType != RCTRANSMITTERSETTINGS_RSSITYPE_NONE) {
 		int32_t value = 0;
 		extern uintptr_t pios_rcvr_group_map[];
-		switch (settings.RssiType) {
-		case MANUALCONTROLSETTINGS_RSSITYPE_PWM:
-			value = PIOS_RCVR_Read(pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_PWM], settings.RssiChannelNumber);
-			if(settings.RssiPwmPeriod != 0)
-				value = (value) % (settings.RssiPwmPeriod);
+		switch (rc_transmitter_settings.RssiType) {
+		case RCTRANSMITTERSETTINGS_RSSITYPE_PWM:
+			value = PIOS_RCVR_Read(pios_rcvr_group_map[RCTRANSMITTERSETTINGS_CHANNELGROUPS_PWM], rc_transmitter_settings.RssiChannelNumber);
+			if(rc_transmitter_settings.RssiPwmPeriod != 0)
+				value = (value) % (rc_transmitter_settings.RssiPwmPeriod);
 			break;
-		case MANUALCONTROLSETTINGS_RSSITYPE_PPM:
-			value = PIOS_RCVR_Read(pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_PPM], settings.RssiChannelNumber);
+		case RCTRANSMITTERSETTINGS_RSSITYPE_PPM:
+			value = PIOS_RCVR_Read(pios_rcvr_group_map[RCTRANSMITTERSETTINGS_CHANNELGROUPS_PPM], rc_transmitter_settings.RssiChannelNumber);
 			break;
-		case MANUALCONTROLSETTINGS_RSSITYPE_ADC:
+		case RCTRANSMITTERSETTINGS_RSSITYPE_ADC:
 #if defined(PIOS_INCLUDE_ADC)
-			value = PIOS_ADC_GetChannel(settings.RssiChannelNumber);
+			value = PIOS_ADC_GetChannel(rc_transmitter_settings.RssiChannelNumber);
 #endif
 			break;
 		}
 		if(value < 0)
 			value = 0;
-		if (settings.RssiMax == settings.RssiMin)
-			cmd.Rssi = 0;
+		if (rc_transmitter_settings.RssiMax == rc_transmitter_settings.RssiMin)
+			rc_transmitter_input.Rssi = 0;
 		else
-			cmd.Rssi = ((float)(value - settings.RssiMin)/((float)settings.RssiMax-settings.RssiMin)) * 100;
-		cmd.RawRssi = value;
+			rc_transmitter_input.Rssi = ((float)(value - rc_transmitter_settings.RssiMin)/((float)rc_transmitter_settings.RssiMax - rc_transmitter_settings.RssiMin)) * 100;
+		rc_transmitter_input.RawRssi = value;
 	}
 
 	bool valid_input_detected = true;
