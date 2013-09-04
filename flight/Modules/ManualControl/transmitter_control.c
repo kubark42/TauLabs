@@ -32,6 +32,7 @@
 #include "openpilot.h"
 #include "control.h"
 #include "transmitter_control.h"
+#include "controlcommand_agent.h"
 
 #include "accessorydesired.h"
 #include "actuatordesired.h"
@@ -386,8 +387,9 @@ int32_t transmitter_control_update()
 	// Update RC input object
 	RCTransmitterInputSet(&rc_transmitter_input);
 
-	// Set the control command
-	ControlCommandSet(&control_command);
+	// Only set the control command if this module has the rights
+	if(do_I_have_the_ball(AGENT_MANUALCONTROL) == true)
+		ControlCommandSet(&control_command);
 
 #if defined(PIOS_INCLUDE_USB_RCTX)
 	// Optionally make the hardware behave like a USB HID joystick
