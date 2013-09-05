@@ -32,7 +32,7 @@ enum controlcommand_agent {
 };
 
 //! Check if the module has the ball
-bool do_I_have_the_ball(enum controlcommand_agent error_code);
+bool do_I_have_the_ball(int flightMode, enum controlcommand_agent error_code);
 
 #endif /* CONTROLCOMMAND_AGENT_H */
 

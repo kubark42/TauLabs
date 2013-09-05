@@ -388,7 +388,7 @@ int32_t transmitter_control_update()
 	RCTransmitterInputSet(&rc_transmitter_input);
 
 	// Only set the control command if this module has the rights
-	if(do_I_have_the_ball(AGENT_MANUALCONTROL) == true)
+	if(do_I_have_the_ball(flightStatus.FlightMode, AGENT_MANUALCONTROL) == true)
 		ControlCommandSet(&control_command);
 
 #if defined(PIOS_INCLUDE_USB_RCTX)

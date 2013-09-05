@@ -26,18 +26,30 @@
 
 #include "openpilot.h"
 #include "controlcommand_agent.h"
+#include "flightstatus.h"
 
 
 /**
  * Set the error code and alarm state
  * @param[in] error code
  */
-bool do_I_have_the_ball(enum controlcommand_agent possessor)
+bool do_I_have_the_ball(int flightMode, enum controlcommand_agent possessor)
 {
 	// Get the severity of the alarm given the error code
-	switch (possessor) {
-	case AGENT_MANUALCONTROL:
-		return true;
+	switch(flightMode) {
+	case FLIGHTSTATUS_FLIGHTMODE_MANUAL:
+	case FLIGHTSTATUS_FLIGHTMODE_STABILIZED1:
+	case FLIGHTSTATUS_FLIGHTMODE_STABILIZED2:
+	case FLIGHTSTATUS_FLIGHTMODE_STABILIZED3:
+	case FLIGHTSTATUS_FLIGHTMODE_AUTOTUNE:
+	case FLIGHTSTATUS_FLIGHTMODE_ALTITUDEHOLD:
+	case FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD:
+	case FLIGHTSTATUS_FLIGHTMODE_RETURNTOHOME:
+	case FLIGHTSTATUS_FLIGHTMODE_PATHPLANNER:
+		if (possessor == AGENT_MANUALCONTROL)
+			return true;
+		else
+			return false;
 		break;
 	default:
 		return false;
