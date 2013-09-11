@@ -2,7 +2,7 @@
  ******************************************************************************
  * @addtogroup TauLabsModules Tau Labs Modules
  * @{
- * @file       filter_infrastructure_se3.c
+ * @file       filter_infrastructure_se3p.c
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2013
  * @brief      Infrastructure for managing SE(3)+ filters
  *             because of the airspeed output this is slightly more than SE(3)
@@ -26,7 +26,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#include "filter_infrastructure_se3.h"
+#include "filter_infrastructure_se3p.h"
 #include "coordinate_conversions.h"
 #include "physical_constants.h"
 
@@ -53,7 +53,7 @@
 #define FAILSAFE_TIMEOUT_MS 10
 
 //! Local pointer for the working data (should be moved into the instance)
-static struct filter_infrastructure_se3_data *s3_data;
+static struct filter_infrastructure_se3p_data *se3p_data;
 
 static int32_t getNED(GPSPositionData * gpsPosition, float * NED);
 
@@ -61,19 +61,19 @@ static int32_t getNED(GPSPositionData * gpsPosition, float * NED);
  * Initialize SE(3)+ filter infrastructure
  * @param[out] data   the common part shared amongst SE(3)+ filters
  */
-int32_t filter_infrastructure_se3_init(struct filter_infrastructure_se3_data **data)
+int32_t filter_infrastructure_se3p_init(struct filter_infrastructure_se3p_data **data)
 {
 	// Only create one instance of the common data.  This might not be what we want to
 	// keep doing.  A easy (but more memory intense) way to run multiple filters would
 	// be to make them all manage their own queues
 
-	if (s3_data == NULL) {
-		s3_data = (struct filter_infrastructure_se3_data *) pvPortMalloc(sizeof(struct filter_infrastructure_se3_data));
+	if (se3p_data == NULL) {
+		se3p_data = (struct filter_infrastructure_se3p_data *) pvPortMalloc(sizeof(struct filter_infrastructure_se3p_data));
 	}
-	if (!s3_data)
+	if (!se3p_data)
 		return -1;
 
-	(*data) = s3_data;
+	(*data) = se3p_data;
 
 	AttitudeActualInitialize();
 	AttitudeSettingsInitialize();
@@ -83,31 +83,31 @@ int32_t filter_infrastructure_se3_init(struct filter_infrastructure_se3_data **d
 	VelocityActualInitialize();
 
 	// Create the data queues
-	s3_data->gyroQueue = xQueueCreate(1, sizeof(UAVObjEvent));
-	s3_data->accelQueue = xQueueCreate(1, sizeof(UAVObjEvent));
-	s3_data->magQueue = xQueueCreate(1, sizeof(UAVObjEvent));
-	s3_data->baroQueue = xQueueCreate(1, sizeof(UAVObjEvent));
-	s3_data->gpsQueue = xQueueCreate(1, sizeof(UAVObjEvent));
-	s3_data->gpsVelQueue = xQueueCreate(1, sizeof(UAVObjEvent));
+	se3p_data->gyroQueue = xQueueCreate(1, sizeof(UAVObjEvent));
+	se3p_data->accelQueue = xQueueCreate(1, sizeof(UAVObjEvent));
+	se3p_data->magQueue = xQueueCreate(1, sizeof(UAVObjEvent));
+	se3p_data->baroQueue = xQueueCreate(1, sizeof(UAVObjEvent));
+	se3p_data->gpsQueue = xQueueCreate(1, sizeof(UAVObjEvent));
+	se3p_data->gpsVelQueue = xQueueCreate(1, sizeof(UAVObjEvent));
 
 	return 0;
 }
 
 //! Connect the queues used for SE(3)+ filters
-int32_t filter_infrastructure_se3_start(uintptr_t id)
+int32_t filter_infrastructure_se3p_start(uintptr_t id)
 {
 	if (GyrosHandle())
-		GyrosConnectQueue(s3_data->gyroQueue);
+		GyrosConnectQueue(se3p_data->gyroQueue);
 	if (AccelsHandle())
-		AccelsConnectQueue(s3_data->accelQueue);
+		AccelsConnectQueue(se3p_data->accelQueue);
 	if (MagnetometerHandle())
-		MagnetometerConnectQueue(s3_data->magQueue);
+		MagnetometerConnectQueue(se3p_data->magQueue);
 	if (BaroAltitudeHandle())
-		BaroAltitudeConnectQueue(s3_data->baroQueue);
+		BaroAltitudeConnectQueue(se3p_data->baroQueue);
 	if (GPSPositionHandle())
-		GPSPositionConnectQueue(s3_data->gpsQueue);
+		GPSPositionConnectQueue(se3p_data->gpsQueue);
 	if (GPSVelocityHandle())
-		GPSVelocityConnectQueue(s3_data->gpsVelQueue);
+		GPSVelocityConnectQueue(se3p_data->gpsVelQueue);
 
 	return 0;
 }
@@ -118,14 +118,14 @@ int32_t filter_infrastructure_se3_start(uintptr_t id)
  * @param[in] dT the update time in seconds
  * @return 0 if succesfully updated or error code
  */
-int32_t filter_infrastructure_se3_process(struct filter_driver *upper_driver, uintptr_t id, float dt)
+int32_t filter_infrastructure_se3p_process(struct filter_driver *upper_driver, uintptr_t id, float dt)
 {
 	// TODO: check error codes
 
 	// Make sure we are safe to get the class specific driver
 	if (!filter_interface_validate(upper_driver))
 		return -1;
-	struct filter_s3 *driver = &(upper_driver->sub_driver.driver_s3);
+	struct filter_se3p *driver = &(upper_driver->sub_driver.driver_se3p);
 
 	/* 1. fetch the data from queues and pass to filter                    */
 	/* if we want to start running multiple instances of this filter class */
@@ -151,7 +151,7 @@ int32_t filter_infrastructure_se3_process(struct filter_driver *upper_driver, ui
 	GPSVelocityData gpsVelocity;
 	float NED[3];
 
-	if (xQueueReceive(s3_data->gyroQueue, &ev, FAILSAFE_TIMEOUT_MS / portTICK_RATE_MS) == pdTRUE) {
+	if (xQueueReceive(se3p_data->gyroQueue, &ev, FAILSAFE_TIMEOUT_MS / portTICK_RATE_MS) == pdTRUE) {
 		// Convert gyros to rad / s
 		GyrosGet(&gyrosData);
 		gyrosData.x *= DEG2RAD;
@@ -160,28 +160,28 @@ int32_t filter_infrastructure_se3_process(struct filter_driver *upper_driver, ui
 		gyros = &gyrosData.x;
 	}
 
-	if (xQueueReceive(s3_data->accelQueue, &ev, 1 / portTICK_RATE_MS) == pdTRUE) {
+	if (xQueueReceive(se3p_data->accelQueue, &ev, 1 / portTICK_RATE_MS) == pdTRUE) {
 		AccelsGet(&accelsData);
 		accels = &accelsData.x;
 	}
 
-	if (xQueueReceive(s3_data->magQueue, &ev, 0 / portTICK_RATE_MS) == pdTRUE) {
+	if (xQueueReceive(se3p_data->magQueue, &ev, 0 / portTICK_RATE_MS) == pdTRUE) {
 		MagnetometerGet(&magData);
 		mag = &magData.x;
 	}
 
-	if (xQueueReceive(s3_data->baroQueue, &ev, 0 / portTICK_RATE_MS) == pdTRUE) {
+	if (xQueueReceive(se3p_data->baroQueue, &ev, 0 / portTICK_RATE_MS) == pdTRUE) {
 		BaroAltitudeGet(&baroData);
 		baro = &baroData.Altitude;
 	}
 
-	if (xQueueReceive(s3_data->gpsQueue, &ev, 0 / portTICK_RATE_MS) == pdTRUE) {
+	if (xQueueReceive(se3p_data->gpsQueue, &ev, 0 / portTICK_RATE_MS) == pdTRUE) {
 		GPSPositionGet(&gpsPosition);
 		getNED(&gpsPosition, NED);
 		pos = NED;
 	}
 
-	if (xQueueReceive(s3_data->gpsVelQueue, &ev, 0 / portTICK_RATE_MS) == pdTRUE) {
+	if (xQueueReceive(se3p_data->gpsVelQueue, &ev, 0 / portTICK_RATE_MS) == pdTRUE) {
 		GPSVelocityGet(&gpsVelocity);
 		vel = &gpsVelocity.North;
 	}

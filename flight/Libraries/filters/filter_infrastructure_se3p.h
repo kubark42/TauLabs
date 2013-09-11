@@ -2,7 +2,7 @@
  ******************************************************************************
  * @addtogroup TauLabsModules Tau Labs Modules
  * @{
- * @file       filter_infrastrcture_se3.h
+ * @file       filter_infrastrcture_se3p.h
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2013
  * @brief      Infrastructure for managing SE(3)+ filters
  *             because of the airspeed output this is slightly more than SE(3)
@@ -29,14 +29,14 @@
 #include "openpilot.h"
 #include "filter_interface.h"
 
-#ifndef FILTER_INFRASTRUCTURE_SE3
-#define FILTER_INFRASTRUCTURE_SE3
+#ifndef FILTER_INFRASTRUCTURE_SE3P
+#define FILTER_INFRASTRUCTURE_SE3P
 
 // This should probably be opaque and the init should return uintptr_t
 // for better API
 
 //! Private data common for SE(3)+ filters
-struct filter_infrastructure_se3_data {
+struct filter_infrastructure_se3p_data {
 	xQueueHandle gyroQueue;
 	xQueueHandle accelQueue;
 	xQueueHandle magQueue;
@@ -46,15 +46,15 @@ struct filter_infrastructure_se3_data {
 };
 
 // Initialize SE(3)+ UAVOs
-int32_t filter_infrastructure_se3_init(struct filter_infrastructure_se3_data **data);
+int32_t filter_infrastructure_se3p_init(struct filter_infrastructure_se3p_data **data);
 
 //! Connect  SE(3)+ queues
-int32_t filter_infrastructure_se3_start(uintptr_t id);
+int32_t filter_infrastructure_se3p_start(uintptr_t id);
 
 //! Process an update for  SE(3)+
-int32_t filter_infrastructure_se3_process(struct filter_driver *driver, uintptr_t id, float dt);
+int32_t filter_infrastructure_se3p_process(struct filter_driver *driver, uintptr_t id, float dt);
 
-#endif /* FILTER_INFRASTRUCTURE_SE3 */
+#endif /* FILTER_INFRASTRUCTURE_SE3P */
 
 /**
  * @}
