@@ -60,7 +60,7 @@ const struct filter_driver dcm_filter_driver = {
 
 
 enum dcm_interface_magic {
-	DCM_INTERFACE_MAGIC = 0x164BBE6C,
+	DCM_INTERFACE_MAGIC = 0x164BBE6C
 };
 
 struct dcm_interface_data {
@@ -99,12 +99,46 @@ static int32_t dcm_interface_init(uintptr_t *id)
 
 /********* formatting sensor data to the core math code goes below here *********/
 
+
+
 /**
  * Reset the filter state to default
  * @param[in]  id        the filter handle to reset
  */
 static int32_t dcm_interface_reset(uintptr_t id)
 {
+	//Change gyro calibration parameters...
+	if ((xTaskGetTickCount() > 1000) && (xTaskGetTickCount() < 7000)) {
+		//...during first 7 seconds or so...
+		// For first 7 seconds use accels to get gyro bias
+		glblAtt->accelKp = 1;
+		glblAtt->accelKi = 0.9;
+		glblAtt->yawBiasRate = 0.23;
+		init = 0;
+
+		//Force to use the CCC, because of the way it calibrates
+		attitudeSettings.FilterChoice = ATTITUDESETTINGS_FILTERCHOICE_CCC;
+	} else if (glblAtt->zero_during_arming && (flightStatus.Armed == FLIGHTSTATUS_ARMED_ARMING)) {
+		//...during arming...
+		glblAtt->accelKp = 1;
+		glblAtt->accelKi = 0.9;
+		glblAtt->yawBiasRate = 0.23;
+		init = 0;
+
+		//Force to use the CCC, because of the way it calibrates
+		attitudeSettings.FilterChoice = ATTITUDESETTINGS_FILTERCHOICE_CCC;
+	} else if (init == 0) {	//...once fully armed.
+		// Reload settings (all the rates)
+		AttitudeSettingsAccelKiGet(&glblAtt->accelKi);
+		AttitudeSettingsAccelKpGet(&glblAtt->accelKp);
+		AttitudeSettingsYawBiasRateGet(&glblAtt->yawBiasRate);
+
+		attitudeSettings.FilterChoice = originalFilter;
+
+		init = 1;
+	}
+
+
 	return 0;
 }
 
@@ -125,6 +159,32 @@ static int32_t dcm_interface_update(uintptr_t id, float gyros[3], float accels[3
 		float mag[3], float pos[3], float vel[3], float baro[1],
 		float airspeed[1], float dt)
 {
+	if (vel != NULL) {
+		if (1 /*gpsStatus == GPSPOSITION_STATUS_FIX3D*/) {
+			//Estimate velocity in NED frame
+			velocityActualData.North = (1 - alphaVelNorthEast) * velocityActualData.North +
+				alphaVelNorthEast * gpsVelocityData->North;
+			velocityActualData.East  = (1 - alphaVelNorthEast) * velocityActualData.East +
+				alphaVelNorthEast * gpsVelocityData->East;
+			velocityActualData.Down  = (1 - alphaVelDown) * velocityActualData.Down +
+				alphaVelDown * gpsVelocityData->Down;
+
+			//Estimate airspeed from GPS data
+			//http://www.engineeringtoolbox.com/air-altitude-pressure-d_462.html
+			float staticPressure =
+				homeLocation.SeaLevelPressure * powf(1.0f - 2.2555e-5f *
+					(homeLocation.Altitude - positionActualData. Down), 5.25588f);
+
+			// Convert from millibar to Pa
+			float staticAirDensity = staticPressure * 100 * 0.003483613507536f /
+				(homeLocation.GroundTemperature + CELSIUS2KELVIN);
+
+			gps_airspeed_update(&gpsVelocityData, staticAirDensity);
+		}
+
+	}
+
+
 	return 0;
 }
 

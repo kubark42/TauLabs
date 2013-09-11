@@ -98,6 +98,7 @@ int32_t StateStart(void)
 	attitude.q4 = 0;
 	AttitudeActualSet(&attitude);
 
+	// WHY DON'T UAVOS INITIALIZE TO 0 VIA memset?
 	GyrosBiasData gyrosBias;
 	GyrosBiasGet(&gyrosBias);
 	gyrosBias.x = 0;
