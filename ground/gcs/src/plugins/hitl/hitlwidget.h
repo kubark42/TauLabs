@@ -3,6 +3,7 @@
  *
  * @file       hitlwidget.h
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
+ * @author     Tau Labs, http://www.taulabs.org Copyright (C) 2013.
  *
  * @addtogroup GCSPlugins GCS Plugins
  * @{
@@ -45,15 +46,24 @@ public:
 
 	void setSettingParameters(const SimulatorSettings& params) {settings = params;}
 
+    // Helpers for setting the frequency displays
+    void setAccelsOutputFrequency(double val);
+    void setAirspeedOutputFrequency(double val);
+    void setAttitudeOutputFrequency(double val);
+    void setBaroOutputFrequency(double val);
+    void setGPSOutputFrequency(double val);
+    void setGyrosOutputFrequency(double val);
+
 private slots:
     void startButtonClicked();
     void stopButtonClicked();
-	void buttonClearLogClicked();
+    void buttonClearLogClicked();
     void onProcessOutput(QString text);
     void onAutopilotConnect();
     void onAutopilotDisconnect();
-	void onSimulatorConnect();
-	void onSimulatorDisconnect();
+    void onSimulatorConnect();
+    void onSimulatorDisconnect();
+    void refreshFrequencyOutputs();
 
 private:
     Ui_HITLWidget* widget;
@@ -66,6 +76,15 @@ private:
 	QString strAutopilotConnected;
     QString strStyleEnable;
     QString strStyleDisable;
+
+    QTimer *frequencyOutputTimer;
+    double accelsFreq;
+    double airspeedFreq;
+    double attitudeFreq;
+    double baroFreq;
+    double gpsFreq;
+    double gyrosFreq;
+
 };
 
 #endif /* HITLWIDGET_H */
