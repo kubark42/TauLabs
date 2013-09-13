@@ -29,6 +29,7 @@
 
 
 #include "simulator.h"
+#include "hitlwidget.h"
 #include "qxtlogger.h"
 #include "extensionsystem/pluginmanager.h"
 #include "coreplugin/icore.h"
@@ -57,10 +58,11 @@ Simulator::Simulator(const SimulatorSettings& params) :
         connect(this, SIGNAL(myStart()), this, SLOT(onStart()),Qt::QueuedConnection);
 	emit myStart();
 
-    QTime currentTime=QTime::currentTime();
+    QTime currentTime = QTime::currentTime();
     gpsPosTime = currentTime;
     groundTruthTime = currentTime;
     gcsRcvrTime = currentTime;
+    attitudeTime = currentTime;
     attRawTime = currentTime;
     baroAltTime = currentTime;
     airspeedActualTime=currentTime;
@@ -492,6 +494,11 @@ void Simulator::updateUAVOs(Output2Hardware out){
         // do nothing
         /*****************************************/
     } else if (settings.attActSim) {
+        if (attitudeTime.msecsTo(currentTime) > 0) {
+            hitlDisplayWidget->setAttitudeOutputFrequency(1000.0 / attitudeTime.msecsTo(currentTime));
+            attitudeTime = currentTime;
+        }
+
         // take all data from simulator
         attActualData.Roll = out.roll + noise.attActualData.Roll;   //roll;
         attActualData.Pitch = out.pitch + noise.attActualData.Pitch;  // pitch
@@ -509,6 +516,7 @@ void Simulator::updateUAVOs(Output2Hardware out){
 
         //Set UAVO
         attActual->setData(attActualData);
+
         /*****************************************/
     } else if (settings.attActCalc) {
         // calculate RPY with code from Attitude module
@@ -643,14 +651,19 @@ void Simulator::updateUAVOs(Output2Hardware out){
 
             gcsReceiver->setData(gcsRcvrData);
 
-            gcsRcvrTime=gcsRcvrTime.addMSecs(settings.minOutputPeriod);
+            while (gcsRcvrTime.msecsTo(currentTime) >= settings.minOutputPeriod)
+                gcsRcvrTime = gcsRcvrTime.addMSecs(settings.minOutputPeriod);
         }
     }
 
     /*******************************/
     if (settings.gpsPositionEnabled) {
         if (gpsPosTime.msecsTo(currentTime) >= settings.gpsPosRate) {
-            qDebug()<< " GPS time:" << gpsPosTime << ", currentTime: " << currentTime  << ", difference: "  << gpsPosTime.msecsTo(currentTime);
+            if (lastGPSPosTime.msecsTo(currentTime) > 0) {
+                hitlDisplayWidget->setGPSOutputFrequency(1000.0 / lastGPSPosTime.msecsTo(currentTime));
+            }
+            lastGPSPosTime = currentTime;
+
             // Update GPS Position objects
             GPSPosition::DataFields gpsPosData;
             memset(&gpsPosData, 0, sizeof(GPSPosition::DataFields));
@@ -676,7 +689,8 @@ void Simulator::updateUAVOs(Output2Hardware out){
 
             gpsVel->setData(gpsVelData);
 
-            gpsPosTime=gpsPosTime.addMSecs(settings.gpsPosRate);
+            while (gpsPosTime.msecsTo(currentTime) >= settings.gpsPosRate)
+                gpsPosTime = gpsPosTime.addMSecs(settings.gpsPosRate);
         }
     }
 
@@ -698,7 +712,8 @@ void Simulator::updateUAVOs(Output2Hardware out){
             positionActualData.Down = (out.dstD/*-initD*/) + noise.positionActualData.Down;
             posActual->setData(positionActualData);
 
-            groundTruthTime=groundTruthTime.addMSecs(settings.groundTruthRate);
+            while (groundTruthTime.msecsTo(currentTime) >= settings.groundTruthRate)
+                groundTruthTime = groundTruthTime.addMSecs(settings.groundTruthRate);
         }
     }
 
@@ -728,14 +743,20 @@ void Simulator::updateUAVOs(Output2Hardware out){
     // Update BaroAltitude object
     if (settings.baroAltitudeEnabled){
         if (baroAltTime.msecsTo(currentTime) >= settings.baroAltRate) {
-        BaroAltitude::DataFields baroAltData;
-        memset(&baroAltData, 0, sizeof(BaroAltitude::DataFields));
-        baroAltData.Altitude = out.altitude + noise.baroAltData.Altitude;
-        baroAltData.Temperature = out.temperature + noise.baroAltData.Temperature;
-        baroAltData.Pressure = out.pressure + noise.baroAltData.Pressure;
-        baroAlt->setData(baroAltData);
+            if (lastBaroAltTime.msecsTo(currentTime) > 0) {
+                hitlDisplayWidget->setGPSOutputFrequency(1000.0 / lastBaroAltTime.msecsTo(currentTime));
+            }
+            lastBaroAltTime = currentTime;
 
-        baroAltTime=baroAltTime.addMSecs(settings.baroAltRate);
+            BaroAltitude::DataFields baroAltData;
+            memset(&baroAltData, 0, sizeof(BaroAltitude::DataFields));
+            baroAltData.Altitude = out.altitude + noise.baroAltData.Altitude;
+            baroAltData.Temperature = out.temperature + noise.baroAltData.Temperature;
+            baroAltData.Pressure = out.pressure + noise.baroAltData.Pressure;
+            baroAlt->setData(baroAltData);
+
+            while (baroAltTime.msecsTo(currentTime) >= settings.baroAltRate)
+                baroAltTime = baroAltTime.addMSecs(settings.baroAltRate);
         }
     }
 
@@ -743,15 +764,21 @@ void Simulator::updateUAVOs(Output2Hardware out){
     // Update AirspeedActual object
     if (settings.airspeedActualEnabled){
         if (airspeedActualTime.msecsTo(currentTime) >= settings.airspeedActualRate) {
-        AirspeedActual::DataFields airspeedActualData;
-        memset(&airspeedActualData, 0, sizeof(AirspeedActual::DataFields));
-        airspeedActualData.CalibratedAirspeed = out.calibratedAirspeed + noise.airspeedActual.CalibratedAirspeed;
-        airspeedActualData.TrueAirspeed = out.trueAirspeed + noise.airspeedActual.TrueAirspeed;
-        airspeedActualData.alpha=out.angleOfAttack;
-        airspeedActualData.beta=out.angleOfSlip;
-        airspeedActual->setData(airspeedActualData);
+            if (lastAirspeedActualTime.msecsTo(currentTime) > 0) {
+                hitlDisplayWidget->setGPSOutputFrequency(1000.0 / lastAirspeedActualTime.msecsTo(currentTime));
+            }
+            lastAirspeedActualTime = currentTime;
 
-        airspeedActualTime=airspeedActualTime.addMSecs(settings.airspeedActualRate);
+            AirspeedActual::DataFields airspeedActualData;
+            memset(&airspeedActualData, 0, sizeof(AirspeedActual::DataFields));
+            airspeedActualData.CalibratedAirspeed = out.calibratedAirspeed + noise.airspeedActual.CalibratedAirspeed;
+            airspeedActualData.TrueAirspeed = out.trueAirspeed + noise.airspeedActual.TrueAirspeed;
+            airspeedActualData.alpha=out.angleOfAttack;
+            airspeedActualData.beta=out.angleOfSlip;
+            airspeedActual->setData(airspeedActualData);
+
+            while(airspeedActualTime.msecsTo(currentTime) >= settings.airspeedActualRate)
+                airspeedActualTime = airspeedActualTime.addMSecs(settings.airspeedActualRate);
         }
     }
 
@@ -759,6 +786,12 @@ void Simulator::updateUAVOs(Output2Hardware out){
     // Update raw attitude sensors
     if (settings.attRawEnabled) {
         if (attRawTime.msecsTo(currentTime) >= settings.attRawRate) {
+            if (lastAttRawTime.msecsTo(currentTime) > 0) {
+                hitlDisplayWidget->setAccelsOutputFrequency(1000.0 / lastAttRawTime.msecsTo(currentTime));
+                hitlDisplayWidget->setGyrosOutputFrequency(1000.0 / lastAttRawTime.msecsTo(currentTime));
+            }
+            lastAttRawTime = currentTime;
+
             //Update gyroscope sensor data
             Gyros::DataFields gyroData;
             memset(&gyroData, 0, sizeof(Gyros::DataFields));
@@ -775,7 +808,8 @@ void Simulator::updateUAVOs(Output2Hardware out){
             accelData.z = out.accZ + noise.accelData.z;
             accels->setData(accelData);
 
-            attRawTime=attRawTime.addMSecs(settings.attRawRate);
+            while(attRawTime.msecsTo(currentTime) >= settings.attRawRate)
+                attRawTime = attRawTime.addMSecs(settings.attRawRate);
         }
     }
 }

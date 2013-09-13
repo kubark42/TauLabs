@@ -3,6 +3,7 @@
  *
  * @file       hitlwidget.cpp
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2012.
+ * @author     Tau Labs, http://www.taulabs.org Copyright (C) 2013.
  *
  * @addtogroup GCSPlugins GCS Plugins
  * @{
@@ -66,11 +67,14 @@ HITLWidget::HITLWidget(QWidget *parent)
 	connect(widget->startButton, SIGNAL(clicked()), this, SLOT(startButtonClicked()));
 	connect(widget->stopButton, SIGNAL(clicked()), this, SLOT(stopButtonClicked()));
 	connect(widget->buttonClearLog, SIGNAL(clicked()), this, SLOT(buttonClearLogClicked()));
+
+    frequencyOutputTimer = new QTimer;
 }
 
 HITLWidget::~HITLWidget()
 {
-   delete widget;
+    delete widget;
+    delete frequencyOutputTimer;
 }
 
 void HITLWidget::startButtonClicked()
@@ -81,7 +85,7 @@ void HITLWidget::startButtonClicked()
     //Allow only one instance per simulator
 	if(Simulator::Instances().indexOf(settings.simulatorId) != -1)
 	{
-		widget->textBrowser->append(settings.simulatorId + " alreary started!");
+		widget->te_hitlConsole->append(settings.simulatorId + " alreary started!");
 		return;
 	}
 
@@ -100,7 +104,7 @@ void HITLWidget::startButtonClicked()
 
     if(settings.hostAddress == "" || settings.inPort == 0)
 	{
-		widget->textBrowser->append("Before start, set UDP parameters in options page!");
+		widget->te_hitlConsole->append("Before start, set UDP parameters in options page!");
 		return;
 	}
 
@@ -110,11 +114,12 @@ void HITLWidget::startButtonClicked()
     // move to thread <--[BCH]
 	simulator->setName(creator->Description());
 	simulator->setSimulatorId(creator->ClassId());
+    simulator->setDisplayWidget(this);
 
     connect(simulator, SIGNAL(processOutput(QString)), this, SLOT(onProcessOutput(QString)));
 
 	// Setup process
-	widget->textBrowser->append(QString("[%1] Starting %2... ").arg(QTime::currentTime().toString("hh:mm:ss")).arg(creator->Description()));
+	widget->te_hitlConsole->append(QString("[%1] Starting %2... ").arg(QTime::currentTime().toString("hh:mm:ss")).arg(creator->Description()));
 	qxtLog->info("HITL: Starting " + creator->Description());
 
 	// Start bridge
@@ -131,6 +136,10 @@ void HITLWidget::startButtonClicked()
 		connect(simulator, SIGNAL(autopilotDisconnected()), this, SLOT(onAutopilotDisconnect()),Qt::QueuedConnection);
 		connect(simulator, SIGNAL(simulatorConnected()), this, SLOT(onSimulatorConnect()),Qt::QueuedConnection);
 		connect(simulator, SIGNAL(simulatorDisconnected()), this, SLOT(onSimulatorDisconnect()),Qt::QueuedConnection);
+
+        // Make a 500ms timer for refreshing the HiTL frequency display boxes
+        frequencyOutputTimer->start(500);
+        connect(frequencyOutputTimer, SIGNAL(timeout()) , this, SLOT(refreshFrequencyOutputs()));
 
 		// Initialize connection status
 		if ( simulator->isAutopilotConnected() )
@@ -157,7 +166,7 @@ void HITLWidget::startButtonClicked()
 void HITLWidget::stopButtonClicked()
 {
 	if(simulator)
-		widget->textBrowser->append(QString("[%1] Terminate %2 ").arg(QTime::currentTime().toString("hh:mm:ss")).arg(simulator->Name()));
+		widget->te_hitlConsole->append(QString("[%1] Terminate %2 ").arg(QTime::currentTime().toString("hh:mm:ss")).arg(simulator->Name()));
 
 	widget->startButton->setEnabled(true);
 	widget->stopButton->setEnabled(false);
@@ -165,6 +174,9 @@ void HITLWidget::stopButtonClicked()
     widget->simLabel->setStyleSheet(QString::fromUtf8("QFrame{background-color: transparent; color: white}"));
     widget->apLabel->setText(strAutopilotDisconnected);
 	widget->simLabel->setText(strSimulatorDisconnected);
+
+    frequencyOutputTimer->stop();
+
 	if(simulator)
 	{
 		QMetaObject::invokeMethod(simulator, "onDeleteSimulator",Qt::QueuedConnection);
@@ -174,12 +186,12 @@ void HITLWidget::stopButtonClicked()
 
 void HITLWidget::buttonClearLogClicked()
 {
-	widget->textBrowser->clear();
+	widget->te_hitlConsole->clear();
 }
 
 void HITLWidget::onProcessOutput(QString text)
 {
-    widget->textBrowser->append(text);
+    widget->te_hitlConsole->append(text);
 }
 
 void HITLWidget::onAutopilotConnect()
@@ -208,4 +220,42 @@ void HITLWidget::onSimulatorDisconnect()
     widget->simLabel->setStyleSheet(strStyleDisable);
     widget->simLabel->setText(" " + simulator->Name() +" disconnected ");
 	qxtLog->info(QString("HITL: %1 disconnected").arg(simulator->Name()));
+}
+
+void HITLWidget::setAccelsOutputFrequency(double val)
+{
+    accelsFreq = val;
+}
+void HITLWidget::setAirspeedOutputFrequency(double val)
+{
+    airspeedFreq = val;
+}
+void HITLWidget::setAttitudeOutputFrequency(double val)
+{
+    attitudeFreq = val;
+}
+void HITLWidget::setBaroOutputFrequency(double val)
+{
+    baroFreq = val;
+}
+void HITLWidget::setGPSOutputFrequency(double val)
+{
+    gpsFreq = val;
+}
+void HITLWidget::setGyrosOutputFrequency(double val)
+{
+    gyrosFreq = val;
+}
+
+/**
+ * @brief HITLWidget::refreshFrequencyOutputs Updates HiTL sensor frequency display
+ */
+void HITLWidget::refreshFrequencyOutputs()
+{
+    widget->le_AccelsUpdateFrequency->setText(QString("%1Hz").arg(accelsFreq, 0, 'f', 1));
+    widget->le_AirspeedUpdateFrequency->setText(QString("%1Hz").arg(airspeedFreq, 0, 'f', 1));
+    widget->le_AttitudeUpdateFrequency->setText(QString("%1Hz").arg(attitudeFreq, 0, 'f', 1));
+    widget->le_BaroUpdateFrequency->setText(QString("%1Hz").arg(baroFreq, 0, 'f', 1));
+    widget->le_GPSUpdateFrequency->setText(QString("%1Hz").arg(gpsFreq, 0, 'f', 1));
+    widget->le_GyrosUpdateFrequency->setText(QString("%1Hz").arg(gyrosFreq, 0, 'f', 1));
 }
