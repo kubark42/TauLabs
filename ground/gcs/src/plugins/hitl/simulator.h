@@ -137,7 +137,7 @@ typedef struct _CONNECTION
 //    bool homeLocation;
 
     bool attRawEnabled;
-    quint8 attRawRate;
+    quint16 attRawRate;
 
     bool attActualEnabled;
     bool attActHW;
@@ -214,6 +214,8 @@ struct Output2Hardware{
 //    float motor;
 //};
 
+class HITLWidget;
+
 class Simulator : public QObject
 {
     Q_OBJECT
@@ -226,6 +228,7 @@ public:
     bool isSimulatorConnected() const { return simConnectionStatus; }
     QString Name() const { return name; }
     void setName(QString str) { name = str; }
+    void setDisplayWidget(HITLWidget *hitlDisplayWidget) {this->hitlDisplayWidget = hitlDisplayWidget;}
 
     QString SimulatorId() const { return simulatorId; }
     void setSimulatorId(QString str) { simulatorId = str; }
@@ -316,6 +319,7 @@ private:
     QTimer* txTimer;
     QTimer* simTimer;
 
+    QTime attitudeTime;
     QTime attRawTime;
     QTime gpsPosTime;
     QTime groundTruthTime;
@@ -323,8 +327,17 @@ private:
     QTime gcsRcvrTime;
     QTime airspeedActualTime;
 
+    QTime lastAttitudeTime;
+    QTime lastAttRawTime;
+    QTime lastGPSPosTime;
+    QTime lastGroundTruthTime;
+    QTime lastBaroAltTime;
+    QTime lastGCSRcvrTime;
+    QTime lastAirspeedActualTime;
+
     QString name;
     QString simulatorId;
+    HITLWidget *hitlDisplayWidget;
     volatile static bool isStarted;
     static QStringList instances;
     //QList<QScopedPointer<UAVDataObject> > requiredUAVObjects;
