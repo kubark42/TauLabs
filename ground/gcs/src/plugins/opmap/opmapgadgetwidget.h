@@ -326,10 +326,11 @@ private:
     internals::PointLatLng lastLatLngMouse;
     WayPointItem * magicWayPoint;
 
-    QPointer<WaypointDataModel> model;
+    QPointer<WaypointDataModel> waypointModel;
+    QPointer<PathSegmentDataModel> pathSegmentModel;
     QPointer<QDialog> pathPlannerDialog;
     QPointer<ModelMapProxy> mapProxy;
-    QPointer<QItemSelectionModel> selectionModel;
+    QPointer<QItemSelectionModel> waypointSelectionModel;
 };
 
 #endif /* OPMAP_GADGETWIDGET_H_ */

@@ -9,6 +9,7 @@ include(../../plugins/uavobjects/uavobjects.pri)
 DEFINES += PATHPLANNER_LIBRARY
 
 HEADERS += pathplannergadget.h \
+    pathsegmentdialog.h\
     waypointdialog.h \
     waypointdelegate.h
 HEADERS += pathplanner_global.h
@@ -21,6 +22,7 @@ HEADERS += ipathalgorithm.h
 HEADERS += algorithms/pathfillet.h
 
 SOURCES += pathplannergadget.cpp \
+    pathsegmentdialog.cpp\
     waypointdialog.cpp \
     waypointdelegate.cpp \
     ipathalgorithm.cpp
