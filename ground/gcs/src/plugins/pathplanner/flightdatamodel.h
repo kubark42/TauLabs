@@ -31,16 +31,11 @@
 #include <QAbstractTableModel>
 #include "pathplanner_global.h"
 
-struct pathPlanData
-{
-    QString wpDescritption;
-    double latPosition;
-    double lngPosition;
-    double altitude;
-    float velocity;
-    int mode;
-    float mode_params;
-    bool locked;
+//! NED representation of a point
+struct NED {
+    double North;
+    double East;
+    double Down;
 };
 
 class PATHPLANNER_EXPORT WaypointDataModel : public QAbstractTableModel
@@ -49,7 +44,7 @@ class PATHPLANNER_EXPORT WaypointDataModel : public QAbstractTableModel
 public:
 
     //! The column names
-    enum pathPlanDataEnum
+    enum waypointDataEnum
     {
         LATPOSITION,LNGPOSITION,ALTITUDE,
         NED_NORTH, NED_EAST, NED_DOWN,
@@ -76,23 +71,83 @@ public:
     bool replaceData(WaypointDataModel *newModel);
 
 private:
-    QList<pathPlanData *> dataStorage;
-
-    //! NED representation of a location
-    struct NED {
-        double North;
-        double East;
-        double Down;
+    struct waypointData
+    {
+        QString wpDescritption;
+        double latPosition;
+        double lngPosition;
+        double altitude;
+        float velocity;
+        int mode;
+        float mode_params;
+        bool locked;
     };
 
+    QList<waypointData *> dataStorage;
+
     //! Get the NED representation of a waypoint
-    struct WaypointDataModel::NED getNED(int index) const;
+    struct NED getNED(int index) const;
 
     //! Set the NED representation of a waypoint
-    bool setNED(int index, struct WaypointDataModel::NED NED);
+    bool setNED(int index, struct NED NED);
 
     //! Get the current home location
     bool getHomeLocation(double *homeLLA) const;
+};
+
+class PATHPLANNER_EXPORT PathSegmentDataModel : public QAbstractTableModel
+{
+    Q_OBJECT
+public:
+
+    //! The column names
+    enum pathSegmentDataEnum
+    {
+        NED_POS_NORTH, NED_POS_EAST, NED_POS_DOWN,
+        NED_VEL_NORTH, NED_VEL_EAST, NED_VEL_DOWN,
+        NED_ACC_NORTH, NED_ACC_EAST, NED_ACC_DOWN,
+        CURVATURE, NUM_ORBITS, ARC_RANK,
+        SEGMENT_DESCRIPTION,
+        LASTCOLUMN
+    };
+
+    PathSegmentDataModel(QObject *parent);
+    int rowCount(const QModelIndex &parent = QModelIndex()) const ;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
+    QVariant headerData(int section, Qt::Orientation orientation, int role) const;
+
+    bool setData(const QModelIndex & index, const QVariant & value, int role = Qt::EditRole);
+    Qt::ItemFlags flags(const QModelIndex & index) const ;
+    bool insertRows ( int row, int count, const QModelIndex & parent = QModelIndex() );
+    bool removeRows ( int row, int count, const QModelIndex & parent = QModelIndex() );
+    bool writeToFile(QString filename);
+    void readFromFile(QString fileName);
+
+    static QMap<int,QString> modeNames;
+
+    //! Replace a model data with another model
+    bool replaceData(PathSegmentDataModel *newModel);
+
+private:
+    struct pathSegmentData
+    {
+        QString segmentDescription;
+        double posNED[3];
+        double velNED[3];
+        double accNED[3];
+        double curvature;
+        int numberOfOrbits;
+        int arcRank; //Fixme: This could be an enum type, not an int
+    };
+
+    QList<pathSegmentData *> dataStorage;
+
+    //! Get the NED representation of a waypoint
+    struct NED getNED(int index) const;
+
+    //! Set the NED representation of a waypoint
+    bool setNED(int index, struct NED NED);
 };
 
 #endif // FLIGHTDATAMODEL_H

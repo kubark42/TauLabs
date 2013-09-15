@@ -53,17 +53,26 @@ bool PathPlannerPlugin::initialize(const QStringList& args, QString *errMsg)
     mf = new PathPlannerGadgetFactory(this);
     addAutoReleasedObject(mf);
 
-    // Create the data model for the flight plan
-    dataModel = new WaypointDataModel(this);
-    addAutoReleasedObject(dataModel);
+    // Create the waypoint data model for the trajectory
+    waypointDataModel = new WaypointDataModel(this);
+    addAutoReleasedObject(waypointDataModel);
+
+    // Create the path segment data model for the trajectory
+    pathSegmentDataModel = new PathSegmentDataModel(this);
+    addAutoReleasedObject(pathSegmentDataModel);
 
     // Create a selector and add it to the plugin
-    selection = new QItemSelectionModel(dataModel);
+    selection = new QItemSelectionModel(waypointDataModel);
     addAutoReleasedObject(selection);
 
-    // Create a common dialog to be used by the map and path planner
-    waypointDialog = new WaypointDialog(NULL, dataModel, selection);
+    // Create a waypoint common dialog to be used by the map and path planner
+    waypointDialog = new WaypointDialog(NULL, waypointDataModel, selection);
     addAutoReleasedObject(waypointDialog);
+
+    // Create a path segment common dialog to be used by the map and path planner
+    pathSegmentDialog = new PathSegmentDialog(NULL, pathSegmentDataModel, selection);
+    addAutoReleasedObject(pathSegmentDialog);
+
 
     return true;
 }

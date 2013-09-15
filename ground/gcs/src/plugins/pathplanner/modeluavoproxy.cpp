@@ -36,7 +36,10 @@
 #include "homelocation.h"
 
 //! Initialize the model uavo proxy
-ModelUavoProxy::ModelUavoProxy(QObject *parent, WaypointDataModel *model):QObject(parent),myModel(model)
+ModelUavoProxy::ModelUavoProxy(QObject *parent, WaypointDataModel *waypointModel, PathSegmentDataModel *pathSegmentModel):
+    QObject(parent),
+    waypointModel(waypointModel),
+    pathSegmentModel(pathSegmentModel)
 {
     ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
     Q_ASSERT(pm != NULL);
@@ -52,23 +55,31 @@ ModelUavoProxy::ModelUavoProxy(QObject *parent, WaypointDataModel *model):QObjec
  */
 void ModelUavoProxy::modelToObjects()
 {
-    Waypoint *wp = Waypoint::GetInstance(objManager,0);
-    Q_ASSERT(wp);
-    if (wp == NULL)
+    // Get UAVOs and return if this fails
+    Waypoint *waypoint = Waypoint::GetInstance(objManager,0);
+    Q_ASSERT(waypoint);
+    if (waypoint == NULL)
         return;
 
-    // Make sure the object is acked
-    UAVObject::Metadata initialMeta = wp->getMetadata();
+    PathSegmentDescriptor *pathSegmentDescriptor = PathSegmentDescriptor::GetInstance(objManager,0);
+    Q_ASSERT(pathSegmentDescriptor);
+    if (pathSegmentDescriptor == NULL)
+        return;
+
+    /* First handle waypoints... */
+
+    // Make sure the waypoint object is acked
+    UAVObject::Metadata initialMeta = waypoint->getMetadata();
     UAVObject::Metadata meta = initialMeta;
     UAVObject::SetFlightTelemetryAcked(meta, true);
-    wp->setMetadata(meta);
+    waypoint->setMetadata(meta);
 
     double homeLLA[3];
     double NED[3];
     double LLA[3];
     getHomeLocation(homeLLA);
 
-    for(int x=0;x<myModel->rowCount();++x)
+    for(int x=0; x < waypointModel->rowCount(); ++x)
     {
         Waypoint *wp = NULL;
 
@@ -76,42 +87,88 @@ void ModelUavoProxy::modelToObjects()
         int instances = Waypoint::getNumInstances(objManager);
 
         // Create new instances of waypoints if this is more than exist
-        if(x>instances-1)
+        if(x > instances - 1)
         {
-            wp=new Waypoint;
+            wp = new Waypoint;
             wp->initialize(x,wp->getMetaObject());
             objManager->registerObject(wp);
         }
         else
         {
-            wp=Waypoint::GetInstance(objManager,x);
+            wp = Waypoint::GetInstance(objManager,x);
         }
 
         Q_ASSERT(wp);
-        Waypoint::DataFields waypoint = wp->getData();
+        Waypoint::DataFields waypointData = wp->getData();
 
         // Convert from LLA to NED for sending to the model
-        LLA[0] = myModel->data(myModel->index(x,WaypointDataModel::LATPOSITION)).toDouble();
-        LLA[1] = myModel->data(myModel->index(x,WaypointDataModel::LNGPOSITION)).toDouble();
-        LLA[2] = myModel->data(myModel->index(x,WaypointDataModel::ALTITUDE)).toDouble();
+        LLA[0] = waypointModel->data(waypointModel->index(x,WaypointDataModel::LATPOSITION)).toDouble();
+        LLA[1] = waypointModel->data(waypointModel->index(x,WaypointDataModel::LNGPOSITION)).toDouble();
+        LLA[2] = waypointModel->data(waypointModel->index(x,WaypointDataModel::ALTITUDE)).toDouble();
         Utils::CoordinateConversions().LLA2NED_HomeLLA(LLA, homeLLA, NED);
 
         // Fetch the data from the internal model
-        waypoint.Velocity=myModel->data(myModel->index(x,WaypointDataModel::VELOCITY)).toFloat();
-        waypoint.Position[Waypoint::POSITION_NORTH] = NED[0];
-        waypoint.Position[Waypoint::POSITION_EAST]  = NED[1];
-        waypoint.Position[Waypoint::POSITION_DOWN]  = NED[2];
-        waypoint.Mode = myModel->data(myModel->index(x,WaypointDataModel::MODE), Qt::UserRole).toInt();
-        waypoint.ModeParameters = myModel->data(myModel->index(x,WaypointDataModel::MODE_PARAMS)).toFloat();
+        waypointData.Velocity=waypointModel->data(waypointModel->index(x,WaypointDataModel::VELOCITY)).toDouble();
+        waypointData.Position[Waypoint::POSITION_NORTH] = NED[0];
+        waypointData.Position[Waypoint::POSITION_EAST]  = NED[1];
+        waypointData.Position[Waypoint::POSITION_DOWN]  = NED[2];
+        waypointData.Mode = waypointModel->data(waypointModel->index(x,WaypointDataModel::MODE), Qt::UserRole).toInt();
+        waypointData.ModeParameters = waypointModel->data(waypointModel->index(x,WaypointDataModel::MODE_PARAMS)).toDouble();
 
-        if (robustUpdate(waypoint, x))
+        if (robustUpdate(waypointData, x))
             qDebug() << "Successfully updated";
         else {
             qDebug() << "Upload failed";
             break;
         }
     }
-    wp->setMetadata(initialMeta);
+    waypoint->setMetadata(initialMeta);
+
+    /* ...then the path segment descriptors */
+    // Make sure the path segment descriptor object is acked
+    initialMeta = pathSegmentDescriptor->getMetadata();
+    meta = initialMeta;
+    UAVObject::SetFlightTelemetryAcked(meta, true);
+    pathSegmentDescriptor->setMetadata(meta);
+
+    for(int x=0; x < pathSegmentModel->rowCount(); ++x)
+    {
+        PathSegmentDescriptor *psd = NULL;
+
+        // Get the number of existing waypoints
+        int instances = PathSegmentDescriptor::getNumInstances(objManager);
+
+        // Create new instances of waypoints if this is more than exist
+        if(x > instances - 1)
+        {
+            psd = new PathSegmentDescriptor;
+            psd->initialize(x, psd->getMetaObject());
+            objManager->registerObject(psd);
+        }
+        else
+        {
+            psd = PathSegmentDescriptor::GetInstance(objManager,x);
+        }
+
+        Q_ASSERT(psd);
+        PathSegmentDescriptor::DataFields pathSegmentDescriptorData = psd->getData();
+
+        // Fetch the data from the internal model
+        pathSegmentDescriptorData.SwitchingLocus[0] = pathSegmentModel->data(pathSegmentModel->index(x, PathSegmentDataModel::NED_POS_NORTH)).toDouble();
+        pathSegmentDescriptorData.SwitchingLocus[1] = pathSegmentModel->data(pathSegmentModel->index(x, PathSegmentDataModel::NED_POS_EAST)).toDouble();
+        pathSegmentDescriptorData.SwitchingLocus[2] = pathSegmentModel->data(pathSegmentModel->index(x, PathSegmentDataModel::NED_POS_DOWN)).toDouble();
+        pathSegmentDescriptorData.PathCurvature = pathSegmentModel->data(pathSegmentModel->index(x, PathSegmentDataModel::CURVATURE)).toDouble();
+        pathSegmentDescriptorData.NumberOfOrbits = pathSegmentModel->data(pathSegmentModel->index(x, PathSegmentDataModel::NUM_ORBITS)).toInt();
+        pathSegmentDescriptorData.ArcRank = pathSegmentModel->data(pathSegmentModel->index(x, PathSegmentDataModel::ARC_RANK)).toInt();
+
+        if (robustUpdate(pathSegmentDescriptorData, x))
+            qDebug() << "Successfully updated";
+        else {
+            qDebug() << "Upload failed";
+            break;
+        }
+    }
+    pathSegmentDescriptor->setMetadata(initialMeta);
 }
 
 /**
@@ -149,6 +206,61 @@ bool ModelUavoProxy::robustUpdate(Waypoint::DataFields data, int instance)
     return false;
 }
 
+
+/**
+ * @brief robustUpdate Upload a path segment descriptor and check for an ACK or retry.
+ * @param data The data to set
+ * @param instance The instance id
+ * @return True if set succeed, false otherwise
+ */
+bool ModelUavoProxy::robustUpdate(PathSegmentDescriptor::DataFields data, int instance)
+{
+    PathSegmentDescriptor *psd = PathSegmentDescriptor::GetInstance(objManager, instance);
+    connect(psd, SIGNAL(transactionCompleted(UAVObject*,bool)), this, SLOT(pathSegmentDescriptorTransactionCompleted(UAVObject *, bool)));
+    for (int i = 0; i < 10; i++) {
+            QEventLoop m_eventloop;
+            QTimer::singleShot(500, &m_eventloop, SLOT(quit()));
+            connect(this, SIGNAL(pathSegmentDescriptorTransactionSucceeded()), &m_eventloop, SLOT(quit()));
+            connect(this, SIGNAL(pathSegmentDescriptorTransactionFailed()), &m_eventloop, SLOT(quit()));
+            pathSegmentDescriptorTransactionResult.insert(instance, false);
+            psd->setData(data);
+            psd->updated();
+            m_eventloop.exec();
+            if (pathSegmentDescriptorTransactionResult.value(instance)) {
+                disconnect(psd, SIGNAL(transactionCompleted(UAVObject*,bool)), this, SLOT(pathSegmentDescriptorTransactionCompleted(UAVObject *, bool)));
+                return true;
+            }
+
+            // Wait a second for next attempt
+            QTimer::singleShot(500, &m_eventloop, SLOT(quit()));
+            m_eventloop.exec();
+    }
+
+    disconnect(psd, SIGNAL(transactionCompleted(UAVObject*,bool)), this, SLOT(pathSegmentDescriptorTransactionCompleted(UAVObject *, bool)));
+
+    // None of the attempt got an ack
+    return false;
+}
+
+
+
+/**
+ * @brief pathSegmentDescriptorTransactionCompleted Map from the transaction complete to whether it
+ * did or not
+ */
+void ModelUavoProxy::pathSegmentDescriptorTransactionCompleted(UAVObject *obj, bool success) {
+    Q_ASSERT(obj->getObjID() == PathSegmentDescriptor::OBJID);
+    pathSegmentDescriptorTransactionResult.insert(obj->getInstID(), success);
+    if (success) {
+        qDebug() << "Success " << obj->getInstID();
+        emit pathSegmentDescriptorTransactionSucceeded();
+    } else {
+        qDebug() << "Failed transaction " << obj->getInstID();
+        emit pathSegmentDescriptorTransactionFailed();
+    }
+}
+
+
 /**
  * @brief waypointTransactionCompleted Map from the transaction complete to whether it
  * did or not
@@ -175,7 +287,8 @@ void ModelUavoProxy::objectsToModel()
     getHomeLocation(homeLLA);
     double LLA[3];
 
-    myModel->removeRows(0,myModel->rowCount());
+    /* First handle waypoints... */
+    waypointModel->removeRows(0,waypointModel->rowCount());
     for(int x=0; x < Waypoint::getNumInstances(objManager) ; ++x) {
         Waypoint * wp;
         Waypoint::DataFields wpfields;
@@ -188,18 +301,42 @@ void ModelUavoProxy::objectsToModel()
 
         // Get the waypoint data from the object manager and prepare a row in the internal model
         wpfields = wp->getData();
-        myModel->insertRow(x);
+        waypointModel->insertRow(x);
 
         // Compute the coordinates in LLA
         double NED[3] = {wpfields.Position[0], wpfields.Position[1], wpfields.Position[2]};
         Utils::CoordinateConversions().NED2LLA_HomeLLA(homeLLA, NED, LLA);
 
         // Store the data
-        myModel->setData(myModel->index(x,WaypointDataModel::LATPOSITION), LLA[0]);
-        myModel->setData(myModel->index(x,WaypointDataModel::LNGPOSITION), LLA[1]);
-        myModel->setData(myModel->index(x,WaypointDataModel::VELOCITY), wpfields.Velocity);
-        myModel->setData(myModel->index(x,WaypointDataModel::MODE), wpfields.Mode);
-        myModel->setData(myModel->index(x,WaypointDataModel::MODE_PARAMS), wpfields.ModeParameters);
+        waypointModel->setData(waypointModel->index(x,WaypointDataModel::LATPOSITION), LLA[0]);
+        waypointModel->setData(waypointModel->index(x,WaypointDataModel::LNGPOSITION), LLA[1]);
+        waypointModel->setData(waypointModel->index(x,WaypointDataModel::VELOCITY), wpfields.Velocity);
+        waypointModel->setData(waypointModel->index(x,WaypointDataModel::MODE), wpfields.Mode);
+        waypointModel->setData(waypointModel->index(x,WaypointDataModel::MODE_PARAMS), wpfields.ModeParameters);
+    }
+
+    /* ...then the path segment descriptors */
+    pathSegmentModel->removeRows(0,pathSegmentModel->rowCount());
+    for(int x=0; x < PathSegmentDescriptor::getNumInstances(objManager) ; ++x) {
+        PathSegmentDescriptor * psd;
+        PathSegmentDescriptor::DataFields psdData;
+
+        psd = PathSegmentDescriptor::GetInstance(objManager,x);
+
+        if(!psd)
+            continue;
+
+        // Get the path segment descriptor from the object manager and prepare a row in the internal model
+        psdData = psd->getData();
+        pathSegmentModel->insertRow(x);
+
+        // Store the data
+        pathSegmentModel->setData(pathSegmentModel->index(x,PathSegmentDataModel::NED_ACC_NORTH), psdData.SwitchingLocus[0]);
+        pathSegmentModel->setData(pathSegmentModel->index(x,PathSegmentDataModel::NED_ACC_EAST), psdData.SwitchingLocus[1]);
+        pathSegmentModel->setData(pathSegmentModel->index(x,PathSegmentDataModel::NED_ACC_DOWN), psdData.SwitchingLocus[2]);
+        pathSegmentModel->setData(pathSegmentModel->index(x,PathSegmentDataModel::CURVATURE), psdData.PathCurvature);
+        pathSegmentModel->setData(pathSegmentModel->index(x,PathSegmentDataModel::NUM_ORBITS), psdData.NumberOfOrbits);
+        pathSegmentModel->setData(pathSegmentModel->index(x,PathSegmentDataModel::ARC_RANK), psdData.ArcRank);
     }
 }
 

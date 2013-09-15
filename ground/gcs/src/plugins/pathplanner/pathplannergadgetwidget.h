@@ -43,7 +43,7 @@ public:
     PathPlannerGadgetWidget(QWidget *parent = 0);
     ~PathPlannerGadgetWidget();
 
-    void setModel(WaypointDataModel *model, QItemSelectionModel *selection);
+    void setModel(WaypointDataModel *model, QItemSelectionModel *selection, PathSegmentDataModel *pathSegmentModel);
 private slots:
     void on_tbAdd_clicked();
 
@@ -69,7 +69,8 @@ private slots:
 
 private:
     Ui_PathPlanner  *ui;
-    WaypointDataModel *model;
+    WaypointDataModel *waypointModel;
+    PathSegmentDataModel *pathSegmentModel;
     ModelUavoProxy  *proxy;
     QItemSelectionModel *selection;
 

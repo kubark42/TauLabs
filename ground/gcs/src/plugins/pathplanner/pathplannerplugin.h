@@ -34,6 +34,7 @@
 #include "flightdatamodel.h"
 #include "modeluavoproxy.h"
 #include "waypointdialog.h"
+#include "pathsegmentdialog.h"
 
 class PathPlannerGadgetFactory;
 
@@ -48,8 +49,10 @@ public:
    void shutdown();
 private:
    PathPlannerGadgetFactory *mf;
-   WaypointDataModel        *dataModel;
+   WaypointDataModel        *waypointDataModel;
+   PathSegmentDataModel     *pathSegmentDataModel;
    QItemSelectionModel      *selection;
    WaypointDialog           *waypointDialog;
+   PathSegmentDialog        *pathSegmentDialog;
 };
 #endif /* PathPlannerPLUGIN_H_ */

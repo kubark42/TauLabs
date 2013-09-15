@@ -59,6 +59,7 @@
 
 #include "../pathplanner/pathplannergadgetwidget.h"
 #include "../pathplanner/waypointdialog.h"
+#include "../pathplanner/pathsegmentdialog.h"
 
 #define allow_manual_home_location_move
 
@@ -222,15 +223,21 @@ OPMapGadgetWidget::OPMapGadgetWidget(QWidget *parent) : QWidget(parent)
     if(m_map->GPS)
         m_map->GPS->SetUAVPos(m_home_position.coord, 0.0);        // set the GPS position
 
-    // Connect to the existing model
+    // Connect to the existing waypoint model
     ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
-    model = pm->getObject<WaypointDataModel>();
-    Q_ASSERT(model);
+    waypointModel = pm->getObject<WaypointDataModel>();
+    Q_ASSERT(waypointModel);
 
     // Get the path planner selection model to keep the gadget in sync with the map
-    selectionModel =  pm->getObject<QItemSelectionModel>();
-    Q_ASSERT(selectionModel);
-    mapProxy = new ModelMapProxy(this, m_map, model, selectionModel);
+    waypointSelectionModel =  pm->getObject<QItemSelectionModel>();
+    Q_ASSERT(waypointSelectionModel);
+
+    // Connect to the existing path segment model
+    pathSegmentModel = pm->getObject<PathSegmentDataModel>();
+    Q_ASSERT(pathSegmentModel);
+
+    // Create the map proxy
+    mapProxy = new ModelMapProxy(this, m_map, waypointModel, waypointSelectionModel, pathSegmentModel);
 
     magicWayPoint=m_map->magicWPCreate();
     magicWayPoint->setVisible(false);
@@ -1847,10 +1854,15 @@ void OPMapGadgetWidget::onAddWayPointAct_triggered(internals::PointLatLng coord)
   */
 void OPMapGadgetWidget::onEditWayPointAct_triggered()
 {
-    WaypointDialog *dialog =  pm->getObject<WaypointDialog>();
-    Q_ASSERT(dialog);
-    if (dialog != NULL)
-        dialog->show();
+    WaypointDialog *waypointDialog =  pm->getObject<WaypointDialog>();
+    Q_ASSERT(waypointDialog);
+    if (waypointDialog != NULL)
+        waypointDialog->show();
+
+    PathSegmentDialog *pathSegmentDialog =  pm->getObject<PathSegmentDialog>();
+    Q_ASSERT(pathSegmentDialog);
+    if (pathSegmentDialog != NULL)
+        pathSegmentDialog->show();
 }
 
 

@@ -48,7 +48,7 @@ class ModelMapProxy:public QObject
     typedef enum {OVERLAY_LINE, OVERLAY_CURVE_RIGHT, OVERLAY_CURVE_LEFT, OVERLAY_CIRCLE_RIGHT, OVERLAY_CIRCLE_LEFT} overlayType;
     Q_OBJECT
 public:
-    explicit ModelMapProxy(QObject *parent,TLMapWidget * map,WaypointDataModel * model,QItemSelectionModel * selectionModel);
+    explicit ModelMapProxy(QObject *parent,TLMapWidget *map, WaypointDataModel *waypointModel,QItemSelectionModel *waypointSelectionModel, PathSegmentDataModel *pathSegmentModel);
 
     //! Get the handle to a waypoint graphical item
     WayPointItem *findWayPointNumber(int number);
@@ -81,11 +81,12 @@ private slots:
     //! When a list of waypoints are changed, select them in model
     void selectedWPChanged(QList<WayPointItem*>);
 private:
-    overlayType overlayTranslate(int type);
+    overlayType overlayTranslate(Waypoint::ModeOptions type);
     void createOverlay(WayPointItem *from, WayPointItem * to, overlayType type, QColor color, double radius);
     void createOverlay(WayPointItem *from, HomeItem *to, ModelMapProxy::overlayType type, QColor color);
     TLMapWidget * myMap;
-    WaypointDataModel *model;
+    WaypointDataModel *waypointModel;
+    PathSegmentDataModel *pathSegmentModel;
     void refreshOverlays();
     QItemSelectionModel * selection;
 };
