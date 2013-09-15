@@ -52,17 +52,17 @@ WaypointDialog::WaypointDialog(QWidget *parent, QAbstractItemModel *model,QItemS
     connect (mapper,SIGNAL(currentIndexChanged(int)),this,SLOT(currentIndexChanged(int)));
     mapper->setModel(model);
     mapper->setSubmitPolicy(QDataWidgetMapper::AutoSubmit);
-    mapper->addMapping(ui->doubleSpinBoxLatitude,FlightDataModel::LATPOSITION);
-    mapper->addMapping(ui->doubleSpinBoxLongitude,FlightDataModel::LNGPOSITION);
-    mapper->addMapping(ui->doubleSpinBoxAltitude,FlightDataModel::ALTITUDE);
-    mapper->addMapping(ui->doubleSpinBoxNorth,FlightDataModel::NED_NORTH);
-    mapper->addMapping(ui->doubleSpinBoxEast,FlightDataModel::NED_EAST);
-    mapper->addMapping(ui->doubleSpinBoxDown,FlightDataModel::NED_DOWN);
-    mapper->addMapping(ui->lineEditDescription,FlightDataModel::WPDESCRITPTION);
-    mapper->addMapping(ui->doubleSpinBoxVelocity,FlightDataModel::VELOCITY);
-    mapper->addMapping(ui->cbMode,FlightDataModel::MODE);
-    mapper->addMapping(ui->dsb_modeParams,FlightDataModel::MODE_PARAMS);
-    mapper->addMapping(ui->checkBoxLocked,FlightDataModel::LOCKED);
+    mapper->addMapping(ui->doubleSpinBoxLatitude,WaypointDataModel::LATPOSITION);
+    mapper->addMapping(ui->doubleSpinBoxLongitude,WaypointDataModel::LNGPOSITION);
+    mapper->addMapping(ui->doubleSpinBoxAltitude,WaypointDataModel::ALTITUDE);
+    mapper->addMapping(ui->doubleSpinBoxNorth,WaypointDataModel::NED_NORTH);
+    mapper->addMapping(ui->doubleSpinBoxEast,WaypointDataModel::NED_EAST);
+    mapper->addMapping(ui->doubleSpinBoxDown,WaypointDataModel::NED_DOWN);
+    mapper->addMapping(ui->lineEditDescription,WaypointDataModel::WPDESCRITPTION);
+    mapper->addMapping(ui->doubleSpinBoxVelocity,WaypointDataModel::VELOCITY);
+    mapper->addMapping(ui->cbMode,WaypointDataModel::MODE);
+    mapper->addMapping(ui->dsb_modeParams,WaypointDataModel::MODE_PARAMS);
+    mapper->addMapping(ui->checkBoxLocked,WaypointDataModel::LOCKED);
 
     // Make sure the model catches updates from the check box
     //connect(ui->checkBoxLocked,SIGNAL(toggled(bool)),mapper,SLOT(submit()));
@@ -190,7 +190,7 @@ void WaypointDialog::currentRowChanged(QModelIndex current, QModelIndex previous
 void WaypointDialog::enableEditWidgets()
 {
     int row = itemSelection->currentIndex().row();
-    bool value = model->data(model->index(row,FlightDataModel::LOCKED)).toBool();
+    bool value = model->data(model->index(row,WaypointDataModel::LOCKED)).toBool();
     QWidget * w;
     foreach(QWidget * obj,this->findChildren<QWidget *>())
     {

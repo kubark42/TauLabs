@@ -1,6 +1,6 @@
 /**
  ******************************************************************************
- * @file       FlightDataModel.h
+ * @file       flightdatamodel.h
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2012-2013
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2012.
  * @addtogroup GCSPlugins GCS Plugins
@@ -25,8 +25,8 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef FlightDataModel_H
-#define FlightDataModel_H
+#ifndef WAYPOINTDATAMODEL_H
+#define WAYPOINTDATAMODEL_H
 
 #include <QAbstractTableModel>
 #include "pathplanner_global.h"
@@ -43,7 +43,7 @@ struct pathPlanData
     bool locked;
 };
 
-class PATHPLANNER_EXPORT FlightDataModel : public QAbstractTableModel
+class PATHPLANNER_EXPORT WaypointDataModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
@@ -57,7 +57,7 @@ public:
         LASTCOLUMN
     };
 
-    FlightDataModel(QObject *parent);
+    WaypointDataModel(QObject *parent);
     int rowCount(const QModelIndex &parent = QModelIndex()) const ;
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
@@ -73,7 +73,7 @@ public:
     static QMap<int,QString> modeNames;
 
     //! Replace a model data with another model
-    bool replaceData(FlightDataModel *newModel);
+    bool replaceData(WaypointDataModel *newModel);
 
 private:
     QList<pathPlanData *> dataStorage;
@@ -86,13 +86,13 @@ private:
     };
 
     //! Get the NED representation of a waypoint
-    struct FlightDataModel::NED getNED(int index) const;
+    struct WaypointDataModel::NED getNED(int index) const;
 
     //! Set the NED representation of a waypoint
-    bool setNED(int index, struct FlightDataModel::NED NED);
+    bool setNED(int index, struct WaypointDataModel::NED NED);
 
     //! Get the current home location
     bool getHomeLocation(double *homeLLA) const;
 };
 
-#endif // FlightDataModel_H
+#endif // WAYPOINTDATAMODEL_H

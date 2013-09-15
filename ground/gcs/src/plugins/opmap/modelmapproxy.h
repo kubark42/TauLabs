@@ -39,7 +39,7 @@
 using namespace mapcontrol;
 
 /**
- * @brief The ModelMapProxy class maps from the @ref FlightDataModel to the OPMap
+ * @brief The ModelMapProxy class maps from the @ref WaypointDataModel to the OPMap
  * and provides synchronization, both when the model changes updating the UI and
  * if it is modified on the UI propagating changes to the model
  */
@@ -48,7 +48,7 @@ class ModelMapProxy:public QObject
     typedef enum {OVERLAY_LINE, OVERLAY_CURVE_RIGHT, OVERLAY_CURVE_LEFT, OVERLAY_CIRCLE_RIGHT, OVERLAY_CIRCLE_LEFT} overlayType;
     Q_OBJECT
 public:
-    explicit ModelMapProxy(QObject *parent,TLMapWidget * map,FlightDataModel * model,QItemSelectionModel * selectionModel);
+    explicit ModelMapProxy(QObject *parent,TLMapWidget * map,WaypointDataModel * model,QItemSelectionModel * selectionModel);
 
     //! Get the handle to a waypoint graphical item
     WayPointItem *findWayPointNumber(int number);
@@ -85,7 +85,7 @@ private:
     void createOverlay(WayPointItem *from, WayPointItem * to, overlayType type, QColor color, double radius);
     void createOverlay(WayPointItem *from, HomeItem *to, ModelMapProxy::overlayType type, QColor color);
     TLMapWidget * myMap;
-    FlightDataModel *model;
+    WaypointDataModel *model;
     void refreshOverlays();
     QItemSelectionModel * selection;
 };

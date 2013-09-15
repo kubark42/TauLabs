@@ -48,7 +48,7 @@ public:
    void shutdown();
 private:
    PathPlannerGadgetFactory *mf;
-   FlightDataModel          *dataModel;
+   WaypointDataModel        *dataModel;
    QItemSelectionModel      *selection;
    WaypointDialog           *waypointDialog;
 };
