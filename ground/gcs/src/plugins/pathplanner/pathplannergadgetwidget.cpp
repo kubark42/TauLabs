@@ -45,12 +45,16 @@ PathPlannerGadgetWidget::PathPlannerGadgetWidget(QWidget *parent) : QLabel(paren
     ui->setupUi(this);
 
     ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
-    WaypointDataModel *model = pm->getObject<WaypointDataModel>();
-    Q_ASSERT(model);
+    WaypointDataModel *waypointModel = pm->getObject<WaypointDataModel>();
+    Q_ASSERT(waypointModel);
 
     QItemSelectionModel *selection = pm->getObject<QItemSelectionModel>();
     Q_ASSERT(selection);
-    setModel(model, selection);
+
+    PathSegmentDataModel *pathSegmentModel = pm->getObject<PathSegmentDataModel>();
+    Q_ASSERT(pathSegmentModel);
+
+    setModel(waypointModel, selection, pathSegmentModel);
 }
 
 PathPlannerGadgetWidget::~PathPlannerGadgetWidget()
@@ -59,14 +63,15 @@ PathPlannerGadgetWidget::~PathPlannerGadgetWidget()
 }
 
 
-void PathPlannerGadgetWidget::setModel(WaypointDataModel *model, QItemSelectionModel *selection)
+void PathPlannerGadgetWidget::setModel(WaypointDataModel *waypointModel, QItemSelectionModel *selection, PathSegmentDataModel *pathSegmentModel)
 {
-    proxy = new ModelUavoProxy(this, model);
+    proxy = new ModelUavoProxy(this, waypointModel, pathSegmentModel);
 
-    this->model = model;
+    this->waypointModel = waypointModel;
+    this->pathSegmentModel = pathSegmentModel;
     this->selection = selection;
 
-    ui->tableView->setModel(model);
+    ui->tableView->setModel(waypointModel);
     ui->tableView->setSelectionModel(selection);
     ui->tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
 
@@ -93,18 +98,18 @@ void PathPlannerGadgetWidget::on_tbInsert_clicked()
 
 void PathPlannerGadgetWidget::on_tbReadFromFile_clicked()
 {
-    if(!model)
+    if(!waypointModel)
         return;
     QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"));
-    model->readFromFile(fileName);
+    waypointModel->readFromFile(fileName);
 }
 
 void PathPlannerGadgetWidget::on_tbSaveToFile_clicked()
 {
-    if(!model)
+    if(!waypointModel)
         return;
     QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"));
-    model->writeToFile(fileName);
+    waypointModel->writeToFile(fileName);
 }
 
 /**
@@ -153,14 +158,14 @@ void PathPlannerGadgetWidget::on_tbFilletPath_clicked()
         prevModel = new WaypointDataModel(this);
     Q_ASSERT(prevModel);
     if (prevModel)
-        prevModel->replaceData(model);
+        prevModel->replaceData(waypointModel);
 
     IPathAlgorithm * algo = new PathFillet(this);
     // Only process is successfully configured and the verification of the model succeeds
     QString err;
-    if(algo->configure(this) && algo->verifyPath(model, err)) {
+    if(algo->configure(this) && algo->verifyPath(waypointModel, err)) {
         // If unsuccessful delete the cached model
-        if (!algo->processPath(model)) {
+        if (!algo->processPath(waypointModel)) {
             delete prevModel;
             prevModel = NULL;
         }
@@ -173,7 +178,7 @@ void PathPlannerGadgetWidget::on_tbFilletPath_clicked()
 void PathPlannerGadgetWidget::on_tbUnfilletPath_clicked()
 {
     if (prevModel)
-        model->replaceData(prevModel);
+        waypointModel->replaceData(prevModel);
 }
 
 /**

@@ -30,20 +30,30 @@
 #include <QObject>
 #include "flightdatamodel.h"
 #include "modeluavoproxy.h"
+#include "pathsegmentdescriptor.h"
 #include "waypoint.h"
 
 class ModelUavoProxy:public QObject
 {
     Q_OBJECT
 public:
-    explicit ModelUavoProxy(QObject *parent, WaypointDataModel *model);
+    explicit ModelUavoProxy(QObject *parent, WaypointDataModel *model, PathSegmentDataModel *pathSegmentModel);
 
 private:
     //! Robustly upload a waypoint (like smart save)
     bool robustUpdate(Waypoint::DataFields data, int instance);
 
+    //! Robustly upload a path segment descriptor (like smart save)
+    bool robustUpdate(PathSegmentDescriptor::DataFields data, int instance);
+
     //! Fetch the home LLA position
     bool getHomeLocation(double *homeLLA);
+
+    //! Whenever a waypoint transaction is completed
+    void waypointTransactionCompleted(UAVObject *, bool);
+
+    //! Whenever a waypoint transaction is completed
+    void pathSegmentDescriptorTransactionCompleted(UAVObject *, bool);
 
 public slots:
     //! Cast from the internal representation to the UAVOs
@@ -52,20 +62,26 @@ public slots:
     //! Cast from the UAVOs to the internal representation
     void objectsToModel();
 
-    //! Whenever a waypoint transaction is completed
-    void waypointTransactionCompleted(UAVObject *, bool);
-
 signals:
     void waypointTransactionSucceeded();
     void waypointTransactionFailed();
 
+    void pathSegmentDescriptorTransactionSucceeded();
+    void pathSegmentDescriptorTransactionFailed();
+
 private:
-    UAVObjectManager *objManager;
-    Waypoint         *waypointObj;
-    WaypointDataModel  *myModel;
+    UAVObjectManager   *objManager;
+    Waypoint           *waypointObj;
+    WaypointDataModel  *waypointModel;
+
+    PathSegmentDescriptor *pathSegmentDescriptorObj;
+    PathSegmentDataModel  *pathSegmentModel;
 
     //! Track if each waypoint was updated
     QMap<int, bool>  waypointTransactionResult;
+
+    //! Track if each path segment descriptor was updated
+    QMap<int, bool>  pathSegmentDescriptorTransactionResult;
 
 };
 
