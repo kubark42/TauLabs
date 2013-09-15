@@ -326,7 +326,7 @@ private:
     internals::PointLatLng lastLatLngMouse;
     WayPointItem * magicWayPoint;
 
-    QPointer<FlightDataModel> model;
+    QPointer<WaypointDataModel> model;
     QPointer<QDialog> pathPlannerDialog;
     QPointer<ModelMapProxy> mapProxy;
     QPointer<QItemSelectionModel> selectionModel;

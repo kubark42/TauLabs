@@ -36,10 +36,10 @@
 #include "../plugins/uavobjects/uavobjectmanager.h"
 #include "../plugins/uavobjects/uavobject.h"
 
-QMap<int,QString> FlightDataModel::modeNames = QMap<int, QString>();
+QMap<int,QString> WaypointDataModel::modeNames = QMap<int, QString>();
 
 //! Initialize an empty flight plan
-FlightDataModel::FlightDataModel(QObject *parent) : QAbstractTableModel(parent)
+WaypointDataModel::WaypointDataModel(QObject *parent) : QAbstractTableModel(parent)
 {
     // This could be auto populated from the waypoint object but nothing else in the
     // model depends on run time properties and we might want to exclude certain modes
@@ -60,13 +60,13 @@ FlightDataModel::FlightDataModel(QObject *parent) : QAbstractTableModel(parent)
 }
 
 //! Return the number of waypoints
-int FlightDataModel::rowCount(const QModelIndex &/*parent*/) const
+int WaypointDataModel::rowCount(const QModelIndex &/*parent*/) const
 {
     return dataStorage.length();
 }
 
 //! Return the number of fields in the model
-int FlightDataModel::columnCount(const QModelIndex &parent) const
+int WaypointDataModel::columnCount(const QModelIndex &parent) const
 {
     if (parent.isValid())
         return 0;
@@ -74,12 +74,12 @@ int FlightDataModel::columnCount(const QModelIndex &parent) const
 }
 
 /**
- * @brief FlightDataModel::data Fetch the data from the model
+ * @brief WaypointDataModel::data Fetch the data from the model
  * @param index Specifies the row and column to fetch
  * @param role Either use Qt::DisplayRole or Qt::EditRole
  * @return The data as a variant or QVariant::Invalid for a bad role
  */
-QVariant FlightDataModel::data(const QModelIndex &index, int role) const
+QVariant WaypointDataModel::data(const QModelIndex &index, int role) const
 {
     if (role == Qt::DisplayRole || role==Qt::EditRole || role==Qt::UserRole)
     {
@@ -93,11 +93,11 @@ QVariant FlightDataModel::data(const QModelIndex &index, int role) const
         // associated with that enum for display purposes.  However in the case of
         // Qt::UserRole this should fall through and return the numerical value of
         // the enum
-        if (index.column() == (int) FlightDataModel::MODE && role == Qt::DisplayRole) {
+        if (index.column() == (int) WaypointDataModel::MODE && role == Qt::DisplayRole) {
             return modeNames.value(row->mode);
         }
 
-        struct FlightDataModel::NED NED;
+        struct WaypointDataModel::NED NED;
         switch(index.column())
         {
         case WPDESCRITPTION:
@@ -132,13 +132,13 @@ QVariant FlightDataModel::data(const QModelIndex &index, int role) const
 }
 
 /**
- * @brief FlightDataModel::headerData Get the names of the columns
+ * @brief WaypointDataModel::headerData Get the names of the columns
  * @param section
  * @param orientation
  * @param role
  * @return
  */
-QVariant FlightDataModel::headerData(int section, Qt::Orientation orientation, int role) const
+QVariant WaypointDataModel::headerData(int section, Qt::Orientation orientation, int role) const
  {
      if (role == Qt::DisplayRole)
      {
@@ -181,23 +181,23 @@ QVariant FlightDataModel::headerData(int section, Qt::Orientation orientation, i
 }
 
 /**
- * @brief FlightDataModel::setData Set the data at a given location
+ * @brief WaypointDataModel::setData Set the data at a given location
  * @param index Specifies both the row (waypoint) and column (field0
  * @param value The new value
  * @param role Used by the Qt MVC to determine what to do.  Should be Qt::EditRole
  * @return  True if setting data succeeded, otherwise false
  */
-bool FlightDataModel::setData(const QModelIndex &index, const QVariant &value, int role)
+bool WaypointDataModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     if (index.isValid() && role == Qt::EditRole)
     {
         pathPlanData *row = dataStorage.at(index.row());
 
         // Do not allow changing any values except locked when the column is locked
-        if (row->locked && index.column() != (int) FlightDataModel::LOCKED)
+        if (row->locked && index.column() != (int) WaypointDataModel::LOCKED)
             return false;
 
-        struct FlightDataModel::NED NED;
+        struct WaypointDataModel::NED NED;
         QModelIndex otherIndex;
         switch(index.column())
         {
@@ -207,19 +207,19 @@ bool FlightDataModel::setData(const QModelIndex &index, const QVariant &value, i
         case LATPOSITION:
             row->latPosition=value.toDouble();
             // Indicate this also changed the north
-            otherIndex = this->index(index.row(), FlightDataModel::NED_NORTH);
+            otherIndex = this->index(index.row(), WaypointDataModel::NED_NORTH);
             emit dataChanged(otherIndex,otherIndex);
             break;
         case LNGPOSITION:
             row->lngPosition=value.toDouble();
             // Indicate this also changed the east
-            otherIndex = this->index(index.row(), FlightDataModel::NED_EAST);
+            otherIndex = this->index(index.row(), WaypointDataModel::NED_EAST);
             emit dataChanged(otherIndex,otherIndex);
             break;
         case ALTITUDE:
             row->altitude=value.toDouble();
             // Indicate this also changed the NED down
-            otherIndex = this->index(index.row(), FlightDataModel::NED_DOWN);
+            otherIndex = this->index(index.row(), WaypointDataModel::NED_DOWN);
             emit dataChanged(otherIndex,otherIndex);
             break;
         case NED_NORTH:
@@ -227,7 +227,7 @@ bool FlightDataModel::setData(const QModelIndex &index, const QVariant &value, i
             NED.North = value.toDouble();
             setNED(index.row(), NED);
             // Indicate this also changed the latitude
-            otherIndex = this->index(index.row(), FlightDataModel::LATPOSITION);
+            otherIndex = this->index(index.row(), WaypointDataModel::LATPOSITION);
             emit dataChanged(otherIndex,otherIndex);
             break;
         case NED_EAST:
@@ -235,7 +235,7 @@ bool FlightDataModel::setData(const QModelIndex &index, const QVariant &value, i
             NED.East = value.toDouble();
             setNED(index.row(), NED);
             // Indicate this also changed the longitude
-            otherIndex = this->index(index.row(), FlightDataModel::LNGPOSITION);
+            otherIndex = this->index(index.row(), WaypointDataModel::LNGPOSITION);
             emit dataChanged(otherIndex,otherIndex);
             break;
         case NED_DOWN:
@@ -243,7 +243,7 @@ bool FlightDataModel::setData(const QModelIndex &index, const QVariant &value, i
             NED.Down = value.toDouble();
             setNED(index.row(), NED);
             // Indicate this also changed the altitude
-            otherIndex = this->index(index.row(), FlightDataModel::ALTITUDE);
+            otherIndex = this->index(index.row(), WaypointDataModel::ALTITUDE);
             emit dataChanged(otherIndex,otherIndex);
             break;
         case VELOCITY:
@@ -269,13 +269,13 @@ bool FlightDataModel::setData(const QModelIndex &index, const QVariant &value, i
 }
 
 /**
- * @brief FlightDataModel::flags Tell QT MVC which flags are supported for items
+ * @brief WaypointDataModel::flags Tell QT MVC which flags are supported for items
  * @return That the item is selectable, editable and enabled
  */
-Qt::ItemFlags FlightDataModel::flags(const QModelIndex & index) const
+Qt::ItemFlags WaypointDataModel::flags(const QModelIndex & index) const
 {
     // Locked is always editable
-    if (index.column() == (int) FlightDataModel::LOCKED)
+    if (index.column() == (int) WaypointDataModel::LOCKED)
         return Qt::ItemIsSelectable |  Qt::ItemIsEditable | Qt::ItemIsEnabled;
 
     // Suppress editable flag if row is locked
@@ -288,12 +288,12 @@ Qt::ItemFlags FlightDataModel::flags(const QModelIndex & index) const
 }
 
 /**
- * @brief FlightDataModel::insertRows Create a new waypoint
+ * @brief WaypointDataModel::insertRows Create a new waypoint
  * @param row The new waypoint id
  * @param count How many to add
  * @return
  */
-bool FlightDataModel::insertRows(int row, int count, const QModelIndex &/*parent*/)
+bool WaypointDataModel::insertRows(int row, int count, const QModelIndex &/*parent*/)
 {
     pathPlanData * data;
     beginInsertRows(QModelIndex(),row,row+count-1);
@@ -329,12 +329,12 @@ bool FlightDataModel::insertRows(int row, int count, const QModelIndex &/*parent
 }
 
 /**
- * @brief FlightDataModel::removeRows Remove waypoints from the model
+ * @brief WaypointDataModel::removeRows Remove waypoints from the model
  * @param row The starting waypoint
  * @param count How many to remove
  * @return True if succeeded, otherwise false
  */
-bool FlightDataModel::removeRows(int row, int count, const QModelIndex &/*parent*/)
+bool WaypointDataModel::removeRows(int row, int count, const QModelIndex &/*parent*/)
 {
     if(row<0)
         return false;
@@ -350,11 +350,11 @@ bool FlightDataModel::removeRows(int row, int count, const QModelIndex &/*parent
 }
 
 /**
- * @brief FlightDataModel::writeToFile Write the waypoints to an xml file
+ * @brief WaypointDataModel::writeToFile Write the waypoints to an xml file
  * @param fileName The filename to write to
  * @return
  */
-bool FlightDataModel::writeToFile(QString fileName)
+bool WaypointDataModel::writeToFile(QString fileName)
 {
 
     QFile file(fileName);
@@ -420,10 +420,10 @@ bool FlightDataModel::writeToFile(QString fileName)
 }
 
 /**
- * @brief FlightDataModel::readFromFile Read into the model from a flight plan xml file
+ * @brief WaypointDataModel::readFromFile Read into the model from a flight plan xml file
  * @param fileName The filename to parse
  */
-void FlightDataModel::readFromFile(QString fileName)
+void WaypointDataModel::readFromFile(QString fileName)
 {
     removeRows(0,rowCount());
     QFile file(fileName);
@@ -498,7 +498,7 @@ void FlightDataModel::readFromFile(QString fileName)
  * @param [out] home A 3 element double array to store resul in
  * @return True if successful, false otherwise
  */
-bool FlightDataModel::getHomeLocation(double *homeLLA) const
+bool WaypointDataModel::getHomeLocation(double *homeLLA) const
 {
     ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
     UAVObjectManager * objMngr = pm->getObject<UAVObjectManager>();
@@ -517,11 +517,11 @@ bool FlightDataModel::getHomeLocation(double *homeLLA) const
 }
 
 /**
- * @brief FlightDataModel::getNED Get hte NEW representation of a waypoint
+ * @brief WaypointDataModel::getNED Get hte NEW representation of a waypoint
  * @param row Which waypoint to get
  * @return The NED structure
  */
-struct FlightDataModel::NED FlightDataModel::getNED(int index) const
+struct WaypointDataModel::NED WaypointDataModel::getNED(int index) const
 {
     double f_NED[3];
     double homeLLA[3];
@@ -540,12 +540,12 @@ struct FlightDataModel::NED FlightDataModel::getNED(int index) const
 }
 
 /**
- * @brief FlightDataModel::setNED Set a waypoint by the NED representation
+ * @brief WaypointDataModel::setNED Set a waypoint by the NED representation
  * @param row Which waypoint to set
  * @param NED The NED structure
  * @return True if successful
  */
-bool FlightDataModel::setNED(int index, struct FlightDataModel::NED NED)
+bool WaypointDataModel::setNED(int index, struct WaypointDataModel::NED NED)
 {
     double homeLLA[3];
     double LLA[3];
@@ -563,11 +563,11 @@ bool FlightDataModel::setNED(int index, struct FlightDataModel::NED NED)
 }
 
 /**
- * @brief FlightDataModel::replaceData with data from a new model
+ * @brief WaypointDataModel::replaceData with data from a new model
  * @param newModel the new data to use
  * @return true if successful
  */
-bool FlightDataModel::replaceData(FlightDataModel *newModel)
+bool WaypointDataModel::replaceData(WaypointDataModel *newModel)
 {
     // Delete existing data
     removeRows(0,rowCount());
