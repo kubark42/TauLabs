@@ -36,7 +36,7 @@
 #include "homelocation.h"
 
 //! Initialize the model uavo proxy
-ModelUavoProxy::ModelUavoProxy(QObject *parent, FlightDataModel *model):QObject(parent),myModel(model)
+ModelUavoProxy::ModelUavoProxy(QObject *parent, WaypointDataModel *model):QObject(parent),myModel(model)
 {
     ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
     Q_ASSERT(pm != NULL);
@@ -91,18 +91,18 @@ void ModelUavoProxy::modelToObjects()
         Waypoint::DataFields waypoint = wp->getData();
 
         // Convert from LLA to NED for sending to the model
-        LLA[0] = myModel->data(myModel->index(x,FlightDataModel::LATPOSITION)).toDouble();
-        LLA[1] = myModel->data(myModel->index(x,FlightDataModel::LNGPOSITION)).toDouble();
-        LLA[2] = myModel->data(myModel->index(x,FlightDataModel::ALTITUDE)).toDouble();
+        LLA[0] = myModel->data(myModel->index(x,WaypointDataModel::LATPOSITION)).toDouble();
+        LLA[1] = myModel->data(myModel->index(x,WaypointDataModel::LNGPOSITION)).toDouble();
+        LLA[2] = myModel->data(myModel->index(x,WaypointDataModel::ALTITUDE)).toDouble();
         Utils::CoordinateConversions().LLA2NED_HomeLLA(LLA, homeLLA, NED);
 
         // Fetch the data from the internal model
-        waypoint.Velocity=myModel->data(myModel->index(x,FlightDataModel::VELOCITY)).toFloat();
+        waypoint.Velocity=myModel->data(myModel->index(x,WaypointDataModel::VELOCITY)).toFloat();
         waypoint.Position[Waypoint::POSITION_NORTH] = NED[0];
         waypoint.Position[Waypoint::POSITION_EAST]  = NED[1];
         waypoint.Position[Waypoint::POSITION_DOWN]  = NED[2];
-        waypoint.Mode = myModel->data(myModel->index(x,FlightDataModel::MODE), Qt::UserRole).toInt();
-        waypoint.ModeParameters = myModel->data(myModel->index(x,FlightDataModel::MODE_PARAMS)).toFloat();
+        waypoint.Mode = myModel->data(myModel->index(x,WaypointDataModel::MODE), Qt::UserRole).toInt();
+        waypoint.ModeParameters = myModel->data(myModel->index(x,WaypointDataModel::MODE_PARAMS)).toFloat();
 
         if (robustUpdate(waypoint, x))
             qDebug() << "Successfully updated";
@@ -195,11 +195,11 @@ void ModelUavoProxy::objectsToModel()
         Utils::CoordinateConversions().NED2LLA_HomeLLA(homeLLA, NED, LLA);
 
         // Store the data
-        myModel->setData(myModel->index(x,FlightDataModel::LATPOSITION), LLA[0]);
-        myModel->setData(myModel->index(x,FlightDataModel::LNGPOSITION), LLA[1]);
-        myModel->setData(myModel->index(x,FlightDataModel::VELOCITY), wpfields.Velocity);
-        myModel->setData(myModel->index(x,FlightDataModel::MODE), wpfields.Mode);
-        myModel->setData(myModel->index(x,FlightDataModel::MODE_PARAMS), wpfields.ModeParameters);
+        myModel->setData(myModel->index(x,WaypointDataModel::LATPOSITION), LLA[0]);
+        myModel->setData(myModel->index(x,WaypointDataModel::LNGPOSITION), LLA[1]);
+        myModel->setData(myModel->index(x,WaypointDataModel::VELOCITY), wpfields.Velocity);
+        myModel->setData(myModel->index(x,WaypointDataModel::MODE), wpfields.Mode);
+        myModel->setData(myModel->index(x,WaypointDataModel::MODE_PARAMS), wpfields.ModeParameters);
     }
 }
 

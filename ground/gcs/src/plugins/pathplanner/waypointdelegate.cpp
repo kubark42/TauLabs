@@ -45,7 +45,7 @@ QWidget *WaypointDelegate::createEditor(QWidget *parent,
     int column=index.column();
     switch(column)
     {
-    case FlightDataModel::MODE:
+    case WaypointDataModel::MODE:
     {
         QComboBox *box = new QComboBox(parent);
         loadComboBox(box);
@@ -69,7 +69,7 @@ void WaypointDelegate::setEditorData(QWidget *editor,
 {
     if(!index.isValid())
         return;
-    if (index.column() == (int) FlightDataModel::MODE) {
+    if (index.column() == (int) WaypointDataModel::MODE) {
         QComboBox *comboBox = static_cast<QComboBox*>(editor);
         Q_ASSERT(comboBox != NULL);
         if (comboBox == NULL) return;
@@ -93,7 +93,7 @@ void WaypointDelegate::setModelData(QWidget *editor, QAbstractItemModel *model,
 {
     if(!index.isValid())
         return;
-    if (index.column() == (int) FlightDataModel::MODE) {
+    if (index.column() == (int) WaypointDataModel::MODE) {
         QComboBox *comboBox = static_cast<QComboBox*>(editor);
         Q_ASSERT(comboBox != NULL);
         if (comboBox == NULL) return;
@@ -111,11 +111,11 @@ void WaypointDelegate::setModelData(QWidget *editor, QAbstractItemModel *model,
 void WaypointDelegate::updateEditorGeometry(QWidget *editor,
                                             const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-    if (index.column() == (int) FlightDataModel::MODE) {
+    if (index.column() == (int) WaypointDataModel::MODE) {
         QRect r = option.rect;
         r.setSize( editor->sizeHint() );
         editor->setGeometry( r );
-    } else if (index.column() == (int) FlightDataModel::LOCKED) {
+    } else if (index.column() == (int) WaypointDataModel::LOCKED) {
         // The locked combo box is wider than the column sometimes
         QRect r = option.rect;
         r.setSize( editor->sizeHint() );
@@ -143,7 +143,7 @@ QString WaypointDelegate::displayText ( const QVariant & value, const QLocale & 
  */
 void WaypointDelegate::loadComboBox(QComboBox *combo) const
 {
-    QList<int> keys = FlightDataModel::modeNames.keys();
+    QList<int> keys = WaypointDataModel::modeNames.keys();
     foreach (const int k, keys)
-        combo->addItem(FlightDataModel::modeNames.value(k), k);
+        combo->addItem(WaypointDataModel::modeNames.value(k), k);
 }

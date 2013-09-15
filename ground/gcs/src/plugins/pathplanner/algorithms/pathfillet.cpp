@@ -57,7 +57,7 @@ bool PathFillet::configure(QWidget *callingUi)
  * @param[out] err an error message for the user for invalid paths
  * @return true for valid path, false for invalid
  */
-bool PathFillet::verifyPath(FlightDataModel *model, QString &err)
+bool PathFillet::verifyPath(WaypointDataModel *model, QString &err)
 {
     Q_UNUSED(model);
     Q_UNUSED(err);
@@ -77,9 +77,9 @@ bool PathFillet::verifyPath(FlightDataModel *model, QString &err)
  * @param[out] new the resulting flight model
  * @return true for success, false for failure
  */
-bool PathFillet::processPath(FlightDataModel *model)
+bool PathFillet::processPath(WaypointDataModel *model)
 {
-    new_model = new FlightDataModel(this);
+    new_model = new WaypointDataModel(this);
 
     int newWaypointIdx = 0;
 
@@ -92,14 +92,14 @@ bool PathFillet::processPath(FlightDataModel *model)
     for(int wpIdx = 0; wpIdx < model->rowCount(); wpIdx++) {
 
         // Get the location
-        pos_current[0] = model->data(model->index(wpIdx, FlightDataModel::NED_NORTH)).toDouble();
-        pos_current[1] = model->data(model->index(wpIdx, FlightDataModel::NED_EAST)).toDouble();
-        pos_current[2] = model->data(model->index(wpIdx, FlightDataModel::NED_DOWN)).toDouble();
+        pos_current[0] = model->data(model->index(wpIdx, WaypointDataModel::NED_NORTH)).toDouble();
+        pos_current[1] = model->data(model->index(wpIdx, WaypointDataModel::NED_EAST)).toDouble();
+        pos_current[2] = model->data(model->index(wpIdx, WaypointDataModel::NED_DOWN)).toDouble();
 
         // Get the internal parameters
-        quint8 Mode = model->data(model->index(wpIdx, FlightDataModel::MODE), Qt::UserRole).toInt();
-        float ModeParameters = model->data(model->index(wpIdx, FlightDataModel::MODE_PARAMS)).toFloat();
-        float finalVelocity = model->data(model->index(wpIdx, FlightDataModel::VELOCITY)).toFloat();
+        quint8 Mode = model->data(model->index(wpIdx, WaypointDataModel::MODE), Qt::UserRole).toInt();
+        float ModeParameters = model->data(model->index(wpIdx, WaypointDataModel::MODE_PARAMS)).toFloat();
+        float finalVelocity = model->data(model->index(wpIdx, WaypointDataModel::VELOCITY)).toFloat();
 
         // Determine if the path is a straight line or if it arcs
         float curvature = 0;
@@ -132,11 +132,11 @@ bool PathFillet::processPath(FlightDataModel *model)
             // location.  Otherwise this is setting the first segment.  On board that uses the
             // current location but while planning offline this is unknown so we use home.
             if (newWaypointIdx > 0) {
-                pos_prev[0] = new_model->data(new_model->index(newWaypointIdx-1, FlightDataModel::NED_NORTH)).toDouble();
-                pos_prev[1] = new_model->data(new_model->index(newWaypointIdx-1, FlightDataModel::NED_EAST)).toDouble();
-                pos_prev[2] = new_model->data(new_model->index(newWaypointIdx-1, FlightDataModel::NED_DOWN)).toDouble();
+                pos_prev[0] = new_model->data(new_model->index(newWaypointIdx-1, WaypointDataModel::NED_NORTH)).toDouble();
+                pos_prev[1] = new_model->data(new_model->index(newWaypointIdx-1, WaypointDataModel::NED_EAST)).toDouble();
+                pos_prev[2] = new_model->data(new_model->index(newWaypointIdx-1, WaypointDataModel::NED_DOWN)).toDouble();
                 // TODO: fix sign
-                float previous_radius = new_model->data(new_model->index(newWaypointIdx-1, FlightDataModel::MODE_PARAMS)).toDouble();
+                float previous_radius = new_model->data(new_model->index(newWaypointIdx-1, WaypointDataModel::MODE_PARAMS)).toDouble();
                 previous_curvature = (previous_radius < 1e-4) ? 0 : 1.0 / previous_radius;
             } else {
                 // Use the home location as the starting point of paths.
@@ -147,11 +147,11 @@ bool PathFillet::processPath(FlightDataModel *model)
             }
 
             // Get the settings for the upcoming waypoint
-            pos_next[0] = model->data(model->index(wpIdx+1, FlightDataModel::NED_NORTH)).toDouble();
-            pos_next[1] = model->data(model->index(wpIdx+1, FlightDataModel::NED_EAST)).toDouble();
-            pos_next[2] = model->data(model->index(wpIdx+1, FlightDataModel::NED_DOWN)).toDouble();
-            quint8 NextMode = model->data(model->index(wpIdx + 1, FlightDataModel::MODE), Qt::UserRole).toInt();
-            float NextModeParameter = model->data(model->index(wpIdx + 1, FlightDataModel::MODE_PARAMS), Qt::UserRole).toInt();
+            pos_next[0] = model->data(model->index(wpIdx+1, WaypointDataModel::NED_NORTH)).toDouble();
+            pos_next[1] = model->data(model->index(wpIdx+1, WaypointDataModel::NED_EAST)).toDouble();
+            pos_next[2] = model->data(model->index(wpIdx+1, WaypointDataModel::NED_DOWN)).toDouble();
+            quint8 NextMode = model->data(model->index(wpIdx + 1, WaypointDataModel::MODE), Qt::UserRole).toInt();
+            float NextModeParameter = model->data(model->index(wpIdx + 1, WaypointDataModel::MODE_PARAMS), Qt::UserRole).toInt();
 
             NextModeParameter = 0;
             bool future_path_is_circle = NextMode == Waypoint::MODE_CIRCLEPOSITIONRIGHT ||
@@ -408,12 +408,12 @@ void PathFillet::setNewWaypoint(int index, float *pos, float velocity, float cur
         radius = -1.0 / curvature;
     }
 
-    new_model->setData(new_model->index(index,FlightDataModel::NED_NORTH), pos[0]);
-    new_model->setData(new_model->index(index,FlightDataModel::NED_EAST), pos[1]);
-    new_model->setData(new_model->index(index,FlightDataModel::NED_DOWN), pos[2]);
-    new_model->setData(new_model->index(index,FlightDataModel::VELOCITY), velocity);
-    new_model->setData(new_model->index(index,FlightDataModel::MODE_PARAMS), radius);
-    new_model->setData(new_model->index(index,FlightDataModel::MODE), mode);
+    new_model->setData(new_model->index(index,WaypointDataModel::NED_NORTH), pos[0]);
+    new_model->setData(new_model->index(index,WaypointDataModel::NED_EAST), pos[1]);
+    new_model->setData(new_model->index(index,WaypointDataModel::NED_DOWN), pos[2]);
+    new_model->setData(new_model->index(index,WaypointDataModel::VELOCITY), velocity);
+    new_model->setData(new_model->index(index,WaypointDataModel::MODE_PARAMS), radius);
+    new_model->setData(new_model->index(index,WaypointDataModel::MODE), mode);
 }
 
 /**
