@@ -54,7 +54,7 @@ bool PathPlannerPlugin::initialize(const QStringList& args, QString *errMsg)
     addAutoReleasedObject(mf);
 
     // Create the data model for the flight plan
-    dataModel = new FlightDataModel(this);
+    dataModel = new WaypointDataModel(this);
     addAutoReleasedObject(dataModel);
 
     // Create a selector and add it to the plugin

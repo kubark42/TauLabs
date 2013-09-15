@@ -43,7 +43,7 @@ public:
     PathPlannerGadgetWidget(QWidget *parent = 0);
     ~PathPlannerGadgetWidget();
 
-    void setModel(FlightDataModel *model, QItemSelectionModel *selection);
+    void setModel(WaypointDataModel *model, QItemSelectionModel *selection);
 private slots:
     void on_tbAdd_clicked();
 
@@ -69,12 +69,12 @@ private slots:
 
 private:
     Ui_PathPlanner  *ui;
-    FlightDataModel *model;
+    WaypointDataModel *model;
     ModelUavoProxy  *proxy;
     QItemSelectionModel *selection;
 
     //! Store previous models for rolling back changes
-    FlightDataModel *prevModel;
+    WaypointDataModel *prevModel;
 signals:
     void sendPathPlanToUAV();
     void receivePathPlanFromUAV();

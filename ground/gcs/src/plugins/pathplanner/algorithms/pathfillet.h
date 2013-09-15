@@ -43,14 +43,14 @@ public:
      * @param[out] err an error message for the user for invalid paths
      * @return true for valid path, false for invalid
      */
-    virtual bool verifyPath(FlightDataModel *model, QString &err);
+    virtual bool verifyPath(WaypointDataModel *model, QString &err);
 
     /**
      * Process the flight path according to the algorithm
      * @param model the flight model to process and update
      * @return true for success, false for failure
      */
-    virtual bool processPath(FlightDataModel *model);
+    virtual bool processPath(WaypointDataModel *model);
 
     /**
      * Present a UI to configure options for the algorithm
@@ -65,7 +65,7 @@ private:
     double fillet_radius;
 
     //! The new model to add data to while processing
-    FlightDataModel *new_model;
+    WaypointDataModel *new_model;
     
 private:
     enum arc_center_results {CENTER_FOUND, COINCIDENT_POINTS, INSUFFICIENT_RADIUS};

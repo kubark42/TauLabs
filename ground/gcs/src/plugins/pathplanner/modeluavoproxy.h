@@ -36,7 +36,7 @@ class ModelUavoProxy:public QObject
 {
     Q_OBJECT
 public:
-    explicit ModelUavoProxy(QObject *parent, FlightDataModel *model);
+    explicit ModelUavoProxy(QObject *parent, WaypointDataModel *model);
 
 private:
     //! Robustly upload a waypoint (like smart save)
@@ -62,7 +62,7 @@ signals:
 private:
     UAVObjectManager *objManager;
     Waypoint         *waypointObj;
-    FlightDataModel  *myModel;
+    WaypointDataModel  *myModel;
 
     //! Track if each waypoint was updated
     QMap<int, bool>  waypointTransactionResult;

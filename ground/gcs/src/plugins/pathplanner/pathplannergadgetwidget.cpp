@@ -45,7 +45,7 @@ PathPlannerGadgetWidget::PathPlannerGadgetWidget(QWidget *parent) : QLabel(paren
     ui->setupUi(this);
 
     ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
-    FlightDataModel *model = pm->getObject<FlightDataModel>();
+    WaypointDataModel *model = pm->getObject<WaypointDataModel>();
     Q_ASSERT(model);
 
     QItemSelectionModel *selection = pm->getObject<QItemSelectionModel>();
@@ -59,7 +59,7 @@ PathPlannerGadgetWidget::~PathPlannerGadgetWidget()
 }
 
 
-void PathPlannerGadgetWidget::setModel(FlightDataModel *model, QItemSelectionModel *selection)
+void PathPlannerGadgetWidget::setModel(WaypointDataModel *model, QItemSelectionModel *selection)
 {
     proxy = new ModelUavoProxy(this, model);
 
@@ -150,7 +150,7 @@ void PathPlannerGadgetWidget::on_tbFilletPath_clicked()
 {
     // Create a copy of the model before filleting
     if (!prevModel)
-        prevModel = new FlightDataModel(this);
+        prevModel = new WaypointDataModel(this);
     Q_ASSERT(prevModel);
     if (prevModel)
         prevModel->replaceData(model);

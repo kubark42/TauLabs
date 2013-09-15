@@ -224,7 +224,7 @@ OPMapGadgetWidget::OPMapGadgetWidget(QWidget *parent) : QWidget(parent)
 
     // Connect to the existing model
     ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
-    model = pm->getObject<FlightDataModel>();
+    model = pm->getObject<WaypointDataModel>();
     Q_ASSERT(model);
 
     // Get the path planner selection model to keep the gadget in sync with the map
