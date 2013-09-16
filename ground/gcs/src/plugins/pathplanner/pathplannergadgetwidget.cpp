@@ -25,6 +25,7 @@
  */
 #include "pathplannergadgetwidget.h"
 #include "waypointdialog.h"
+#include "waypointdelegate.h"
 #include "ui_pathplanner.h"
 
 #include <QFileDialog>
