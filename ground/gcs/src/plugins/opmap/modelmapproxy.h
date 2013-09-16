@@ -61,6 +61,7 @@ public:
 
     //! When all the waypoints are deleted graphically, update the model
     void deleteAll();
+
 private slots:
 
     //! Data in the model is changed, update the UI
@@ -80,10 +81,11 @@ private slots:
 
     //! When a list of waypoints are changed, select them in model
     void selectedWPChanged(QList<WayPointItem*>);
+
 private:
     overlayType overlayTranslate(int type);
     void createOverlay(WayPointItem *from, WayPointItem * to, overlayType type, QColor color, double radius);
-    void createOverlay(WayPointItem *from, HomeItem *to, ModelMapProxy::overlayType type, QColor color);
+    void createOverlay(WayPointItem *from, HomeItem *to, overlayType type, QColor color);
     TLMapWidget * myMap;
     FlightDataModel *model;
     void refreshOverlays();
