@@ -101,6 +101,7 @@ TIM8  |           |           |           |
 // See also pios_board.c
 //------------------------
 #define PIOS_I2C_MAX_DEVS				3
+#define PIOS_I2C_ESC_ADAPTER			(pios_i2c_usart3_adapter_id)
 extern uint32_t pios_i2c_internal_adapter_id;
 extern uint32_t pios_i2c_usart1_adapter_id;
 extern uint32_t pios_i2c_usart3_adapter_id;

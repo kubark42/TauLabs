@@ -126,6 +126,7 @@ SRC += $(PIOSCOMMON)/pios_gcsrcvr.c
 SRC += $(PIOSCOMMON)/pios_hmc5883.c
 SRC += $(PIOSCOMMON)/pios_ms5611.c
 SRC += $(PIOSCOMMON)/pios_etasv3.c
+SRC += $(PIOSCOMMON)/pios_i2c_esc.c
 SRC += $(PIOSCOMMON)/pios_mpxv5004.c
 SRC += $(PIOSCOMMON)/pios_mpxv7002.c
 SRC += $(PIOSCOMMON)/pios_crc.c
