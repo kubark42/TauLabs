@@ -550,13 +550,24 @@ static void setFailsafe(const ActuatorSettingsData * actuatorSettings, const Mix
 	AlarmsSet(SYSTEMALARMS_ALARM_ACTUATOR, SYSTEMALARMS_ALARM_CRITICAL);
 
 	// Update servo outputs
+	bool success = true;
 	for (int n = 0; n < ACTUATORCOMMAND_CHANNEL_NUMELEM; ++n)
 	{
-		set_channel(n, Channel[n], actuatorSettings);
+		success &= set_channel(n, Channel[n], actuatorSettings);
 	}
 
 	// Update output object's parts that we changed
 	ActuatorCommandChannelSet(Channel);
+
+	// If actuators fail to write, trigger alarm
+	if(!success) {
+		ActuatorCommandData command;
+		ActuatorCommandGet(&command);
+		command.NumFailedUpdates++;
+		ActuatorCommandSet(&command);
+		AlarmsSet(SYSTEMALARMS_ALARM_ACTUATOR, SYSTEMALARMS_ALARM_CRITICAL);
+	}
+
 }
 
 #if defined(ARCH_POSIX) || defined(ARCH_WIN32)
@@ -686,6 +697,10 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value, const ActuatorSet
 			return true;
 #if defined(PIOS_INCLUDE_I2C_ESC)
 		case ACTUATORSETTINGS_CHANNELTYPE_MK:
+			// Fail in case the actuator range has been left at default configs, which go from 1000
+			// to 2000. Mikrokopter protocol is valid only for [0,255]
+			if (value > 255 || value < 0)
+				return false;
 			return PIOS_SetMKSpeed(actuatorSettings->ChannelAddr[mixer_channel],value);
 		case ACTUATORSETTINGS_CHANNELTYPE_ASTEC4:
 			return PIOS_SetAstec4Speed(actuatorSettings->ChannelAddr[mixer_channel],value);
