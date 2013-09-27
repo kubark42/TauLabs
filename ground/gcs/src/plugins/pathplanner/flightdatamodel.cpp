@@ -208,6 +208,10 @@ bool WaypointDataModel::setData(const QModelIndex &index, const QVariant &value,
             // Indicate this also changed the north
             otherIndex = this->index(index.row(), WaypointDataModel::NED_NORTH);
             emit dataChanged(otherIndex,otherIndex);
+
+            // A changing longitude changes east, too.
+            otherIndex = this->index(index.row(), WaypointDataModel::NED_EAST);
+            emit dataChanged(otherIndex,otherIndex);
             break;
         case LNGPOSITION:
             row->lngPosition=value.toDouble();
@@ -227,6 +231,10 @@ bool WaypointDataModel::setData(const QModelIndex &index, const QVariant &value,
             setNED(index.row(), NED);
             // Indicate this also changed the latitude
             otherIndex = this->index(index.row(), WaypointDataModel::LATPOSITION);
+            emit dataChanged(otherIndex,otherIndex);
+
+            // A changing north changes longitude, too.
+            otherIndex = this->index(index.row(), WaypointDataModel::LNGPOSITION);
             emit dataChanged(otherIndex,otherIndex);
             break;
         case NED_EAST:
