@@ -310,6 +310,7 @@ void ModelUavoProxy::objectsToModel()
         // Store the data
         waypointModel->setData(waypointModel->index(x, WaypointDataModel::LATPOSITION), LLA[0]);
         waypointModel->setData(waypointModel->index(x, WaypointDataModel::LNGPOSITION), LLA[1]);
+        waypointModel->setData(waypointModel->index(x, WaypointDataModel::ALTITUDE), LLA[2]);
         waypointModel->setData(waypointModel->index(x, WaypointDataModel::VELOCITY), wpfields.Velocity);
         waypointModel->setData(waypointModel->index(x, WaypointDataModel::MODE), wpfields.Mode);
         waypointModel->setData(waypointModel->index(x, WaypointDataModel::MODE_PARAMS), wpfields.ModeParameters);
