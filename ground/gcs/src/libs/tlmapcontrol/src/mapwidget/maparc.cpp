@@ -96,14 +96,6 @@ void MapArc::refreshLocations()
     }
     double span = endAngle - startAngle;
 
-    // Compute the midpoint along the arc for the arrow
-    // Angles are left-handed vs. coordinate system
-    midpoint_angle = (startAngle + endAngle) / 2.0;
-    midpoint.setX(arcCenter_px[0] + radius_px * cos(midpoint_angle));
-    midpoint.setY(arcCenter_px[1] - radius_px * sin(midpoint_angle));
-    if (m_clockwise)
-        midpoint_angle = midpoint_angle + M_PI;
-
     if (m_clockwise) {
         while (span > 0)
             span = span - 2 * M_PI;
@@ -111,6 +103,13 @@ void MapArc::refreshLocations()
         while (span < 0)
             span = span + 2 * M_PI;
     }
+
+    // Compute the midpoint along the arc for the arrow
+    // Angles are left-handed vs. coordinate system
+    midpoint_angle = startAngle + span / 2.0;
+    midpoint.setX(arcCenter_px[0] + radius_px * cos(midpoint_angle));
+    midpoint.setY(arcCenter_px[1] - radius_px * sin(midpoint_angle));
+
 
     setRect(arcCenter_px[0] - radius_px, arcCenter_px[1] - radius_px, 2.0*radius_px, 2.0*radius_px);
     setStartAngle(startAngle * RAD2DEG * 16.0);
@@ -241,10 +240,17 @@ void PathSegmentCurve::paint(QPainter *painter, const QStyleOptionGraphicsItem *
     qreal arrowSize = 10;
     QBrush brush=painter->brush();
 
-    QPointF arrowP1 = midpoint + QPointF(sin(midpoint_angle + M_PI / 3) * arrowSize,
-                                   cos(midpoint_angle + M_PI / 3) * arrowSize);
-    QPointF arrowP2 = midpoint + QPointF(sin(midpoint_angle + M_PI - M_PI / 3) * arrowSize,
-                                   cos(midpoint_angle + M_PI - M_PI / 3) * arrowSize);
+    // If arc is clockwise, add 180 degrees
+    int arcSense;
+    if (m_clockwise)
+        arcSense = M_PI;
+    else
+        arcSense = 0;
+
+    QPointF arrowP1 = midpoint + QPointF(sin(midpoint_angle + arcSense + M_PI/6.0) * arrowSize,
+                                   cos(midpoint_angle + arcSense + M_PI/6.0) * arrowSize);
+    QPointF arrowP2 = midpoint + QPointF(sin(midpoint_angle + arcSense - M_PI/6.0) * arrowSize,
+                                   cos(midpoint_angle + arcSense - M_PI/6.0) * arrowSize);
 
     arrowHead.clear();
     arrowHead << midpoint << arrowP1 << arrowP2;

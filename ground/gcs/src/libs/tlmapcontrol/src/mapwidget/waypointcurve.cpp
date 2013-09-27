@@ -72,10 +72,17 @@ void WayPointCurve::paint(QPainter *painter, const QStyleOptionGraphicsItem *opt
     qreal arrowSize = 10;
     QBrush brush=painter->brush();
 
-    QPointF arrowP1 = midpoint + QPointF(sin(midpoint_angle + M_PI / 6) * arrowSize,
-                                   cos(midpoint_angle + M_PI / 6) * arrowSize);
-    QPointF arrowP2 = midpoint + QPointF(sin(midpoint_angle - M_PI / 6) * arrowSize,
-                                   cos(midpoint_angle - M_PI / 6) * arrowSize);
+    // If arc is clockwise, add 180 degrees
+    int arcSense;
+    if (m_clockwise)
+        arcSense = M_PI;
+    else
+        arcSense = 0;
+
+    QPointF arrowP1 = midpoint + QPointF(sin(midpoint_angle + arcSense + M_PI/6.0) * arrowSize,
+                                   cos(midpoint_angle + arcSense + M_PI/6.0) * arrowSize);
+    QPointF arrowP2 = midpoint + QPointF(sin(midpoint_angle + arcSense - M_PI/6.0) * arrowSize,
+                                   cos(midpoint_angle + arcSense - M_PI/6.0) * arrowSize);
 
     arrowHead.clear();
     arrowHead << midpoint << arrowP1 << arrowP2;
