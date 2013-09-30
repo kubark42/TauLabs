@@ -103,19 +103,21 @@ quint32 UAVObjectParser::getObjectID(int objIndex)
 int UAVObjectParser::getNumBytes(int objIndex)
 {    
     ObjectInfo* info = objInfo[objIndex];
-    return info->numBytes;
+    return info->field->numBytes;
 }
 
 /**
  * Calculate the number of bytes in this object's fields
  */
-void UAVObjectParser::calculateSize(ObjectInfo *info) {
+void UAVObjectParser::calculateSize(ObjectInfo *info, bool first) {
     Q_ASSERT(info != NULL);
-    info->numBytes = 0;
-    for (int n = 0; n < info->fields.length(); ++n)
-    {
-        info->numBytes += info->fields[n]->numBytes * info->fields[n]->numElements;
-    }
+    Q_UNUSED(first);
+//    info->numBytes = 0;
+
+    //    for (int n = 0; n < info->fields.length(); ++n)
+//    {
+//        info->numBytes += info->fields[n]->numBytes * info->fields[n]->numElements;
+//    }
 }
 
 bool fieldTypeLessThan(const FieldInfo* f1, const FieldInfo* f2)

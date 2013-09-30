@@ -32,3 +32,4 @@ HEADERS += uavobjectparser.h \
     generators/wireshark/uavobjectgeneratorwireshark.h \
     generators/generator_common.h \
     generators/flight/uavobjectgeneratorflight.h
+

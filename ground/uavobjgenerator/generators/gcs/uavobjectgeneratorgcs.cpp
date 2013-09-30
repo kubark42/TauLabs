@@ -284,10 +284,10 @@ bool UAVObjectGeneratorGCS::process_object(ObjectInfo* info)
     // To be populated with the Q_ENUMS macro
     QString q_enums = QString("");
 
-    res = res && generateEnumDefinitions(info->field,enums);
+    res = res && generateEnumDefinitions(info->field, enums, q_enums);
 
-    outInclude.replace(QString("$(DATAFIELDINFO)"), enums, q_enums);
-    outInclude.replace(QString("$(ENUMS)"),q_enums);
+    outInclude.replace(QString("$(DATAFIELDINFO)"), enums);
+    outInclude.replace(QString("$(ENUMS)"), q_enums);
     // Replace the $(INITFIELDS) tag
     QString initfields;
 

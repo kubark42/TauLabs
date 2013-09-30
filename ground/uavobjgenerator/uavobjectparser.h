@@ -142,7 +142,7 @@ private:
     QString processObjectCategory(QDomNode& childNode, QString * category);
     QString processObjectMetadata(QDomNode& childNode, UpdateMode* mode, int* period, bool* acked);
     void calculateID(ObjectInfo* info);
-    void calculateSize(ObjectInfo* info);
+    void calculateSize(ObjectInfo* info, bool first = true);
     quint32 updateHash(quint32 value, quint32 hash);
     quint32 updateHash(QString& value, quint32 hash);
     quint32 updateHash(FieldInfo* field, quint32 hash);
