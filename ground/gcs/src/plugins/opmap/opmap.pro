@@ -19,6 +19,7 @@ HEADERS += opmapplugin.h \
     opmap_zoom_slider_widget.h \
     opmap_statusbar_widget.h \
     waypointmodelmapproxy.h \
+    pathsegmentmodelmapproxy.h \
     homeeditor.h
 
 SOURCES += opmapplugin.cpp \
@@ -30,6 +31,7 @@ SOURCES += opmapplugin.cpp \
     opmap_zoom_slider_widget.cpp \
     opmap_statusbar_widget.cpp \
     waypointmodelmapproxy.cpp \
+    pathsegmentmodelmapproxy.cpp \
     homeeditor.cpp
 
 OTHER_FILES += OPMapGadget.pluginspec
