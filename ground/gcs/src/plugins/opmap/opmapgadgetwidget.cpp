@@ -237,7 +237,7 @@ OPMapGadgetWidget::OPMapGadgetWidget(QWidget *parent) : QWidget(parent)
     Q_ASSERT(pathSegmentModel);
 
     // Create the map proxy
-    mapProxy = new ModelMapProxy(this, m_map, waypointModel, waypointSelectionModel, pathSegmentModel);
+    mapProxy = new WayPointModelMapProxy(this, m_map, waypointModel, waypointSelectionModel, pathSegmentModel);
 
     magicWayPoint=m_map->magicWPCreate();
     magicWayPoint->setVisible(false);
