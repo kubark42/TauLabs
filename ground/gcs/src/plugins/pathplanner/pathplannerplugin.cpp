@@ -28,6 +28,7 @@
 #include <QtPlugin>
 #include <QStringList>
 #include <extensionsystem/pluginmanager.h>
+#include "homelocation.h"
 
 
 PathPlannerPlugin::PathPlannerPlugin()
@@ -49,6 +50,12 @@ bool PathPlannerPlugin::initialize(const QStringList& args, QString *errMsg)
     Q_UNUSED(args);
     Q_UNUSED(errMsg);
 
+    ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
+    UAVObjectManager *objManager = pm->getObject<UAVObjectManager>();
+    HomeLocation *homeLocation = HomeLocation::GetInstance(objManager);
+    HomeLocation::DataFields homeLocationData = homeLocation->getData();
+    double homeLLA[3] = {homeLocationData.Latitude, homeLocationData.Longitude, homeLocationData.Altitude};
+
     // Create a factory for making gadgets
     mf = new PathPlannerGadgetFactory(this);
     addAutoReleasedObject(mf);
@@ -58,7 +65,7 @@ bool PathPlannerPlugin::initialize(const QStringList& args, QString *errMsg)
     addAutoReleasedObject(waypointDataModel);
 
     // Create the path segment data model for the trajectory
-    pathSegmentDataModel = new PathSegmentDataModel(this);
+    pathSegmentDataModel = new PathSegmentDataModel(homeLLA, this);
     addAutoReleasedObject(pathSegmentDataModel);
 
     // Create a selector and add it to the plugin

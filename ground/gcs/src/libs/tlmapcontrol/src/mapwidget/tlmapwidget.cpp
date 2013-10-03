@@ -89,7 +89,7 @@ namespace mapcontrol
         else
         {
             diagTimer=new QTimer();
-            connect(diagTimer,SIGNAL(timeout()),this,SLOT(diagRefresh()));
+            connect(diagTimer,SIGNAL(timeout()),this,SLOT(diagnosticsRefresh()));
             diagTimer->start(500);
             if(GPS==0)
             {
@@ -108,14 +108,24 @@ namespace mapcontrol
             GPS->SetUavPic(UAVPic);
     }
 
-    MapLine * TLMapWidget::lineCreate(MapPointItem *from, MapPointItem *to,QColor color)
+    WayPointLine * TLMapWidget::lineCreate(MapPointItem *from, WayPointItem *to, QColor color)
     {
         if(!from|!to)
             return NULL;
-        MapLine* ret= new MapLine(from,to,map,color);
+        WayPointLine* ret= new WayPointLine(from,to,map,color);
         ret->setOpacity(overlayOpacity);
         return ret;
     }
+
+    PathSegmentLine * TLMapWidget::lineCreate(PathSegmentEndpointItem *from, PathSegmentEndpointItem *to, QColor color)
+    {
+        if(!from|!to)
+            return NULL;
+        PathSegmentLine* ret= new PathSegmentLine(from,to,map,color);
+        ret->setOpacity(overlayOpacity);
+        return ret;
+    }
+
 
     /**
      * @brief OPMapWidget::curveCreate Create a curve from one waypoint to another with specified radius
@@ -126,13 +136,17 @@ namespace mapcontrol
      * @param color The color of the path
      * @return The waypoint curve object
      */
-    MapArc * TLMapWidget::curveCreate(MapPointItem *start, MapPointItem *dest, double radius, bool clockwise, QColor color)
+    MapArc * TLMapWidget::curveCreate(MapPointItem *start, MapPointItem *dest, double radius, bool clockwise, int numberOfOrbits, bool arcRank, QColor color)
     {
         if (!start || !dest)
             return NULL;
 
         if (dynamic_cast<WayPointItem *>(start) != NULL && dynamic_cast<WayPointItem *>(dest) != NULL) {
             WayPointCurve *ret = new WayPointCurve(dynamic_cast<WayPointItem *>(start), dynamic_cast<WayPointItem *>(dest), radius, clockwise, map, color);
+            ret->setOpacity(overlayOpacity);
+            return ret;
+        } else if (dynamic_cast<PathSegmentEndpointItem *>(start) != NULL && dynamic_cast<PathSegmentEndpointItem *>(dest) != NULL) {
+            PathSegmentCurve *ret = new PathSegmentCurve(start, dest, 1.0/radius, clockwise, numberOfOrbits, arcRank, map, color);
             ret->setOpacity(overlayOpacity);
             return ret;
         } else {
@@ -358,6 +372,32 @@ namespace mapcontrol
         setOverlayOpacity(overlayOpacity);
         return item;
     }
+
+    PathSegmentEndpointItem* TLMapWidget::PathSegmentEndpointInsert(internals::PointLatLng const& coord,int const& altitude, QString const& description,const int &position)
+    {
+        internals::PointLatLng mcoord;
+        bool reloc=false;
+//        if(mcoord == internals::PointLatLng(0,0))
+//        {
+//            mcoord=CurrentPosition();
+//            reloc=true;
+//        }
+//        else {
+            mcoord=coord;
+//        }
+        PathSegmentEndpointItem* item=new PathSegmentEndpointItem(mcoord, altitude, map, description);
+        item->SetNumber(position);
+//        ConnectWP(item);
+        item->setParentItem(map);
+//        emit WPInserted(position,item);
+//        if(reloc)
+//            emit WPValuesChanged(item);
+        setOverlayOpacity(overlayOpacity);
+        return item;
+    }
+
+
+
     void TLMapWidget::WPDelete(WayPointItem *item)
     {
         emit WPDeleted(item->Number(),item);
@@ -379,6 +419,22 @@ namespace mapcontrol
             }
         }
     }
+    PathSegmentEndpointItem * TLMapWidget::PSDFind(int number)
+    {
+        foreach(QGraphicsItem* i,map->childItems())
+        {
+            PathSegmentEndpointItem *psd = qgraphicsitem_cast<PathSegmentEndpointItem*>(i);
+            if(psd)
+            {
+                if(psd->Number()==number)
+                {
+                    return psd;
+                }
+            }
+        }
+        return NULL;
+    }
+
     WayPointItem * TLMapWidget::WPFind(int number)
     {
         foreach(QGraphicsItem* i,map->childItems())
@@ -439,16 +495,64 @@ namespace mapcontrol
 
     void TLMapWidget::deleteAllOverlays()
     {
-        foreach(QGraphicsItem* i,map->childItems())
+        foreach(QGraphicsItem *i, map->childItems())
         {
             MapLine* w=qgraphicsitem_cast<MapLine*>(i);
-            if(w)
+            if(w) {
                 w->deleteLater();
-            else
-            {
-                MapCircle* ww=qgraphicsitem_cast<MapCircle*>(i);
-                if(ww)
-                    ww->deleteLater();
+                continue;
+            }
+
+            MapCircle* ww=qgraphicsitem_cast<MapCircle*>(i);
+            if(ww) {
+                ww->deleteLater();
+                continue;
+            }
+
+            MapArc* www=qgraphicsitem_cast<MapArc*>(i);
+            if(www) {
+                www->deleteLater();
+                continue;
+            }
+        }
+    }
+    void TLMapWidget::deleteWaypointOverlays()
+    {
+        foreach(QGraphicsItem *i, map->childItems())
+        {
+            MapLine* w=qgraphicsitem_cast<WayPointLine*>(i);
+            if(w) {
+                w->deleteLater();
+                continue;
+            }
+
+            MapArc* www=qgraphicsitem_cast<WayPointCurve*>(i);
+            if(www) {
+                www->deleteLater();
+                continue;
+            }
+        }
+    }
+    void TLMapWidget::deletePathSegmentOverlays()
+    {
+        foreach(QGraphicsItem* i,map->childItems())
+        {
+            PathSegmentLine* w=qgraphicsitem_cast<PathSegmentLine*>(i);
+            if(w) {
+                w->deleteLater();
+                continue;
+            }
+
+//            PathSegmentEndpointItem* ww=qgraphicsitem_cast<PathSegmentEndpointItem*>(i);
+//            if(ww) {
+//                ww->deleteLater();
+//                continue;
+//            }
+
+            PathSegmentCurve* www=qgraphicsitem_cast<PathSegmentCurve*>(i);
+            if(www) {
+                www->deleteLater();
+                continue;
             }
         }
     }
@@ -477,7 +581,7 @@ namespace mapcontrol
         connect(this,SIGNAL(WPNumberChanged(int,int,WayPointItem*)),item,SLOT(WPRenumbered(int,int,WayPointItem*)),Qt::DirectConnection);
         connect(this,SIGNAL(WPDeleted(int,WayPointItem*)),item,SLOT(WPDeleted(int,WayPointItem*)),Qt::DirectConnection);
     }
-    void TLMapWidget::diagRefresh()
+    void TLMapWidget::diagnosticsRefresh()
     {
         if(showDiag)
         {

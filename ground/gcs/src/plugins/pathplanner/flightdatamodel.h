@@ -30,6 +30,7 @@
 
 #include <QAbstractTableModel>
 #include "pathplanner_global.h"
+#include "../plugins/uavobjects/uavobject.h"
 
 //! NED representation of a point
 struct NED {
@@ -111,7 +112,7 @@ public:
         LASTCOLUMN
     };
 
-    PathSegmentDataModel(QObject *parent);
+    PathSegmentDataModel(double homeLLA[3], QObject *parent);
     int rowCount(const QModelIndex &parent = QModelIndex()) const ;
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
@@ -124,10 +125,13 @@ public:
     bool writeToFile(QString filename);
     void readFromFile(QString fileName);
 
-    static QMap<int,QString> modeNames;
-
     //! Replace a model data with another model
     bool replaceData(PathSegmentDataModel *newModel);
+
+    double homeLLA[3];
+
+private slots:
+    void homeLocationUpdated(UAVObject *);
 
 private:
     struct pathSegmentData
@@ -148,6 +152,12 @@ private:
 
     //! Set the NED representation of a waypoint
     bool setNED(int index, struct NED NED);
+
+//    //! Set the home reference poins
+//    void setHome(double homeLLA[3]);
+
+    //! Get the current home location
+    bool getHomeLocation(double *homeLLA) const;
 };
 
 #endif // FLIGHTDATAMODEL_H

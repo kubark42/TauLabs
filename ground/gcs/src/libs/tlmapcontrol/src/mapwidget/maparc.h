@@ -42,11 +42,13 @@ class MapArc:public QObject, public QGraphicsEllipseItem
     Q_OBJECT
     Q_INTERFACES(QGraphicsItem)
 public:
-    enum GraphicItemTypes {TYPE_WAYPOINTCURVE = 9};
+    enum GraphicItemTypes {TYPE_WAYPOINTCURVE = 9, TYPE_PATHSEGMENTCURVE = 3923};
     enum ArcRank {ARC_RANK_MAJOR, ARC_RANK_MINOR};
 
+    virtual int type() const = 0;
+
     MapArc(MapPointItem *start, MapPointItem *dest,
-                  double curvature, bool clockwise, bool rank,
+                  double curvature, bool clockwise, int numberOfOrbits, bool rank,
                   MapGraphicItem * map, QColor color=Qt::green);
     void setColor(const QColor &color) { myColor = color; }
 
@@ -66,6 +68,9 @@ protected:
 
     //! Direction of curvature
     bool m_clockwise;
+
+    //! Number of orbits
+    bool m_numberOfOrbits;
 
     //! Arc rank
     bool m_rank;
@@ -87,6 +92,41 @@ public slots:
     void endpointdeleted();
 
     void setOpacitySlot(qreal opacity);
+
+private:
+    enum arc_center_results {ARC_CENTER_FOUND, ARC_COINCIDENT_POINTS, ARC_INSUFFICIENT_RADIUS};
+    enum arc_center_results findArcCenter_px(double start_point[2], double end_point[2], double radius, bool clockwise, bool minor, double center[2]);
+};
+}
+
+namespace mapcontrol
+{
+
+/**
+ * @brief The WayPointCurve class draws an arc between two graphics items of a given
+ * radius and direction of curvature.  It will display a red straight line if the
+ * radius is insufficient to connect the two waypoints
+ */
+class PathSegmentCurve : public MapArc
+{
+    Q_OBJECT
+    Q_INTERFACES(QGraphicsItem)
+public:
+    enum { Type = UserType + TYPE_PATHSEGMENTCURVE };
+    PathSegmentCurve(MapPointItem *start, MapPointItem *dest,
+                  double curvature, bool clockwise, int numberOfOrbits, bool rank,
+                  MapGraphicItem * map, QColor color=Qt::magenta);
+    int type() const;
+
+private:
+    QPolygonF arrowHead;
+
+protected:
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
+
+public slots:
+    //! Called if the start or end point is destroyed
+    void waypointdeleted();
 };
 }
 

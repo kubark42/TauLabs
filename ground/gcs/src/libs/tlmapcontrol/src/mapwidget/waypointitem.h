@@ -120,13 +120,14 @@ public:
     * @param value
     */
     void SetShowNumber(bool const& value);
+
     /**
-    * @brief Returns the WayPoint altitude
+    * @brief Sets the WayPoint altitude
     *
     * @return int
     */
-
     virtual void SetAltitude(const float &value);
+
     void setRelativeCoord(distBearingAltitude value);
     distBearingAltitude getRelativeCoord(){return relativeCoord;}
     int type() const;

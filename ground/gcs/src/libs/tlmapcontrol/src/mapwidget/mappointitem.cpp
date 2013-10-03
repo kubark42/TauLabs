@@ -44,8 +44,13 @@ namespace mapcontrol
 
     void MapPointItem::SetCoord(const internals::PointLatLng &value)
     {
-        if(coord == value)
+        if (fabs(coord.Lat()) > 90 || fabs(coord.Lng()) > 180) {
+            Q_ASSERT(0);
             return;
+        } else if(coord == value) {
+            return;
+        }
+
         coord = value;
         distBearingAltitude back=relativeCoord;
         if(qAbs(back.bearing-relativeCoord.bearing)>0.01 || qAbs(back.distance-relativeCoord.distance)>0.1)

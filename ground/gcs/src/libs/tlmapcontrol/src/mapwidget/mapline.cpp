@@ -89,24 +89,30 @@ void MapLine::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
     painter->setBrush(myColor);
 
     double angle = ::acos(line().dx() / line().length());
+    if (angle != angle) { // Exploit IEEE definition for NaN check.
+        qDebug() << "Map line gives infinite angle: (" << line().dx() << ", " << line().dy() << "), " << line().length();
+        return;
+    }
+
     if (line().dy() >= 0)
         angle = (M_PI * 2) - angle;
 
-        QPointF arrowP1 = line().pointAt(0.5) + QPointF(sin(angle + M_PI / 3) * arrowSize,
-                                        cos(angle + M_PI / 3) * arrowSize);
-        QPointF arrowP2 = line().pointAt(0.5) + QPointF(sin(angle + M_PI - M_PI / 3) * arrowSize,
-                                        cos(angle + M_PI - M_PI / 3) * arrowSize);
-        arrowHead.clear();
-        arrowHead << line().pointAt(0.5) << arrowP1 << arrowP2;
-        painter->drawPolygon(arrowHead);
-        if(myColor==Qt::red)
-            myPen.setWidth(3);
-        else if(myColor==Qt::yellow)
-            myPen.setWidth(2);
-        else if(myColor==Qt::green)
-            myPen.setWidth(1);
-        painter->setPen(myPen);
-        painter->drawLine(line());
+    QPointF arrowP1 = line().pointAt(0.5) + QPointF(sin(angle + M_PI / 3) * arrowSize,
+                                    cos(angle + M_PI / 3) * arrowSize);
+    QPointF arrowP2 = line().pointAt(0.5) + QPointF(sin(angle + M_PI - M_PI / 3) * arrowSize,
+                                    cos(angle + M_PI - M_PI / 3) * arrowSize);
+    arrowHead.clear();
+    arrowHead << line().pointAt(0.5) << arrowP1 << arrowP2;
+
+    painter->drawPolygon(arrowHead);
+    if(myColor==Qt::red)
+        myPen.setWidth(3);
+    else if(myColor==Qt::yellow)
+        myPen.setWidth(2);
+    else if(myColor==Qt::green)
+        myPen.setWidth(1);
+    painter->setPen(myPen);
+    painter->drawLine(line());
 
 }
 

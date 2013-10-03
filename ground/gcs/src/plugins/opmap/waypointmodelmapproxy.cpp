@@ -27,12 +27,12 @@
  */
 
 #include "waypointmodelmapproxy.h"
+#include "pathsegmentdescriptor.h"
 
-WayPointModelMapProxy::WayPointModelMapProxy(QObject *parent,TLMapWidget *map, WaypointDataModel *waypointModel,QItemSelectionModel *selectionModel, PathSegmentDataModel *pathSegmentModel):
+WayPointModelMapProxy::WayPointModelMapProxy(QObject *parent,TLMapWidget *map, WaypointDataModel *waypointModel,QItemSelectionModel *selectionModel):
     QObject(parent),
     myMap(map),
     waypointModel(waypointModel),
-    pathSegmentModel(pathSegmentModel),
     selection(selectionModel)
 {
     connect(waypointModel,SIGNAL(rowsInserted(const QModelIndex&,int,int)),this,SLOT(rowsInserted(const QModelIndex&,int,int)));
@@ -130,8 +130,8 @@ WayPointModelMapProxy::overlayType WayPointModelMapProxy::overlayTranslate(Waypo
  * @param type The type of path component
  * @param color
  */
-void WayPointModelMapProxy::createOverlay(MapPointItem *from, MapPointItem *to,
-                                  WayPointModelMapProxy::overlayType type, QColor color,
+void WayPointModelMapProxy::createOverlay(WayPointItem *from, WayPointItem *to,
+                                  overlayType type, QColor color,
                                   double radius=0)
 {
     if(from==NULL || to==NULL || from==to)
@@ -148,10 +148,10 @@ void WayPointModelMapProxy::createOverlay(MapPointItem *from, MapPointItem *to,
         myMap->circleCreate(to, from, false, color);
         break;
     case OVERLAY_CURVE_RIGHT:
-        myMap->curveCreate(to, from, radius, true, color);
+        myMap->curveCreate(from, to, radius, true,  0, PathSegmentDescriptor::ARCRANK_MINOR, color);
         break;
     case OVERLAY_CURVE_LEFT:
-        myMap->curveCreate(to, from, radius, false, color);
+        myMap->curveCreate(from, to, radius, false, 0, PathSegmentDescriptor::ARCRANK_MINOR, color);
         break;
     default:
         break;
@@ -165,14 +165,14 @@ void WayPointModelMapProxy::createOverlay(MapPointItem *from, MapPointItem *to,
  * @param type The type of path component
  * @param color
  */
-void WayPointModelMapProxy::createOverlay(WayPointItem *from, HomeItem *to, WayPointModelMapProxy::overlayType type,QColor color)
+void WayPointModelMapProxy::createOverlay(WayPointItem *from, HomeItem *to, overlayType type,QColor color)
 {
     if(from==NULL || to==NULL) //FIXME: Is it not also necessary here to check from!=to ? If so, this function can be removed in favor of only one createOverlay
         return;
     switch(type)
     {
     case OVERLAY_LINE:
-        myMap->lineCreate(to, from, color);
+        myMap->lineCreate(to, from, color); // FIXME: Ugh, to and from and from and to. Very confusing
         break;
     case OVERLAY_CIRCLE_RIGHT:
         myMap->circleCreate(to, from, true, color);
@@ -191,7 +191,7 @@ void WayPointModelMapProxy::createOverlay(WayPointItem *from, HomeItem *to, WayP
  */
 void WayPointModelMapProxy::refreshOverlays()
 {
-    myMap->deleteAllOverlays();
+    myMap->deleteWaypointOverlays();
     if(waypointModel->rowCount()<1)
         return;
     WayPointItem *wp_current = NULL;
@@ -307,7 +307,7 @@ void WayPointModelMapProxy::dataChanged(const QModelIndex &topLeft, const QModel
 }
 
 /**
- * @brief WayPointModelMapProxy::rowsInserted When rows are inserted in the model add the corresponding graphical items
+ * @brief WayPointModelMapProxy::rowsInserted When rows are inserted in the model, add the corresponding graphical items
  * @param parent Unused
  * @param first The first row to update
  * @param last The last row to update
