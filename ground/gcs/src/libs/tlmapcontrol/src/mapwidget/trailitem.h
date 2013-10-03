@@ -43,7 +43,9 @@ namespace mapcontrol
         Q_OBJECT
         Q_INTERFACES(QGraphicsItem)
     public:
-                enum { Type = UserType + 3 };
+        enum GraphicItemTypes {TYPE_TRAILITEM = 4};
+
+        enum { Type = UserType + TYPE_TRAILITEM };
         TrailItem(internals::PointLatLng const& coord,int const& altitude, QBrush color,MapGraphicItem * map);
         void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
                     QWidget *widget);

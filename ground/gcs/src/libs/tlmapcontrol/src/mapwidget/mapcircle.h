@@ -40,7 +40,9 @@ class MapCircle: public QObject, public QGraphicsEllipseItem
     Q_OBJECT
     Q_INTERFACES(QGraphicsItem)
 public:
-    enum { Type = UserType + 9 };
+    enum GraphicItemTypes {TYPE_MAPCIRCLE = 5};
+
+    enum { Type = UserType + TYPE_MAPCIRCLE };
     MapCircle(MapPointItem *center, MapPointItem *radius, bool clockwise, MapGraphicItem *map, QColor color=Qt::green);
     MapCircle(HomeItem *center, MapPointItem *radius, bool clockwise, MapGraphicItem *map, QColor color=Qt::green);
     int type() const;
