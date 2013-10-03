@@ -80,17 +80,21 @@ private slots:
     //! When a list of waypoints are changed, select them in model
     void selectedWPChanged(QList<WayPointItem*>);
 
+    //! Upon timeout, refresh the overlay
+    void overlayRefreshTimeout();
+
 private:
     //! Get the handle to a waypoint graphical item
     WayPointItem *findWayPointNumber(int number);
+    void refreshOverlays();
 
     overlayType overlayTranslate(Waypoint::ModeOptions type);
     void createOverlay(WayPointItem *from, WayPointItem * to, overlayType type, QColor color, double radius);
     void createOverlay(WayPointItem *from, HomeItem *to, overlayType type, QColor color);
     TLMapWidget * myMap;
     WaypointDataModel *waypointModel;
-    void refreshOverlays();
     QItemSelectionModel * selection;
+    static QTimer overlayRefreshTimer;
 };
 
 #endif // WAYPOINTMODELMAPPROXY_H
