@@ -16,6 +16,7 @@
         <file>images/waypoint_marker1.png</file>
         <file>images/waypoint_marker2.png</file>
         <file>images/waypoint_marker3.png</file>
+        <file>images/location-marker.png</file>
     </qresource>
     <qresource prefix="/uavs">
         <file>images/airplanepip.png</file>
