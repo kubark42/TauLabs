@@ -42,7 +42,7 @@ class MapArc:public QObject, public QGraphicsEllipseItem
     Q_OBJECT
     Q_INTERFACES(QGraphicsItem)
 public:
-    enum GraphicItemTypes {TYPE_WAYPOINTCURVE = 9, TYPE_PATHSEGMENTCURVE = 3923};
+    enum GraphicItemTypes {TYPE_WAYPOINTCURVE = 10, TYPE_PATHSEGMENTCURVE = 11};
     enum ArcRank {ARC_RANK_MAJOR, ARC_RANK_MINOR};
 
     virtual int type() const = 0;

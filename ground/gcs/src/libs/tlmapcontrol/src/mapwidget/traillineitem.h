@@ -43,7 +43,9 @@ namespace mapcontrol
         Q_OBJECT
         Q_INTERFACES(QGraphicsItem)
     public:
-                enum { Type = UserType + 7 };
+        enum GraphicItemTypes {TYPE_TRAILLINEITEM = 3};
+
+        enum { Type = UserType + TYPE_TRAILLINEITEM };
         TrailLineItem(internals::PointLatLng const& coord1,internals::PointLatLng const& coord2, QBrush color,MapGraphicItem * map);
         int type() const;
         internals::PointLatLng coord1;
