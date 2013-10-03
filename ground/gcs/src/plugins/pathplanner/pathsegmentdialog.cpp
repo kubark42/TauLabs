@@ -190,7 +190,8 @@ void PathSegmentDialog::currentRowChanged(QModelIndex current, QModelIndex previ
 void PathSegmentDialog::enableEditWidgets()
 {
     int row = itemSelection->currentIndex().row();
-    bool value = model->data(model->index(row,WaypointDataModel::LOCKED)).toBool();
+    bool value = false;
+//    bool value = model->data(model->index(row,WaypointDataModel::LOCKED)).toBool(); // FIXME: Properly handle whether these are editable or not.
     QWidget * w;
     foreach(QWidget * obj,this->findChildren<QWidget *>())
     {

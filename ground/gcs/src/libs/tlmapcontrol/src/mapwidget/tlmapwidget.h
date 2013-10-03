@@ -46,6 +46,8 @@
 #include "mapcircle.h"
 #include "waypointcurve.h"
 #include "waypointitem.h"
+#include "pathsegmentendpointitem.h"
+
 namespace mapcontrol
 {
     class UAVItem;
@@ -329,6 +331,9 @@ namespace mapcontrol
         WayPointItem* WPInsert(internals::PointLatLng const& coord,int const& altitude, QString const& description,int const& position);
         WayPointItem *WPInsert(const distBearingAltitude &relative, const QString &description, const int &position);
 
+        PathSegmentEndpointItem* PathSegmentEndpointInsert(internals::PointLatLng const& coord,int const& altitude, QString const& description,int const& position);
+
+
         /**
         * @brief Deletes the WayPoint
         *
@@ -360,6 +365,8 @@ namespace mapcontrol
 
         void setOverlayOpacity(qreal value);
 
+        void drawPathSegments();
+
         UAVItem* UAV;
         GPSItem* GPS;
         HomeItem* Home;
@@ -370,19 +377,25 @@ namespace mapcontrol
         void SetShowDiagnostics(bool const& value);
         void SetUavPic(QString UAVPic);
 
-        //! Create a line between two mappoint items
-        MapLine *lineCreate(MapPointItem *from,MapPointItem *to, QColor color);
+        //! Create a line between two waypoint items
+        WayPointLine *lineCreate(MapPointItem *from, WayPointItem *to, QColor color);
+        //! Create a line between two path segment endpoint items
+        PathSegmentLine *lineCreate(PathSegmentEndpointItem *from, PathSegmentEndpointItem *to, QColor color);
+
         //! Create a curve from one mappoint item to another with a given radius
-        MapArc *curveCreate(MapPointItem *start, MapPointItem *dest, double radius, bool clockwise, QColor color);
+        MapArc *curveCreate(MapPointItem *start, MapPointItem *dest, double radius, bool clockwise, int numberOfOrbits, bool arcRank, QColor color);
         //! Create a circle around a mappoint with the radius specified by the distance to another mappoint
         MapCircle *circleCreate(MapPointItem *center, MapPointItem *radius,bool clockwise,QColor color);
 
         void deleteAllOverlays();
+        void deleteWaypointOverlays();
+        void deletePathSegmentOverlays();
         void WPSetVisibleAll(bool value);
         WayPointItem *magicWPCreate();
         bool WPPresent();
         void WPDelete(int number);
         WayPointItem *WPFind(int number);
+        PathSegmentEndpointItem *PSDFind(int number);
         void setSelectedWP(QList<WayPointItem *> list);
 
         void setWindVelocity(double windVelocity_NED[3]);
@@ -409,7 +422,7 @@ namespace mapcontrol
         QGraphicsTextItem *windspeedTxt;
 
     private slots:
-        void diagRefresh();
+        void diagnosticsRefresh();
         //   WayPointItem* item;//apagar
     protected:
         void resizeEvent(QResizeEvent *event);

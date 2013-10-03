@@ -43,7 +43,7 @@ public:
     enum { Type = UserType + 8 };
     MapLine(MapPointItem *from, MapPointItem *to, MapGraphicItem *map, QColor color=Qt::green);
     MapLine(HomeItem *from, MapPointItem *to, MapGraphicItem *map, QColor color=Qt::green);
-    int type() const;
+    virtual int type() const = 0;
     QPainterPath shape() const;
     void setColor(const QColor &color)
         { myColor = color; }
@@ -61,4 +61,38 @@ public slots:
     void setOpacitySlot(qreal opacity);
 };
 }
+
+namespace mapcontrol
+{
+/**
+ * @brief The PathSegmentLine class This class is a simple line and only differentiates between q_graphics elements
+ */
+class PathSegmentLine : public MapLine
+{
+public:
+    PathSegmentLine(MapPointItem *from, MapPointItem *to, MapGraphicItem *map, QColor color=Qt::magenta):
+        MapLine(from, to, map, color){}
+
+    enum { Type = UserType + 81 };
+    int type() const {return Type;}
+};
+}
+
+
+namespace mapcontrol
+{
+/**
+ * @brief The PathSegmentLine class This class is a simple line and only differentiates between q_graphics elements
+ */
+class WayPointLine : public MapLine
+{
+public:
+    WayPointLine(MapPointItem *from, MapPointItem *to, MapGraphicItem *map, QColor color=Qt::green):
+        MapLine(from, to, map, color){}
+
+    enum { Type = UserType + 82 };
+    int type() const {return Type;}
+};
+}
+
 #endif // MAPLINE_H
