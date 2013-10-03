@@ -41,7 +41,7 @@ namespace mapcontrol
  * @param color Color of the curve
  */
 WayPointCurve::WayPointCurve(WayPointItem *start, WayPointItem *dest, double radius, bool clockwise, MapGraphicItem *map,QColor color) :
-    MapArc(start, dest, 1.0/radius, clockwise, true/* FIXME: Should be curvature*/, map, color)
+    MapArc(start, dest, 1.0/radius * (clockwise ? 1 : -1), clockwise, 0, true/* FIXME: Should be arc rank*/, map, color)
 {
     connect(start,SIGNAL(aboutToBeDeleted(MapPointItem*)),this,SLOT(waypointdeleted()));
     connect(dest,SIGNAL(aboutToBeDeleted(MapPointItem*)),this,SLOT(waypointdeleted()));
@@ -72,10 +72,10 @@ void WayPointCurve::paint(QPainter *painter, const QStyleOptionGraphicsItem *opt
     qreal arrowSize = 10;
     QBrush brush=painter->brush();
 
-    QPointF arrowP1 = midpoint + QPointF(sin(midpoint_angle + M_PI / 3) * arrowSize,
-                                   cos(midpoint_angle + M_PI / 3) * arrowSize);
-    QPointF arrowP2 = midpoint + QPointF(sin(midpoint_angle + M_PI - M_PI / 3) * arrowSize,
-                                   cos(midpoint_angle + M_PI - M_PI / 3) * arrowSize);
+    QPointF arrowP1 = midpoint + QPointF(sin(midpoint_angle + M_PI / 6) * arrowSize,
+                                   cos(midpoint_angle + M_PI / 6) * arrowSize);
+    QPointF arrowP2 = midpoint + QPointF(sin(midpoint_angle - M_PI / 6) * arrowSize,
+                                   cos(midpoint_angle - M_PI / 6) * arrowSize);
 
     arrowHead.clear();
     arrowHead << midpoint << arrowP1 << arrowP2;

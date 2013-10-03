@@ -34,7 +34,6 @@
 #include <waypoint.h>
 #include "extensionsystem/pluginmanager.h"
 #include "../plugins/uavobjects/uavobjectmanager.h"
-#include "../plugins/uavobjects/uavobject.h"
 
 QMap<int,QString> WaypointDataModel::modeNames = QMap<int, QString>();
 
@@ -624,8 +623,20 @@ bool WaypointDataModel::replaceData(WaypointDataModel *newModel)
 
 
 //! Initialize an empty flight plan
-PathSegmentDataModel::PathSegmentDataModel(QObject *parent) : QAbstractTableModel(parent)
+PathSegmentDataModel::PathSegmentDataModel(double homeLLA[3], QObject *parent) :
+    QAbstractTableModel(parent)
 {
+
+    // Assign home location
+    for (int i=0; i<3; i++)
+        this->homeLLA[i] = homeLLA[i];
+
+    // Connect HomeLocation UAVO to update slot
+    ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
+    UAVObjectManager *objMngr = pm->getObject<UAVObjectManager>();
+    connect(HomeLocation::GetInstance(objMngr), SIGNAL(objectUpdated(UAVObject*)), this, SLOT(homeLocationUpdated(UAVObject*)));
+
+
 //    // This could be auto populated from the waypoint object but nothing else in the
 //    // model depends on run time properties and we might want to exclude certain modes
 //    // being presented later (e.g. driving on a multirotor)
@@ -666,11 +677,10 @@ int PathSegmentDataModel::columnCount(const QModelIndex &parent) const
  */
 QVariant PathSegmentDataModel::data(const QModelIndex &index, int role) const
 {
-    if (role == Qt::DisplayRole || role==Qt::EditRole || role==Qt::UserRole)
-    {
-
-        if(!index.isValid() || index.row() > dataStorage.length()-1)
+    if (role == Qt::DisplayRole || role==Qt::EditRole || role==Qt::UserRole) {
+        if(!index.isValid() || index.row() > dataStorage.length()-1) {
             return QVariant::Invalid;
+        }
 
         pathSegmentData *row=dataStorage.at(index.row());
 
@@ -863,39 +873,26 @@ Qt::ItemFlags PathSegmentDataModel::flags(const QModelIndex & index) const
  */
 bool PathSegmentDataModel::insertRows(int row, int count, const QModelIndex &/*parent*/)
 {
-    // TODO: Decide if a row should ever be insertable.
-    return false;
-//    waypointData *data;
-//    beginInsertRows(QModelIndex(), row, row+count-1);
-//    for(int x=0; x<count; x++)
-//    {
-//        // Initialize new internal representation
-//        data=new waypointData;
-//        data->latPosition=0;
-//        data->lngPosition=0;
+    pathSegmentData *data;
+    beginInsertRows(QModelIndex(), row, row+count-1);
+    for(int x=0; x<count; x++)
+    {
+        // Initialize new internal representation
+        data = new pathSegmentData;
+        memset(data->accNED, 0, sizeof(data->accNED));
+        memset(data->velNED, 0, sizeof(data->velNED));
+        memset(data->posNED, 0, sizeof(data->posNED));
+        data->arcRank = 0;
+        data->curvature = 0;
+        data->numberOfOrbits = 0;
+        data->segmentDescription = "";
 
-//        // If there is a previous waypoint, initialize some of the fields to that value
-//        if(rowCount() > 0)
-//        {
-//            waypointData *prevRow = dataStorage.at(rowCount()-1);
-//            data->altitude    = prevRow->altitude;
-//            data->velocity    = prevRow->velocity;
-//            data->mode        = prevRow->mode;
-//            data->mode_params = prevRow->mode_params;
-//            data->locked      = prevRow->locked;
-//        } else {
-//            data->altitude    = 0;
-//            data->velocity    = 0;
-//            data->mode        = Waypoint::MODE_FLYVECTOR;
-//            data->mode_params = 0;
-//            data->locked      = false;
-//        }
-//        dataStorage.insert(row,data);
-//    }
+        dataStorage.insert(row,data);
+    }
 
-//    endInsertRows();
+    endInsertRows();
 
-//    return true;
+    return true;
 }
 
 /**
@@ -906,20 +903,17 @@ bool PathSegmentDataModel::insertRows(int row, int count, const QModelIndex &/*p
  */
 bool PathSegmentDataModel::removeRows(int row, int count, const QModelIndex &/*parent*/)
 {
-    // TODO: Decide if a row should ever be removable.
-    return false;
+    if(row<0)
+        return false;
+    beginRemoveRows(QModelIndex(),row,row+count-1);
+    for(int x=0; x<count;++x)
+    {
+        delete dataStorage.at(row);
+        dataStorage.removeAt(row);
+    }
+    endRemoveRows();
 
-//    if(row<0)
-//        return false;
-//    beginRemoveRows(QModelIndex(),row,row+count-1);
-//    for(int x=0; x<count;++x)
-//    {
-//        delete dataStorage.at(row);
-//        dataStorage.removeAt(row);
-//    }
-//    endRemoveRows();
-
-//    return true;
+    return true;
 }
 
 /**
@@ -1130,4 +1124,38 @@ bool PathSegmentDataModel::replaceData(PathSegmentDataModel *newModel)
     }
 
     return true;
+}
+
+
+/**
+ * @brief PathSegmentDataModel::getHomeLocation Take care of scaling the home location UAVO to
+ * degrees (lat lon) and meters altitude
+ * @param [out] home A 3 element double array to store result in
+ * @return True if successful, false otherwise
+ */
+bool PathSegmentDataModel::getHomeLocation(double *homeLLA) const
+{
+    ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
+    UAVObjectManager * objMngr = pm->getObject<UAVObjectManager>();
+    Q_ASSERT(objMngr);
+
+    HomeLocation *home = HomeLocation::GetInstance(objMngr);
+    if (home == NULL)
+        return false;
+
+    HomeLocation::DataFields homeLocation = home->getData();
+    homeLLA[0] = homeLocation.Latitude / 1e7;
+    homeLLA[1] = homeLocation.Longitude / 1e7;
+    homeLLA[2] = homeLocation.Altitude;
+
+    return true;
+}
+
+
+/**
+ * @brief PathSegmentDataModel::homeLocationUpdated Triggered when HomeLocation UAVO updates
+ */
+void PathSegmentDataModel::homeLocationUpdated(UAVObject *)
+{
+    getHomeLocation(homeLLA);
 }

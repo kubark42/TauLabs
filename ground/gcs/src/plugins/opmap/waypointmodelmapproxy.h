@@ -41,17 +41,15 @@ using namespace mapcontrol;
 /**
  * @brief The WayPointModelMapProxy class maps from the @ref WaypointDataModel to the OPMap
  * and provides synchronization, both when the model changes updating the UI and
- * if it is modified on the UI propagating changes to the model
+ * if it is modified in the UI, propagating changes to the model.
  */
-class WayPointModelMapProxy:public QObject
+class WayPointModelMapProxy : public QObject
 {
     typedef enum {OVERLAY_LINE, OVERLAY_CURVE_RIGHT, OVERLAY_CURVE_LEFT, OVERLAY_CIRCLE_RIGHT, OVERLAY_CIRCLE_LEFT} overlayType;
     Q_OBJECT
-public:
-    explicit WayPointModelMapProxy(QObject *parent,TLMapWidget *map, WaypointDataModel *waypointModel,QItemSelectionModel *waypointSelectionModel, PathSegmentDataModel *pathSegmentModel);
 
-    //! Get the handle to a waypoint graphical item
-    WayPointItem *findWayPointNumber(int number);
+public:
+    explicit WayPointModelMapProxy(QObject *parent, TLMapWidget *map, WaypointDataModel *waypointModel, QItemSelectionModel *waypointSelectionModel);
 
     //! When a waypoint is created graphically, insert into the end of the model
     void createWayPoint(internals::PointLatLng coord);
@@ -83,12 +81,14 @@ private slots:
     void selectedWPChanged(QList<WayPointItem*>);
 
 private:
+    //! Get the handle to a waypoint graphical item
+    WayPointItem *findWayPointNumber(int number);
+
     overlayType overlayTranslate(Waypoint::ModeOptions type);
     void createOverlay(WayPointItem *from, WayPointItem * to, overlayType type, QColor color, double radius);
     void createOverlay(WayPointItem *from, HomeItem *to, overlayType type, QColor color);
     TLMapWidget * myMap;
     WaypointDataModel *waypointModel;
-    PathSegmentDataModel *pathSegmentModel;
     void refreshOverlays();
     QItemSelectionModel * selection;
 };

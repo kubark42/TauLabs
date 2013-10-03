@@ -71,29 +71,30 @@ void PathPlannerGadgetWidget::setModel(WaypointDataModel *waypointModel, QItemSe
     this->pathSegmentModel = pathSegmentModel;
     this->selection = selection;
 
-    ui->tableView->setModel(waypointModel);
-    ui->tableView->setSelectionModel(selection);
-    ui->tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->tv_waypoints->setModel(waypointModel);
+    ui->tv_waypoints->setSelectionModel(selection);
+    ui->tv_waypoints->setSelectionBehavior(QAbstractItemView::SelectRows);
 
-    ui->tableView->setItemDelegate(new WaypointDelegate(this));
-    ui->tableView->resizeColumnsToContents();
+    ui->tv_waypoints->setItemDelegate(new WaypointDelegate(this));
+    ui->tv_waypoints->resizeColumnsToContents();
 
-    ui->tableView->resizeColumnsToContents();
+    ui->tv_pathSegmentDescriptors->setModel(pathSegmentModel);
+    ui->tv_pathSegmentDescriptors->resizeColumnsToContents();
 }
 
 void PathPlannerGadgetWidget::on_tbAdd_clicked()
 {
-    ui->tableView->model()->insertRow(ui->tableView->model()->rowCount());
+    ui->tv_waypoints->model()->insertRow(ui->tv_waypoints->model()->rowCount());
 }
 
 void PathPlannerGadgetWidget::on_tbDelete_clicked()
 {
-    ui->tableView->model()->removeRow(ui->tableView->selectionModel()->currentIndex().row());
+    ui->tv_waypoints->model()->removeRow(ui->tv_waypoints->selectionModel()->currentIndex().row());
 }
 
 void PathPlannerGadgetWidget::on_tbInsert_clicked()
 {
-    ui->tableView->model()->insertRow(ui->tableView->selectionModel()->currentIndex().row());
+    ui->tv_waypoints->model()->insertRow(ui->tv_waypoints->selectionModel()->currentIndex().row());
 }
 
 void PathPlannerGadgetWidget::on_tbReadFromFile_clicked()
@@ -145,8 +146,11 @@ void PathPlannerGadgetWidget::on_tbSendToUAV_clicked()
 void PathPlannerGadgetWidget::on_tbFetchFromUAV_clicked()
 {
     proxy->objectsToModel();
-    ui->tableView->resizeColumnsToContents();
+    ui->tv_waypoints->resizeColumnsToContents();
+    ui->tv_pathSegmentDescriptors->resizeColumnsToContents();
 }
+
+//TODO: Rewrite the filleting so that it changes the UAVO settings
 
 /**
  * @brief PathPlannerGadgetWidget::on_tbFilletPath_clicked Apply fillets to the current path

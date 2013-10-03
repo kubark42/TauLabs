@@ -236,8 +236,9 @@ OPMapGadgetWidget::OPMapGadgetWidget(QWidget *parent) : QWidget(parent)
     pathSegmentModel = pm->getObject<PathSegmentDataModel>();
     Q_ASSERT(pathSegmentModel);
 
-    // Create the map proxy
-    mapProxy = new WayPointModelMapProxy(this, m_map, waypointModel, waypointSelectionModel, pathSegmentModel);
+    // Create the waypoint and path segment map proxies
+    waypointMapProxy = new WayPointModelMapProxy(this, m_map, waypointModel, waypointSelectionModel);
+    pathSegmentMapProxy = new PathSegmentModelMapProxy(this, m_map, pathSegmentModel, waypointSelectionModel); // Change this to a different selection model
 
     magicWayPoint=m_map->magicWPCreate();
     magicWayPoint->setVisible(false);
@@ -310,8 +311,11 @@ OPMapGadgetWidget::~OPMapGadgetWidget()
 		m_map = NULL;
 	}
 
-    if(!mapProxy.isNull())
-        delete mapProxy;
+    if(!waypointMapProxy.isNull())
+        delete waypointMapProxy;
+
+    if(!pathSegmentMapProxy.isNull())
+        delete pathSegmentMapProxy;
 }
 
 // *************************************************************************************
@@ -1841,7 +1845,7 @@ void OPMapGadgetWidget::onAddWayPointAct_triggered(internals::PointLatLng coord)
     if (m_map_mode != Normal_MapMode)
         return;
 
-    mapProxy->createWayPoint(coord);
+    waypointMapProxy->createWayPoint(coord);
 }
 
 
@@ -1899,7 +1903,7 @@ void OPMapGadgetWidget::onDeleteWayPointAct_triggered()
     if (!m_mouse_waypoint)
         return;
 
-    mapProxy->deleteWayPoint(m_mouse_waypoint->Number());
+    waypointMapProxy->deleteWayPoint(m_mouse_waypoint->Number());
 }
 
 void OPMapGadgetWidget::onClearWayPointsAct_triggered()
@@ -1923,7 +1927,7 @@ void OPMapGadgetWidget::onClearWayPointsAct_triggered()
     if (m_map_mode != Normal_MapMode)
         return;
 
-    mapProxy->deleteAll();
+    waypointMapProxy->deleteAll();
 
  }
 

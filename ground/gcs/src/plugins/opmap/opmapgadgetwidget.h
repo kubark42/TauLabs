@@ -33,6 +33,7 @@
 
 
 #include "waypointmodelmapproxy.h"
+#include "pathsegmentmodelmapproxy.h"
 
 #include <QtGui/QWidget>
 #include <QtGui/QMenu>
@@ -329,8 +330,9 @@ private:
     QPointer<WaypointDataModel> waypointModel;
     QPointer<PathSegmentDataModel> pathSegmentModel;
     QPointer<QDialog> pathPlannerDialog;
-    QPointer<WayPointModelMapProxy> mapProxy;
+    QPointer<WayPointModelMapProxy> waypointMapProxy;
     QPointer<QItemSelectionModel> waypointSelectionModel;
+    QPointer<PathSegmentModelMapProxy> pathSegmentMapProxy;
 };
 
 #endif /* OPMAP_GADGETWIDGET_H_ */
