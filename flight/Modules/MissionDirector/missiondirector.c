@@ -46,6 +46,8 @@
 #include "missiondirectoruserprogram.h"
 #include "modulesettings.h"
 
+#include "pathsegmentdescriptor.h"
+
 
 // Private constants
 enum airplane_configuration {
@@ -85,98 +87,7 @@ static int32_t MissionDirectorStart(void)
 	
 	if (!module_enabled)
 		return -1;
-/*
-	//Get the FFT window size
-	uint16_t fft_window_size; // Make a local copy in order to check settings before allocating memory
-	uint8_t num_upscale_bits;
-	VibrationAnalysisSettingsFFTWindowSizeOptions fft_window_size_enum;
-	VibrationAnalysisSettingsFFTWindowSizeGet(&fft_window_size_enum);
-	switch (fft_window_size_enum) {
-		case VIBRATIONANALYSISSETTINGS_FFTWINDOWSIZE_16:
-			fft_window_size = 16;
-			num_upscale_bits = 4;
-			break;
-		case VIBRATIONANALYSISSETTINGS_FFTWINDOWSIZE_64:
-			fft_window_size = 64;
-			num_upscale_bits = 6;
-			break;
-		case VIBRATIONANALYSISSETTINGS_FFTWINDOWSIZE_256:
-			fft_window_size = 256;
-			num_upscale_bits = 8;
-			break;
-		case VIBRATIONANALYSISSETTINGS_FFTWINDOWSIZE_1024:
-			fft_window_size = 1024;
-			num_upscale_bits = 10;
-			break;
-		default:
-			//This represents a serious configuration error. Do not start module.
-			module_enabled = false;
-			return -1;
-			break;
-	}
-	
 
-	// Create instances for vibration analysis. Start from i=1 because the first instance is generated
-	// by VibrationAnalysisOutputInitialize(). Generate three times the length because there are three
-	// vectors. Generate half the length because the FFT output is symmetric about the mid-frequency, 
-	// so there's no point in using memory additional memory.
-	for (int i=1; i < (fft_window_size>>1); i++) {
-		uint16_t ret = VibrationAnalysisOutputCreateInstance();
-		if (ret == 0) {
-			// This fails when it's a metaobject. Not a very helpful test.
-			module_enabled = false;
-			return -1;
-		}
-	}
-	
-	if (VibrationAnalysisOutputGetNumInstances() != (fft_window_size>>1)){
-		// This is a more useful test for failure.
-		module_enabled = false;
-		return -1;
-	}
-	
-	
-	// Allocate and initialize the static data storage only if module is enabled
-	vtd = (struct VibrationAnalysis_data *) pvPortMalloc(sizeof(struct VibrationAnalysis_data));
-	if (vtd == NULL) {
-		module_enabled = false;
-		return -1;
-	}
-	
-	// make sure that all struct values are zeroed...
-	memset(vtd, 0, sizeof(struct VibrationAnalysis_data));
-	//... except for Z axis static bias
-	vtd->accels_static_bias_z=-GRAVITY; // [See note in definition of VibrationAnalysis_data structure]
-
-	// Now place the fft window size and number of upscale bits variables into the buffer
-	vtd->fft_window_size = fft_window_size;
-	vtd->num_upscale_bits = num_upscale_bits;
-	
-	// Allocate ouput vector
-	vtd->fft_output = (int16_t *) pvPortMalloc(fft_window_size*2*sizeof(typeof(*(vtd->fft_output))));
-	if (vtd->fft_output == NULL) {
-		module_enabled = false; //Check if allocation succeeded
-		return -1;
-	}
-	
-	//Create the buffers. They are in Q15 format.
-	vtd->accel_buffer_complex_x_q15 = (int16_t *) pvPortMalloc(fft_window_size*2*sizeof(typeof(*vtd->accel_buffer_complex_x_q15)));
-	if (vtd->accel_buffer_complex_x_q15 == NULL) {
-		module_enabled = false; //Check if allocation succeeded
-		return -1;
-	}
-	vtd->accel_buffer_complex_y_q15 = (int16_t *) pvPortMalloc(fft_window_size*2*sizeof(typeof(*vtd->accel_buffer_complex_y_q15)));
-	if (vtd->accel_buffer_complex_y_q15 == NULL) {
-		module_enabled = false; //Check if allocation succeeded
-		return -1;
-	}
-	vtd->accel_buffer_complex_z_q15 = (int16_t *) pvPortMalloc(fft_window_size*2*sizeof(typeof(*vtd->accel_buffer_complex_z_q15)));
-	if (vtd->accel_buffer_complex_z_q15 == NULL) {
-		module_enabled = false; //Check if allocation succeeded
-		return -1;
-	}
-*/
-	
 	// Start main task
 	xTaskCreate(MissionDirectorTask, (signed char *)"MissionDirector", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY, &taskHandle);
 	TaskMonitorAdd(TASKINFO_RUNNING_MISSIONDIRECTOR, taskHandle);
@@ -212,7 +123,6 @@ static int32_t MissionDirectorInitialize(void)
 	MissionDirectorUserProgramInitialize();
 
 	return 0;
-	
 }
 
 MODULE_INITCALL(MissionDirectorInitialize, MissionDirectorStart);
@@ -312,11 +222,11 @@ float calibrated_airspeed; // UAV's calibrated airspeed. We use calibrated airsp
 #define DESIRED_VERTICAL_TOUCHDOWN_SPEED 1.0f // in [m/s]
 #define MINIMUM_VERTICAL_TOUCHDOWN_SPEED 0.5f // in [m/s]
 
-#define MINIMUM_GLIDEPATH_ANGLE ((2.0f) * DEG2RAD) // Never allow a glidepath angle below this threshold. PAPI are generally adjusted to show all red below 2 degrees.
-#define MAXIMUM_GLIDEPATH_ANGLE ((20.0f) * DEG2RAD) // Never allow a glidepath angle above this threshold
-#define MINIMUM_DESIRED_GLIDEPATH_ANGLE ((3.0f) * DEG2RAD) // Never allow a desired glidepath angle below this threshold. 3 degrees is standard approach angle at most airports
-#define MAXIMUM_DESIRED_GLIDEPATH_ANGLE ((15.0f) * DEG2RAD) // Never allow a desired glidepath angle above this threshold.
-#define MINIMUM_BEARING_ANGLE (4 * DEG2RAD) // We will allow +-2 deg lateral deviation from runway
+#define MINIMUM_GLIDEPATH_ANGLE_DEG ((2.0f) * DEG2RAD) // Never allow a glidepath angle below this threshold. PAPI are generally adjusted to show all red below 2 degrees.
+#define MAXIMUM_GLIDEPATH_ANGLE_DEG ((20.0f) * DEG2RAD) // Never allow a glidepath angle above this threshold
+#define MINIMUM_DESIRED_GLIDEPATH_ANGLE_DEG ((3.0f) * DEG2RAD) // Never allow a desired glidepath angle below this threshold. 3 degrees is standard approach angle at most airports
+#define MAXIMUM_DESIRED_GLIDEPATH_ANGLE_DEG ((15.0f) * DEG2RAD) // Never allow a desired glidepath angle above this threshold.
+#define MINIMUM_BEARING_ANGLE_DEG (4 * DEG2RAD) // We will allow +-2 deg lateral deviation from runway
 
 #define stall_speed_clean 6
 #define stall_speed_first_flaps 5
@@ -329,6 +239,10 @@ float calibrated_airspeed; // UAV's calibrated airspeed. We use calibrated airsp
 #define DESIRED_PATTERN_HEIGHT 70 //Minimum height in [m]. FIXME: THIS SHOULD NOT BE A MAGIC NUMBER. IT SHOULD BE A FUNCTION OF AIRPLANE SPEED AND GLIDE RATIO
 #define CROSS_TRACK_PATTERN_ERROR 20; // Allowable error between IAP and LTP, in [m]. FIXME: THIS SHOULD NOT BE A MAGIC NUMBER, BUT INSTEAD BE A FUNCTION OF BANK ANGLE AND AIRSPEED. THE IDEA IS TO ALLOW THE AIRPLANE TO APPROACH THE IAP FROM THE COMPLETELY OPPOSITE DIRECTION TO THE LTP AND YET STILL BE ABLE TO DO A BANKING MANEUVER FROM THE IAP TO THE LTP
 
+// All tuples in NED coordinates
+float IAP[3]; // Initial Approach Point, in NED coordinates
+float LTP[3]; // Last Turn Point, in NED coordinates
+float LAP[3]; // Last Approach Point, in NED coordinates
 float RSP[3]; // Runway Start Point, in NED coordinates
 float REP[3]; // Runway End Point, in NED coordinates
 float runway_heading_R;
@@ -344,9 +258,25 @@ float desired_pattern_altitude;
 float crosstrack_iap_to_ltp_error;
 
 float crosstrack_ltp_to_lap_error;
+float LT_center[3]; // Center of Last Turn, in NED coordinates
+float arc_start_rad;
+float LT_arc_length;
+float LT_radius;
+float start_x_track_error;
+float end_x_track_error;
+float end_slope;
+float s_final;
+
+float slope_1;
+float IAP2LTP[2];
 
 void initialize_landing()
 {
+//	IAP[0] = ;
+//	IAP[1] = ;
+//	IAP[2] = ;
+
+//	from_lap_to_rsp;
 	/* Final approach parameters, from LAP to RSP */
 	// Get the desired approach glidepath angle
 	desired_flare_speed = stall_speed_full_flaps * 1.3; // Standard industry practice is to approach at 130% of the stall speed
@@ -355,9 +285,9 @@ void initialize_landing()
 	maximum_glidepath_angle_R = atan(MAXIMUM_VERTICAL_TOUCHDOWN_SPEED / desired_flare_speed);
 
 	// Saturate the desired angle
-	desired_glidepath_angle_R = bound_min_max(desired_glidepath_angle_R, MINIMUM_DESIRED_GLIDEPATH_ANGLE, MAXIMUM_DESIRED_GLIDEPATH_ANGLE);
-	minimum_glidepath_angle_R = bound_min_max(desired_glidepath_angle_R, MINIMUM_GLIDEPATH_ANGLE, MAXIMUM_GLIDEPATH_ANGLE);
-	maximum_glidepath_angle_R = bound_min_max(desired_glidepath_angle_R, MINIMUM_GLIDEPATH_ANGLE, MAXIMUM_GLIDEPATH_ANGLE);
+	desired_glidepath_angle_R = bound_min_max(desired_glidepath_angle_R, MINIMUM_DESIRED_GLIDEPATH_ANGLE_DEG, MAXIMUM_DESIRED_GLIDEPATH_ANGLE_DEG);
+	minimum_glidepath_angle_R = bound_min_max(desired_glidepath_angle_R, MINIMUM_GLIDEPATH_ANGLE_DEG, MAXIMUM_GLIDEPATH_ANGLE_DEG);
+	maximum_glidepath_angle_R = bound_min_max(desired_glidepath_angle_R, MINIMUM_GLIDEPATH_ANGLE_DEG, MAXIMUM_GLIDEPATH_ANGLE_DEG);
 
 	// Create flight path corridor
 //	from_iap_to_ltp;
@@ -365,10 +295,45 @@ void initialize_landing()
 	maximum_pattern_altitude = MAXIMUM_PATTERN_HEIGHT + roundf(fminf(RSP[2], REP[2])); // Rounded in order to have human-friendly numbers. [cm] precision isn't important here
 	desired_pattern_altitude = DESIRED_PATTERN_HEIGHT + roundf(fminf(RSP[2], REP[2])); // Rounded in order to have human-friendly numbers. [cm] precision isn't important here
 	crosstrack_iap_to_ltp_error = CROSS_TRACK_PATTERN_ERROR;
+	IAP2LTP[0] = LTP[0]-IAP[0];
+	IAP2LTP[1] = LTP[1]-IAP[1];
 
-//	from_ltp_to_ltp;
+//	from_ltp_to_lap;
 	crosstrack_ltp_to_lap_error = CROSS_TRACK_PATTERN_ERROR;
-//	from_lap_to_rsp;
+	// Determine the center by finding the intersection of the two perpendicular lines from the LTP and LAP
+	float LAP2RSP[2] = {RSP[0]-LAP[0], RSP[1]-LAP[1]};
+
+	// line 1, find perpendicular slope:
+	slope_1 = -IAP2LTP[0]/IAP2LTP[1];
+
+	// line 2, find perpendicular slope:
+	float slope_2 = -LAP2RSP[0]/LAP2RSP[1];
+
+	float x_intersect = ((LAP[1]-LTP[0]) + slope_1*LTP[0] + slope_2*LAP[0]) / (slope_1-slope_2);
+	float y_intersect = slope_1*(x_intersect-LTP[0]) + LTP[1];
+	LT_center[0] = x_intersect;
+	LT_center[1] = y_intersect;
+	LT_center[2] = (LTP[2]+LAP[2])/2;
+	LT_radius = sqrtf(powf(LAP2RSP[0]-LT_center[0], 2) + powf(LAP2RSP[1]-LT_center[1], 2));
+
+
+
+	arc_start_rad = atan2f(LTP[1]-LT_center[1], LTP[0]-LT_center[0]);
+	float arc_end_rad = atan2f(LAP[1]-LT_center[1], LAP[0]-LT_center[0]);
+	LT_arc_length = arc_start_rad - arc_end_rad; // Arc length, can be negative
+	start_x_track_error = crosstrack_iap_to_ltp_error;
+	end_x_track_error = MIN(sqrtf(powf(LAP2RSP[0], 2) + powf(LAP2RSP[1], 2)) * tanf(MINIMUM_BEARING_ANGLE_DEG*DEG2RAD), start_x_track_error); // End threshold is either the initial threshold or the convergence cone width at the LAP
+
+	// Define a cross-track error threshold which exponentially decreases from the permissible
+	// x-track error at the LTP finishing at the x-track error at the LAP
+	// We choose an "almost" period from a sine wave so that the first derivative of the
+	// cross-track error along the entire trajectory is continuous, i.e. the trajectory is C1.
+
+//	float start_slope = 0;
+	end_slope = MINIMUM_BEARING_ANGLE_DEG;
+	s_final = asinf(tanf(end_slope * RAD2DEG));
+
+
 
 
 	// Get runway heading
@@ -390,18 +355,59 @@ static bool is_success_possible(enum landing_fsm landing_fsm, enum airplane_conf
 	 */
 	switch (landing_fsm) {
 	case APPROACHING_IAP:
-		// Nothing to be done when approaching the IAP. All altitudes are good
+		// Nothing to be done when approaching the IAP. All altitudes and attitudes are good
 		break;
 	case APPROACHING_LTP:
+	{
 		//
+		float a[2] = {LTP[0], LTP[1]};
+		float p[2] = {NED[0], NED[1]};
+
+		float p2a[2] = {a[1]-p[1], a[0]-p[0]};
+		float bob[2];
+		for (int i=0; i<2; i++) {
+			bob[i] = p2a[i] - (IAP2LTP[0]*p2a[0] + IAP2LTP[1]*p2a[1]) * IAP2LTP[i];
+		}
+
+		float x_track_error2 = powf(bob[0], 2) + powf(bob[1], 2);
+
+		if (x_track_error2 > crosstrack_ltp_to_lap_error*crosstrack_ltp_to_lap_error)
+			return false;
+
+		if (-NED[2] < minimum_pattern_altitude ||
+				-NED[2] > maximum_pattern_altitude) {
+			return false;
+		}
+
 		break;
+	}
 	case APPROACHING_LAP:
+	{
+
+		// Define the arc-length parameter `t`, which linearly grows from 0 to s_final. The position along the arc
+		// is defined as the radial which the UAV is currently on.
+
+		float arc_position = fabsf(atan2f(NED[1]-LT_center[1], NED[0]-LT_center[0]) - arc_start_rad);
+		float t = (arc_position / LT_arc_length) * s_final;
+		float x_track_threshold = start_x_track_error + (end_x_track_error - start_x_track_error) * (cosf(t)/cosf(s_final));
+
+		float x_track_error = LT_radius - sqrtf(powf(NED[0]-LT_center[0], 2) + powf(NED[1]-LT_center[1], 2));
+
+		if (fabsf(x_track_error) > x_track_threshold)
+			return false;
+/* Needs some more work
+//		if (-NED[2] < minimum_pattern_altitude ||
+//				-NED[2] > maximum_pattern_altitude) {
+//			return false;
+//		}
+*/
 		break;
+	}
 	case APPROACHING_RSP:
 	{
 		// Test if UAV is on approach path
 		float runway_bearing_R = atan2f(NED[1] - RSP[1], NED[0] - RSP[0]);
-		if (fabsf(circular_modulus_rad(runway_bearing_R-runway_heading_R)) > MINIMUM_BEARING_ANGLE) {
+		if (fabsf(circular_modulus_rad(runway_bearing_R-runway_heading_R)) > MINIMUM_BEARING_ANGLE_DEG) {
 			// We're too far out of the runway convergence zone. Go round!
 			return false;
 		}
@@ -443,6 +449,7 @@ static bool is_success_possible(enum landing_fsm landing_fsm, enum airplane_conf
 	}
 
 
+	// If we made it all the way to the end, then success is still possible.
 	return true;
 }
 
