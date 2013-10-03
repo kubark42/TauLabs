@@ -28,6 +28,8 @@
 #include "pathsegmentmodelmapproxy.h"
 #include "utils/coordinateconversions.h"
 
+QTimer PathSegmentModelMapProxy::overlayRefreshTimer;
+
 PathSegmentModelMapProxy::PathSegmentModelMapProxy(QObject *parent,TLMapWidget *map, PathSegmentDataModel *pathSegmentModel, QItemSelectionModel *selectionModel):
     QObject(parent),
     myMap(map),
@@ -40,6 +42,10 @@ PathSegmentModelMapProxy::PathSegmentModelMapProxy(QObject *parent,TLMapWidget *
     connect(selection, SIGNAL(currentRowChanged(QModelIndex,QModelIndex)), this, SLOT(currentRowChanged(QModelIndex,QModelIndex)));
     connect(myMap, SIGNAL(selectedWPChanged(QList<WayPointItem*>)), this, SLOT(selectedWPChanged(QList<WayPointItem*>)));
     connect(myMap, SIGNAL(WPManualCoordChange(WayPointItem*)), this, SLOT(PSDValuesChanged(MapPointItem*)));
+
+    // Only update the overlay periodically. Otherwise we flood the graphics system
+    overlayRefreshTimer.setInterval(50);
+    connect(&overlayRefreshTimer, SIGNAL(timeout()), this, SLOT(overlayRefreshTimeout()));
 }
 
 /**
@@ -145,31 +151,14 @@ void PathSegmentModelMapProxy::createOverlay(PathSegmentEndpointItem *from, Path
 }
 
 /**
- * @brief PathSegmentModelMapProxy::refreshOverlays Update the information from the model and
- * redraw all the components
+ * @brief PathSegmentModelMapProxy::refreshOverlays Starts a timer, which upon timeout will trigger a
+ * refresh of the path segment overlays
  */
 void PathSegmentModelMapProxy::refreshOverlays()
 {
-    myMap->deletePathSegmentOverlays();
-    if(pathSegmentModel->rowCount() < 1)
-        return;
-
-    PathSegmentEndpointItem *psd_current = NULL;
-    PathSegmentEndpointItem *psd_next = NULL;
-
-
-    for(int i=0; i < pathSegmentModel->rowCount()-1; i++)
-    {
-        psd_current = findEndPointNumber(i);
-        psd_next = findEndPointNumber(i+1);
-
-        createOverlay(psd_current, psd_next,
-                      pathSegmentModel->data(pathSegmentModel->index(i+1, PathSegmentDataModel::CURVATURE)).toDouble(),
-                      pathSegmentModel->data(pathSegmentModel->index(i+1, PathSegmentDataModel::NUM_ORBITS)).toInt(),
-                      pathSegmentModel->data(pathSegmentModel->index(i+1, PathSegmentDataModel::ARC_RANK)).toInt(),
-                      Qt::magenta);
-
-    }
+    // Reset the countdown. This makes it likely that the redrawing and model updates won't occur until
+    // all UAVOs have been updated
+    overlayRefreshTimer.start();
 }
 
 /**
@@ -310,3 +299,31 @@ void PathSegmentModelMapProxy::rowsInserted(const QModelIndex &parent, int first
 //{
 //    waypointModel->removeRows(0,waypointModel->rowCount(),QModelIndex());
 //}
+
+
+/**
+ * @brief PathSegmentModelMapProxy::overlayRefreshTimeout On timeout, update the information from the model and
+ * redraw all the components
+ */
+void PathSegmentModelMapProxy::overlayRefreshTimeout()
+{
+    myMap->deletePathSegmentOverlays();
+    if(pathSegmentModel->rowCount() < 1)
+        return;
+
+    PathSegmentEndpointItem *psd_current = NULL;
+    PathSegmentEndpointItem *psd_next = NULL;
+
+
+    for(int i=0; i < pathSegmentModel->rowCount()-1; i++)
+    {
+        psd_current = findEndPointNumber(i);
+        psd_next = findEndPointNumber(i+1);
+
+        createOverlay(psd_current, psd_next,
+                      pathSegmentModel->data(pathSegmentModel->index(i+1, PathSegmentDataModel::CURVATURE)).toDouble(),
+                      pathSegmentModel->data(pathSegmentModel->index(i+1, PathSegmentDataModel::NUM_ORBITS)).toInt(),
+                      pathSegmentModel->data(pathSegmentModel->index(i+1, PathSegmentDataModel::ARC_RANK)).toInt(),
+                      Qt::magenta);
+    }
+}

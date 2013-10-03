@@ -29,6 +29,8 @@
 #include "waypointmodelmapproxy.h"
 #include "pathsegmentdescriptor.h"
 
+QTimer WayPointModelMapProxy::overlayRefreshTimer;
+
 WayPointModelMapProxy::WayPointModelMapProxy(QObject *parent,TLMapWidget *map, WaypointDataModel *waypointModel,QItemSelectionModel *selectionModel):
     QObject(parent),
     myMap(map),
@@ -41,6 +43,10 @@ WayPointModelMapProxy::WayPointModelMapProxy(QObject *parent,TLMapWidget *map, W
     connect(waypointModel,SIGNAL(dataChanged(QModelIndex,QModelIndex)),this,SLOT(dataChanged(QModelIndex,QModelIndex)));
     connect(myMap,SIGNAL(selectedWPChanged(QList<WayPointItem*>)),this,SLOT(selectedWPChanged(QList<WayPointItem*>)));
     connect(myMap,SIGNAL(WPManualCoordChange(WayPointItem*)),this,SLOT(WPValuesChanged(WayPointItem*)));
+
+    // Only update the overlay periodically. Otherwise we flood the graphics system
+    overlayRefreshTimer.setInterval(50);
+    connect(&overlayRefreshTimer, SIGNAL(timeout()), this, SLOT(overlayRefreshTimeout()));
 }
 
 /**
@@ -191,28 +197,9 @@ void WayPointModelMapProxy::createOverlay(WayPointItem *from, HomeItem *to, over
  */
 void WayPointModelMapProxy::refreshOverlays()
 {
-    myMap->deleteWaypointOverlays();
-    if(waypointModel->rowCount()<1)
-        return;
-    WayPointItem *wp_current = NULL;
-    WayPointItem *wp_next = NULL;
-    overlayType wp_next_overlay;
-
-    // Get first waypoint type before stepping through path
-    wp_current = findWayPointNumber(0);
-    overlayType wp_current_overlay = overlayTranslate((Waypoint::ModeOptions) waypointModel->data(waypointModel->index(0,WaypointDataModel::MODE),Qt::UserRole).toInt());
-    createOverlay(wp_current,myMap->Home,wp_current_overlay,Qt::green);
-
-    for(int x=0; x < waypointModel->rowCount(); ++x)
-    {
-        wp_current = findWayPointNumber(x);
-
-        wp_next_overlay = overlayTranslate((Waypoint::ModeOptions) waypointModel->data(waypointModel->index(x+1,WaypointDataModel::MODE),Qt::UserRole).toInt());
-
-        wp_next = findWayPointNumber(x+1);
-        createOverlay(wp_current, wp_next, wp_next_overlay, Qt::green,
-                      waypointModel->data(waypointModel->index(x+1,WaypointDataModel::MODE_PARAMS)).toFloat());
-    }
+    // Reset the countdown. This makes it likely that the redrawing and model updates won't occur until
+    // all UAVOs have been updated
+    overlayRefreshTimer.start();
 }
 
 /**
@@ -362,4 +349,34 @@ void WayPointModelMapProxy::createWayPoint(internals::PointLatLng coord)
 void WayPointModelMapProxy::deleteAll()
 {
     waypointModel->removeRows(0,waypointModel->rowCount(),QModelIndex());
+}
+
+/**
+ * @brief ModelMapProxy::overlayRefreshTimeout On timeout, update the information from the model and
+ * redraw all the components
+ */
+void WayPointModelMapProxy::overlayRefreshTimeout()
+{
+    myMap->deleteWaypointOverlays();
+    if(waypointModel->rowCount()<1)
+        return;
+    WayPointItem *wp_current = NULL;
+    WayPointItem *wp_next = NULL;
+    overlayType wp_next_overlay;
+
+    // Get first waypoint type before stepping through path
+    wp_current = findWayPointNumber(0);
+    overlayType wp_current_overlay = overlayTranslate((Waypoint::ModeOptions) waypointModel->data(waypointModel->index(0,WaypointDataModel::MODE),Qt::UserRole).toInt());
+    createOverlay(wp_current,myMap->Home,wp_current_overlay,Qt::green);
+
+    for(int x=0; x < waypointModel->rowCount(); ++x)
+    {
+        wp_current = findWayPointNumber(x);
+
+        wp_next_overlay = overlayTranslate((Waypoint::ModeOptions) waypointModel->data(waypointModel->index(x+1,WaypointDataModel::MODE),Qt::UserRole).toInt());
+
+        wp_next = findWayPointNumber(x+1);
+        createOverlay(wp_current, wp_next, wp_next_overlay, Qt::green,
+                      waypointModel->data(waypointModel->index(x+1,WaypointDataModel::MODE_PARAMS)).toFloat());
+    }
 }
