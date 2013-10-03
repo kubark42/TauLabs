@@ -1,6 +1,6 @@
 /**
  ******************************************************************************
- * @file       modelmapproxy.h
+ * @file       waypointmodelmapproxy.h
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2012-2013
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2012.
  *
@@ -25,8 +25,8 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-#ifndef MODELMAPPROXY_H
-#define MODELMAPPROXY_H
+#ifndef WAYPOINTMODELMAPPROXY_H
+#define WAYPOINTMODELMAPPROXY_H
 #include <QWidget>
 #include "tlmapcontrol/tlmapcontrol.h"
 #include "waypoint.h"
@@ -39,16 +39,16 @@
 using namespace mapcontrol;
 
 /**
- * @brief The ModelMapProxy class maps from the @ref WaypointDataModel to the OPMap
+ * @brief The WayPointModelMapProxy class maps from the @ref WaypointDataModel to the OPMap
  * and provides synchronization, both when the model changes updating the UI and
  * if it is modified on the UI propagating changes to the model
  */
-class ModelMapProxy:public QObject
+class WayPointModelMapProxy:public QObject
 {
     typedef enum {OVERLAY_LINE, OVERLAY_CURVE_RIGHT, OVERLAY_CURVE_LEFT, OVERLAY_CIRCLE_RIGHT, OVERLAY_CIRCLE_LEFT} overlayType;
     Q_OBJECT
 public:
-    explicit ModelMapProxy(QObject *parent,TLMapWidget *map, WaypointDataModel *waypointModel,QItemSelectionModel *waypointSelectionModel, PathSegmentDataModel *pathSegmentModel);
+    explicit WayPointModelMapProxy(QObject *parent,TLMapWidget *map, WaypointDataModel *waypointModel,QItemSelectionModel *waypointSelectionModel, PathSegmentDataModel *pathSegmentModel);
 
     //! Get the handle to a waypoint graphical item
     WayPointItem *findWayPointNumber(int number);
@@ -93,4 +93,4 @@ private:
     QItemSelectionModel * selection;
 };
 
-#endif // MODELMAPPROXY_H
+#endif // WAYPOINTMODELMAPPROXY_H

@@ -32,7 +32,7 @@
 // ******************************************************
 
 
-#include "modelmapproxy.h"
+#include "waypointmodelmapproxy.h"
 
 #include <QtGui/QWidget>
 #include <QtGui/QMenu>
@@ -329,7 +329,7 @@ private:
     QPointer<WaypointDataModel> waypointModel;
     QPointer<PathSegmentDataModel> pathSegmentModel;
     QPointer<QDialog> pathPlannerDialog;
-    QPointer<ModelMapProxy> mapProxy;
+    QPointer<WayPointModelMapProxy> mapProxy;
     QPointer<QItemSelectionModel> waypointSelectionModel;
 };
 
