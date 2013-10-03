@@ -49,18 +49,19 @@ private:
     //! Fetch the home LLA position
     bool getHomeLocation(double *homeLLA);
 
-    //! Whenever a waypoint transaction is completed
-    void waypointTransactionCompleted(UAVObject *, bool);
-
-    //! Whenever a waypoint transaction is completed
-    void pathSegmentDescriptorTransactionCompleted(UAVObject *, bool);
-
 public slots:
     //! Cast from the internal representation to the UAVOs
     void modelToObjects();
 
     //! Cast from the UAVOs to the internal representation
     void objectsToModel();
+
+private slots:
+    //! Whenever a waypoint transaction is completed
+    void waypointTransactionCompleted(UAVObject *, bool);
+
+    //! Whenever a path segment descriptor transaction is completed
+    void pathSegmentDescriptorTransactionCompleted(UAVObject *, bool);
 
 signals:
     void waypointTransactionSucceeded();

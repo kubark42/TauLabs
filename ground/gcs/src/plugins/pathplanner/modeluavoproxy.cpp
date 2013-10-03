@@ -308,16 +308,16 @@ void ModelUavoProxy::objectsToModel()
         Utils::CoordinateConversions().NED2LLA_HomeLLA(homeLLA, NED, LLA);
 
         // Store the data
-        waypointModel->setData(waypointModel->index(x,WaypointDataModel::LATPOSITION), LLA[0]);
-        waypointModel->setData(waypointModel->index(x,WaypointDataModel::LNGPOSITION), LLA[1]);
-        waypointModel->setData(waypointModel->index(x,WaypointDataModel::VELOCITY), wpfields.Velocity);
-        waypointModel->setData(waypointModel->index(x,WaypointDataModel::MODE), wpfields.Mode);
-        waypointModel->setData(waypointModel->index(x,WaypointDataModel::MODE_PARAMS), wpfields.ModeParameters);
+        waypointModel->setData(waypointModel->index(x, WaypointDataModel::LATPOSITION), LLA[0]);
+        waypointModel->setData(waypointModel->index(x, WaypointDataModel::LNGPOSITION), LLA[1]);
+        waypointModel->setData(waypointModel->index(x, WaypointDataModel::VELOCITY), wpfields.Velocity);
+        waypointModel->setData(waypointModel->index(x, WaypointDataModel::MODE), wpfields.Mode);
+        waypointModel->setData(waypointModel->index(x, WaypointDataModel::MODE_PARAMS), wpfields.ModeParameters);
     }
 
     /* ...then the path segment descriptors */
     pathSegmentModel->removeRows(0,pathSegmentModel->rowCount());
-    for(int x=0; x < PathSegmentDescriptor::getNumInstances(objManager) ; ++x) {
+    for(int x=0; x < PathSegmentDescriptor::getNumInstances(objManager); ++x) {
         PathSegmentDescriptor * psd;
         PathSegmentDescriptor::DataFields psdData;
 
@@ -331,12 +331,12 @@ void ModelUavoProxy::objectsToModel()
         pathSegmentModel->insertRow(x);
 
         // Store the data
-        pathSegmentModel->setData(pathSegmentModel->index(x,PathSegmentDataModel::NED_ACC_NORTH), psdData.SwitchingLocus[0]);
-        pathSegmentModel->setData(pathSegmentModel->index(x,PathSegmentDataModel::NED_ACC_EAST), psdData.SwitchingLocus[1]);
-        pathSegmentModel->setData(pathSegmentModel->index(x,PathSegmentDataModel::NED_ACC_DOWN), psdData.SwitchingLocus[2]);
-        pathSegmentModel->setData(pathSegmentModel->index(x,PathSegmentDataModel::CURVATURE), psdData.PathCurvature);
-        pathSegmentModel->setData(pathSegmentModel->index(x,PathSegmentDataModel::NUM_ORBITS), psdData.NumberOfOrbits);
-        pathSegmentModel->setData(pathSegmentModel->index(x,PathSegmentDataModel::ARC_RANK), psdData.ArcRank);
+        pathSegmentModel->setData(pathSegmentModel->index(x, PathSegmentDataModel::NED_POS_NORTH), psdData.SwitchingLocus[0]);
+        pathSegmentModel->setData(pathSegmentModel->index(x, PathSegmentDataModel::NED_POS_EAST), psdData.SwitchingLocus[1]);
+        pathSegmentModel->setData(pathSegmentModel->index(x, PathSegmentDataModel::NED_POS_DOWN), psdData.SwitchingLocus[2]);
+        pathSegmentModel->setData(pathSegmentModel->index(x, PathSegmentDataModel::CURVATURE), psdData.PathCurvature);
+        pathSegmentModel->setData(pathSegmentModel->index(x, PathSegmentDataModel::NUM_ORBITS), psdData.NumberOfOrbits);
+        pathSegmentModel->setData(pathSegmentModel->index(x, PathSegmentDataModel::ARC_RANK), psdData.ArcRank);
     }
 }
 
