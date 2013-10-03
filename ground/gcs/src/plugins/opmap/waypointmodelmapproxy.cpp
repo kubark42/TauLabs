@@ -1,6 +1,6 @@
 /**
  ******************************************************************************
- * @file       modelmapproxy.cpp
+ * @file       waypointmodelmapproxy.cpp
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2012-2013
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2012.
  *
@@ -26,9 +26,9 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#include "modelmapproxy.h"
+#include "waypointmodelmapproxy.h"
 
-ModelMapProxy::ModelMapProxy(QObject *parent,TLMapWidget *map, WaypointDataModel *waypointModel,QItemSelectionModel *selectionModel, PathSegmentDataModel *pathSegmentModel):
+WayPointModelMapProxy::WayPointModelMapProxy(QObject *parent,TLMapWidget *map, WaypointDataModel *waypointModel,QItemSelectionModel *selectionModel, PathSegmentDataModel *pathSegmentModel):
     QObject(parent),
     myMap(map),
     waypointModel(waypointModel),
@@ -44,10 +44,10 @@ ModelMapProxy::ModelMapProxy(QObject *parent,TLMapWidget *map, WaypointDataModel
 }
 
 /**
- * @brief ModelMapProxy::WPValuesChanged The UI changed a waypoint, update the waypointModel
+ * @brief WayPointModelMapProxy::WPValuesChanged The UI changed a waypoint, update the waypointModel
  * @param wp The handle to the changed waypoint
  */
-void ModelMapProxy::WPValuesChanged(WayPointItem * wp)
+void WayPointModelMapProxy::WPValuesChanged(WayPointItem * wp)
 {
     QModelIndex index;
     index = waypointModel->index(wp->Number(),WaypointDataModel::LATPOSITION);
@@ -62,11 +62,11 @@ void ModelMapProxy::WPValuesChanged(WayPointItem * wp)
 }
 
 /**
- * @brief ModelMapProxy::currentRowChanged When a row is changed, highlight the waypoint
+ * @brief WayPointModelMapProxy::currentRowChanged When a row is changed, highlight the waypoint
  * @param current The selected row
  * @param previous Unused
  */
-void ModelMapProxy::currentRowChanged(QModelIndex current, QModelIndex previous)
+void WayPointModelMapProxy::currentRowChanged(QModelIndex current, QModelIndex previous)
 {
     Q_UNUSED(previous);
 
@@ -79,10 +79,10 @@ void ModelMapProxy::currentRowChanged(QModelIndex current, QModelIndex previous)
 }
 
 /**
- * @brief ModelMapProxy::selectedWPChanged When a list of waypoints are changed, select them in model
+ * @brief WayPointModelMapProxy::selectedWPChanged When a list of waypoints are changed, select them in model
  * @param list The list of changed waypoints
  */
-void ModelMapProxy::selectedWPChanged(QList<WayPointItem *> list)
+void WayPointModelMapProxy::selectedWPChanged(QList<WayPointItem *> list)
 {
     selection->clearSelection();
     foreach(WayPointItem * wp,list)
@@ -93,11 +93,11 @@ void ModelMapProxy::selectedWPChanged(QList<WayPointItem *> list)
 }
 
 /**
- * @brief ModelMapProxy::overlayTranslate Map from path types types to Overlay types
+ * @brief WayPointModelMapProxy::overlayTranslate Map from path types types to Overlay types
  * @param type The map delegate type which is like a Waypoint::Mode
  * @return
  */
-ModelMapProxy::overlayType ModelMapProxy::overlayTranslate(Waypoint::ModeOptions type)
+WayPointModelMapProxy::overlayType WayPointModelMapProxy::overlayTranslate(Waypoint::ModeOptions type)
 {
     switch(type)
     {
@@ -124,14 +124,14 @@ ModelMapProxy::overlayType ModelMapProxy::overlayTranslate(Waypoint::ModeOptions
 }
 
 /**
- * @brief ModelMapProxy::createOverlay Create a graphical path component
+ * @brief WayPointModelMapProxy::createOverlay Create a graphical path component
  * @param from The starting location
  * @param to The ending location (for circles the radius)
  * @param type The type of path component
  * @param color
  */
-void ModelMapProxy::createOverlay(MapPointItem *from, MapPointItem *to,
-                                  ModelMapProxy::overlayType type, QColor color,
+void WayPointModelMapProxy::createOverlay(MapPointItem *from, MapPointItem *to,
+                                  WayPointModelMapProxy::overlayType type, QColor color,
                                   double radius=0)
 {
     if(from==NULL || to==NULL || from==to)
@@ -159,13 +159,13 @@ void ModelMapProxy::createOverlay(MapPointItem *from, MapPointItem *to,
 }
 
 /**
- * @brief ModelMapProxy::createOverlay Create a graphical path component
+ * @brief WayPointModelMapProxy::createOverlay Create a graphical path component
  * @param from The starting location
  * @param to The ending location (for circles the radius) which is a HomeItem
  * @param type The type of path component
  * @param color
  */
-void ModelMapProxy::createOverlay(WayPointItem *from, HomeItem *to, ModelMapProxy::overlayType type,QColor color)
+void WayPointModelMapProxy::createOverlay(WayPointItem *from, HomeItem *to, WayPointModelMapProxy::overlayType type,QColor color)
 {
     if(from==NULL || to==NULL) //FIXME: Is it not also necessary here to check from!=to ? If so, this function can be removed in favor of only one createOverlay
         return;
@@ -186,10 +186,10 @@ void ModelMapProxy::createOverlay(WayPointItem *from, HomeItem *to, ModelMapProx
 }
 
 /**
- * @brief ModelMapProxy::refreshOverlays Update the information from the model and
+ * @brief WayPointModelMapProxy::refreshOverlays Update the information from the model and
  * redraw all the components
  */
-void ModelMapProxy::refreshOverlays()
+void WayPointModelMapProxy::refreshOverlays()
 {
     myMap->deleteAllOverlays();
     if(waypointModel->rowCount()<1)
@@ -216,11 +216,11 @@ void ModelMapProxy::refreshOverlays()
 }
 
 /**
- * @brief ModelMapProxy::findWayPointNumber Return the graphial icon for the requested waypoint
+ * @brief WayPointModelMapProxy::findWayPointNumber Return the graphial icon for the requested waypoint
  * @param number The waypoint number
  * @return The pointer to the graphical item or NULL
  */
-WayPointItem *ModelMapProxy::findWayPointNumber(int number)
+WayPointItem *WayPointModelMapProxy::findWayPointNumber(int number)
 {
     if(number<0)
         return NULL;
@@ -228,12 +228,12 @@ WayPointItem *ModelMapProxy::findWayPointNumber(int number)
 }
 
 /**
- * @brief ModelMapProxy::rowsRemoved Called whenever a row is removed from the model
+ * @brief WayPointModelMapProxy::rowsRemoved Called whenever a row is removed from the model
  * @param parent Unused
  * @param first The first row removed
  * @param last The last row removed
  */
-void ModelMapProxy::rowsRemoved(const QModelIndex &parent, int first, int last)
+void WayPointModelMapProxy::rowsRemoved(const QModelIndex &parent, int first, int last)
 {
     Q_UNUSED(parent);
 
@@ -245,11 +245,11 @@ void ModelMapProxy::rowsRemoved(const QModelIndex &parent, int first, int last)
 }
 
 /**
- * @brief ModelMapProxy::dataChanged Update the display whenever the model information changes
+ * @brief WayPointModelMapProxy::dataChanged Update the display whenever the model information changes
  * @param topLeft The first waypoint and column changed
  * @param bottomRight The last waypoint and column changed
  */
-void ModelMapProxy::dataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight)
+void WayPointModelMapProxy::dataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight)
 {
     Q_UNUSED(bottomRight);
 
@@ -307,12 +307,12 @@ void ModelMapProxy::dataChanged(const QModelIndex &topLeft, const QModelIndex &b
 }
 
 /**
- * @brief ModelMapProxy::rowsInserted When rows are inserted in the model add the corresponding graphical items
+ * @brief WayPointModelMapProxy::rowsInserted When rows are inserted in the model add the corresponding graphical items
  * @param parent Unused
  * @param first The first row to update
  * @param last The last row to update
  */
-void ModelMapProxy::rowsInserted(const QModelIndex &parent, int first, int last)
+void WayPointModelMapProxy::rowsInserted(const QModelIndex &parent, int first, int last)
 {
     Q_UNUSED(parent);
     for(int x=first; x<last+1; x++)
@@ -335,19 +335,19 @@ void ModelMapProxy::rowsInserted(const QModelIndex &parent, int first, int last)
 }
 
 /**
- * @brief ModelMapProxy::deleteWayPoint When a waypoint is deleted graphically, delete from the model
+ * @brief WayPointModelMapProxy::deleteWayPoint When a waypoint is deleted graphically, delete from the model
  * @param number The waypoint which was deleted
  */
-void ModelMapProxy::deleteWayPoint(int number)
+void WayPointModelMapProxy::deleteWayPoint(int number)
 {
     waypointModel->removeRow(number,QModelIndex());
 }
 
 /**
- * @brief ModelMapProxy::createWayPoint When a waypoint is created graphically, insert into the end of the model
+ * @brief WayPointModelMapProxy::createWayPoint When a waypoint is created graphically, insert into the end of the model
  * @param coord The coordinate the waypoint was created
  */
-void ModelMapProxy::createWayPoint(internals::PointLatLng coord)
+void WayPointModelMapProxy::createWayPoint(internals::PointLatLng coord)
 {
     waypointModel->insertRow(waypointModel->rowCount(),QModelIndex());
     QModelIndex index = waypointModel->index(waypointModel->rowCount()-1,WaypointDataModel::LATPOSITION,QModelIndex());
@@ -357,9 +357,9 @@ void ModelMapProxy::createWayPoint(internals::PointLatLng coord)
 }
 
 /**
- * @brief ModelMapProxy::deleteAll When all the waypoints are deleted graphically, update the model
+ * @brief WayPointModelMapProxy::deleteAll When all the waypoints are deleted graphically, update the model
  */
-void ModelMapProxy::deleteAll()
+void WayPointModelMapProxy::deleteAll()
 {
     waypointModel->removeRows(0,waypointModel->rowCount(),QModelIndex());
 }
