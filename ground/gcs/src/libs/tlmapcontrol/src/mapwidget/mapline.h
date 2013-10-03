@@ -40,7 +40,8 @@ class MapLine : public QObject, public QGraphicsLineItem
     Q_OBJECT
     Q_INTERFACES(QGraphicsItem)
 public:
-    enum { Type = UserType + 8 };
+    enum GraphicItemTypes {TYPE_PATHSEGMENTLINE = 20, TYPE_WAYPOINTLINE = 21};
+
     MapLine(MapPointItem *from, MapPointItem *to, MapGraphicItem *map, QColor color=Qt::green);
     MapLine(HomeItem *from, MapPointItem *to, MapGraphicItem *map, QColor color=Qt::green);
     virtual int type() const = 0;
@@ -73,7 +74,7 @@ public:
     PathSegmentLine(MapPointItem *from, MapPointItem *to, MapGraphicItem *map, QColor color=Qt::magenta):
         MapLine(from, to, map, color){}
 
-    enum { Type = UserType + 81 };
+    enum { Type = UserType + TYPE_PATHSEGMENTLINE };
     int type() const {return Type;}
 };
 }
@@ -90,7 +91,7 @@ public:
     WayPointLine(MapPointItem *from, MapPointItem *to, MapGraphicItem *map, QColor color=Qt::green):
         MapLine(from, to, map, color){}
 
-    enum { Type = UserType + 82 };
+    enum { Type = UserType + TYPE_WAYPOINTLINE };
     int type() const {return Type;}
 };
 }

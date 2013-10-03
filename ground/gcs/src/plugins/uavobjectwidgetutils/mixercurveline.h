@@ -41,6 +41,8 @@ class MixerNode;
 class Edge : public QGraphicsItem
 {
 public:
+    enum GraphicItemTypes {TYPE_MIXERCURVELINE = 2};
+
     Edge(MixerNode *sourceNode, MixerNode *destNode);
     ~Edge();
 
@@ -52,7 +54,7 @@ public:
 
     void adjust();
 
-    enum { Type = UserType + 12 };
+    enum { Type = UserType + TYPE_MIXERCURVELINE };
     int type() const { return Type; }
     
 protected:

@@ -45,11 +45,13 @@ class MixerNode : public QObject,public QGraphicsItem
     Q_OBJECT
     Q_INTERFACES(QGraphicsItem)
 public:
+    enum GraphicItemTypes {TYPE_MIXERCURVEPPOINT = 1};
+
     MixerNode(MixerCurveWidget *graphWidget);
     void addEdge(Edge *edge);
     QList<Edge *> edges() const;
 
-    enum { Type = UserType + 10 };
+    enum { Type = UserType + TYPE_MIXERCURVEPPOINT };
     int type() const { return Type; }
 
     void setName(QString name) { cmdName = name; }
