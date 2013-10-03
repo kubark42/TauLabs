@@ -18,6 +18,7 @@ SOURCES += mapgraphicitem.cpp \
     mapline.cpp \
     maparc.cpp \
     mapcircle.cpp \
+    pathsegmentendpointitem.cpp \
     waypointcurve.cpp \
     tlmapwidget.cpp
 
@@ -48,6 +49,7 @@ HEADERS += mapgraphicitem.h \
     mapline.h \
     maparc.h \
     mapcircle.h \
+    pathsegmentendpointitem.h \
     waypointcurve.h \
     tlmapwidget.h
 QT += opengl
