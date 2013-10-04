@@ -41,13 +41,14 @@
 #include "misc_math.h"
 #include "physical_constants.h"
 
+#include "airfieldsettings.h"
 #include "missiondirectorsettings.h"
 #include "missiondirectorstatus.h"
 #include "missiondirectoruserprogram.h"
 #include "modulesettings.h"
-
 #include "pathsegmentdescriptor.h"
-
+#include "waypoint.h"
+int8_t initialize_landing(); //<-- FIXME: Replace this by an include to the proper library function
 
 // Private constants
 enum airplane_configuration {
@@ -64,6 +65,16 @@ enum landing_fsm {
 	APPROACHING_RSP, // Runway Start Point
 	APPROACHING_REP  // Runway End Point
 };
+
+
+enum landing_waypoints {
+	WAYPOINT_IAP, // Initial Approach Point
+	WAYPOINT_LTP, // Last Turn Point
+	WAYPOINT_LAP, // Last Approach Point
+	WAYPOINT_RSP, // Runway Start Point
+	WAYPOINT_REP  // Runway End Point
+};
+
 
 #define MAX_QUEUE_SIZE 2
 #define STACK_SIZE_BYTES 2000
@@ -118,6 +129,7 @@ static int32_t MissionDirectorInitialize(void)
 		return -1;
 
 	// Initialize UAVOs
+	AirfieldSettingsInitialize();
 	MissionDirectorSettingsInitialize();
 	MissionDirectorStatusInitialize();
 	MissionDirectorUserProgramInitialize();
@@ -130,6 +142,34 @@ MODULE_INITCALL(MissionDirectorInitialize, MissionDirectorStart);
 
 static void MissionDirectorTask(void *parameters)
 {
+	// FIXME: This obviously shouldn't be here, since it's landing specific
+	{
+		// Don't run if the necessary UAVOs are not instantiated
+		while (AirfieldSettingsHandle() == NULL ||
+			WaypointHandle() == NULL) {
+			// Delay 1 second
+			vTaskDelay(TICKS2MS(1000));
+
+			MissionDirectorStatusData missionDirectorStatus;
+			MissionDirectorStatusGet(&missionDirectorStatus);
+			missionDirectorStatus.MissionID = rand() %100;
+			MissionDirectorStatusSet(&missionDirectorStatus);
+
+		}
+
+		int8_t ret = initialize_landing();
+		if (ret != 0)
+		{
+			vTaskDelay(TICKS2MS(1000));
+
+			MissionDirectorStatusData missionDirectorStatus;
+			MissionDirectorStatusGet(&missionDirectorStatus);
+			missionDirectorStatus.Latitude = rand() %100;
+			missionDirectorStatus.MissionID = WaypointGetNumInstances();
+			MissionDirectorStatusSet(&missionDirectorStatus);
+		}
+	}
+
 	portTickType lastSysTime;
 	bool success_is_possible = true;
 	bool is_succeeded = false;
@@ -240,11 +280,12 @@ float calibrated_airspeed; // UAV's calibrated airspeed. We use calibrated airsp
 #define CROSS_TRACK_PATTERN_ERROR 20; // Allowable error between IAP and LTP, in [m]. FIXME: THIS SHOULD NOT BE A MAGIC NUMBER, BUT INSTEAD BE A FUNCTION OF BANK ANGLE AND AIRSPEED. THE IDEA IS TO ALLOW THE AIRPLANE TO APPROACH THE IAP FROM THE COMPLETELY OPPOSITE DIRECTION TO THE LTP AND YET STILL BE ABLE TO DO A BANKING MANEUVER FROM THE IAP TO THE LTP
 
 // All tuples in NED coordinates
-float IAP[3]; // Initial Approach Point, in NED coordinates
-float LTP[3]; // Last Turn Point, in NED coordinates
-float LAP[3]; // Last Approach Point, in NED coordinates
-float RSP[3]; // Runway Start Point, in NED coordinates
-float REP[3]; // Runway End Point, in NED coordinates
+float *IAP; // Initial Approach Point, in NED coordinates
+float *LTP; // Last Turn Point, in NED coordinates
+float *LAP; // Last Approach Point, in NED coordinates
+float *RSP; // Runway Start Point, in NED coordinates
+float *REP; // Runway End Point, in NED coordinates
+
 float runway_heading_R;
 
 float minimum_glidepath_angle_R; // Minimum glidepath angle in [rad]
@@ -270,11 +311,70 @@ float s_final;
 float slope_1;
 float IAP2LTP[2];
 
-void initialize_landing()
+int8_t initialize_landing()
 {
-//	IAP[0] = ;
-//	IAP[1] = ;
-//	IAP[2] = ;
+	AirfieldSettingsData airfieldSettings;
+	AirfieldSettingsGet(&airfieldSettings);
+
+	// Assign points;
+	IAP = airfieldSettings.InitialApproachPoint;
+	LTP = airfieldSettings.LastTurnPoint;
+	LAP = airfieldSettings.LastApproachPoint;
+	RSP = airfieldSettings.RunwayStartPoint;
+	REP = airfieldSettings.RunwayEndPoint;
+
+	// Create instances for all waypoints
+	for (int i=WaypointGetNumInstances(); i<5; i++) {
+		int32_t new_instance_id = WaypointCreateInstance();
+		if (new_instance_id != i) {
+			return -1;
+		}
+	}
+
+	// Copy landing waypoints to waypoints UAVO
+	for (int i=0; i<5; i++) {
+		float *tmpPoint;
+		uint32_t tmpWaypointCode = -1; // Negative numbers are universal error codes
+		float tmpVelocity = 1.2f * stall_speed_clean; // Pattern airspeed is 20% faster than stall speed
+		float tmpModeParameters = 0;
+		uint8_t tmpMode = WAYPOINT_MODE_FLYVECTOR;
+
+		switch (i) {
+		case 0:
+			tmpPoint = IAP;
+			tmpWaypointCode = WAYPOINT_IAP;
+			tmpVelocity = 1.4f * stall_speed_clean;
+			break;
+		case 1:
+			tmpPoint = LTP;
+			tmpWaypointCode = WAYPOINT_LTP;
+			break;
+		case 2:
+			tmpPoint = LAP;
+			tmpWaypointCode = WAYPOINT_LAP;
+			tmpModeParameters = 50;
+			tmpMode = WAYPOINT_MODE_FLYCIRCLELEFT;
+			break;
+		case 3:
+			tmpPoint = RSP;
+			tmpWaypointCode = WAYPOINT_RSP;
+			break;
+		case 4:
+			tmpPoint = REP;
+			tmpWaypointCode = WAYPOINT_REP;
+			tmpVelocity = 0;
+			break;
+		}
+		WaypointData tmpWaypoint;
+		tmpWaypoint.Position[0] = tmpPoint[0];
+		tmpWaypoint.Position[1] = tmpPoint[1];
+		tmpWaypoint.Position[2] = tmpPoint[2];
+		tmpWaypoint.WaypointCode = tmpWaypointCode;
+		tmpWaypoint.Velocity = tmpVelocity;
+		tmpWaypoint.ModeParameters = tmpModeParameters;
+		tmpWaypoint.Mode = tmpMode;
+		WaypointInstSet(i, &tmpWaypoint);
+	}
 
 //	from_lap_to_rsp;
 	/* Final approach parameters, from LAP to RSP */
@@ -339,7 +439,7 @@ void initialize_landing()
 	// Get runway heading
 	runway_heading_R = atan2(REP[1] - RSP[1], REP[0] - RSP[0]);
 
-
+	return 0;
 }
 
 /**

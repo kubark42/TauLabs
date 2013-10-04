@@ -10,6 +10,8 @@
 
 		<field name="Mode" units="" type="enum" elements="1">
 			<options>
+				<option>PassOver</option>
+				<option>PassNear</option>
 				<option>FlyEndpoint</option>
 				<option>FlyVector</option>
 				<option>FlyCircleRight</option>
@@ -27,6 +29,8 @@
 			</options>
 		</field>
 
+		<!-- The velocity to try and have when passing through this waypoint -->
+		<field name="WaypointCode" units="" type="int32" elements="1" default="0"/>
 
 		<field name="ModeParameters" units="" type="float" elements="1" default="0"/>
 		<access gcs="readwrite" flight="readwrite"/>

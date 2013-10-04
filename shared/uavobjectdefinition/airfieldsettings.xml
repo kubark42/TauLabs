@@ -1,0 +1,20 @@
+<xml>
+    <object name="AirfieldSettings" singleinstance="true" settings="true" category="NavigationSettings">
+        <description>Parameters for the airfield</description>
+        <!-- Points are in Lat-Lon-Altitude-->
+        <field name="InitialApproachPoint" units="m" type="float" elements="3" defaultvalue="-100,100,-40"/>
+        <field name="LastTurnPoint" units="m" type="float" elements="3" defaultvalue="100,100,-30"/>
+        <field name="LastApproachPoint" units="m" type="float" elements="3" defaultvalue="100,0,-20"/>
+        <field name="RunwayStartPoint" units="m" type="float" elements="3" defaultvalue="0,0,0"/>
+        <field name="RunwayEndPoint" units="m" type="float" elements="3" defaultvalue="-100,0,0"/>
+
+		<!-- Pattern height above a point midway between runway start and end points-->
+        <field name="MinimumPatternHeight" units="m" type="float" elements="1" defaultvalue="0"/>
+        <field name="MaximumPatternHeight" units="m" type="float" elements="1" defaultvalue="0"/>
+        
+        <access gcs="readwrite" flight="readwrite"/>
+        <telemetrygcs acked="true" updatemode="onchange" period="0"/>
+        <telemetryflight acked="true" updatemode="onchange" period="0"/>
+        <logging updatemode="manual" period="0"/>
+    </object>
+</xml>

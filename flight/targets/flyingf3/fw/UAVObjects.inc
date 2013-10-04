@@ -123,6 +123,7 @@ UAVOBJSRCFILENAMES += vibrationanalysisoutput
 UAVOBJSRCFILENAMES += trimangles
 UAVOBJSRCFILENAMES += trimanglessettings
 
+UAVOBJSRCFILENAMES += airfieldsettings
 UAVOBJSRCFILENAMES += missiondirectorsettings
 UAVOBJSRCFILENAMES += missiondirectorstatus
 UAVOBJSRCFILENAMES += missiondirectoruserprogram
