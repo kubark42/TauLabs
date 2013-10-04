@@ -1,5 +1,5 @@
 <xml>
-	<object name="MissionDirectorUserProgram" singleinstance="true" settings="true">
+	<object name="MissionDirectorUserProgram" singleinstance="true" settings="true" category="NavigationSettings">
 		<description>Holds a user-defined mission director program</description>
 
 		<!-- Default values are a simple test for the VM -->

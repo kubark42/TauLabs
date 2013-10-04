@@ -1,5 +1,5 @@
 <xml>
-	<object name="MissionDirectorSettings" singleinstance="true" settings="true">
+	<object name="MissionDirectorSettings" singleinstance="true" settings="true" category="NavigationSettings">
 		<description>The information from the tablet to the UAVO.</description>
 		<field name="TabletModeDesired" units="" type="enum" elements="1" defaultvalue="CameraPOI">
 			<options>
