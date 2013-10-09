@@ -49,6 +49,7 @@ MODULES += Telemetry
 OPTMODULES += GPS
 OPTMODULES += AltitudeHold 
 OPTMODULES += PathManager
+OPTMODULES += MissionDirector
 OPTMODULES += FixedWingPathFollower
 OPTMODULES += CameraStab
 OPTMODULES += Autotune
