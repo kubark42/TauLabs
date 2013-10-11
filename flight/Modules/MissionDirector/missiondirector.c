@@ -79,7 +79,7 @@ enum landing_waypoints {
 #define MAX_QUEUE_SIZE 2
 #define STACK_SIZE_BYTES 2000
 #define TASK_PRIORITY (tskIDLE_PRIORITY+2)
-#define MISSION_DIRECTOR_PERIOD_MS 1000
+#define MISSION_DIRECTOR_PERIOD_MS 500
 
 // Private variables
 static xTaskHandle taskHandle;
@@ -173,7 +173,7 @@ static void MissionDirectorTask(void *parameters)
 	portTickType lastSysTime;
 	bool success_is_possible = true;
 	bool is_succeeded = false;
-	uint8_t old_MissionID = 0;
+	uint8_t old_MissionID = 0xFF;
 
 	enum airplane_configuration airplane_configuration = CLEAN;
 	enum landing_fsm landing_fsm = APPROACHING_IAP;
@@ -189,6 +189,9 @@ static void MissionDirectorTask(void *parameters)
 			old_MissionID = missionDirectorStatus.MissionID;
 			success_is_possible = true;
 			is_succeeded = false;
+
+			missionDirectorStatus.Successability = MISSIONDIRECTORSTATUS_SUCCESSABILITY_CANSUCCEED;
+			MissionDirectorStatusSet(&missionDirectorStatus);
 		}
 
 		// Check for success.
@@ -197,6 +200,8 @@ static void MissionDirectorTask(void *parameters)
 		 */
 		is_succeeded = is_mission_completed();
 		if (is_succeeded == true) {
+			missionDirectorStatus.Successability = MISSIONDIRECTORSTATUS_SUCCESSABILITY_SUCCEEDED;
+			MissionDirectorStatusSet(&missionDirectorStatus);
 			continue;
 		}
 
@@ -208,6 +213,8 @@ static void MissionDirectorTask(void *parameters)
 
 		// If success is impossible, go to plan B.
 		if (success_is_possible == false) {
+			missionDirectorStatus.Successability = MISSIONDIRECTORSTATUS_SUCCESSABILITY_CANNOTSUCCEED;
+			MissionDirectorStatusSet(&missionDirectorStatus);
 			continue;
 		}
 	}
