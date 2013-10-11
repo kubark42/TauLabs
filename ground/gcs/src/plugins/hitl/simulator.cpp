@@ -463,7 +463,7 @@ void Simulator::updateUAVOs(Output2Hardware out){
     groundTruthData.AngleOfSlip=out.angleOfSlip;
 
     groundTruthData.PositionNED[0]=out.dstN-initN;
-    groundTruthData.PositionNED[1]=out.dstE-initD;
+    groundTruthData.PositionNED[1]=out.dstE-initE;
     groundTruthData.PositionNED[2]=out.dstD-initD;
 
     groundTruthData.VelocityNED[0]=out.velNorth;
