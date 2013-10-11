@@ -2,10 +2,10 @@
  ******************************************************************************
  * @addtogroup TauLabsModules Tau Labs Modules
  * @{
- * @addtogroup MissionDirectorModule Mission director module
+ * @addtogroup MissionDirectorModule Autonomous landing for fixed-wing UAV
  * @{
  *
- * @file       missiondirector.c
+ * @file       fixedwing_landing.c
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2013
  * @brief
  *
@@ -37,235 +37,48 @@
  * the output of an FFT running on the accelerometer samples. 
  */
 
+#include "openpilot.h"
 #include "misc_math.h"
 #include "physical_constants.h"
+
 #include "missiondirector.h"
 
 #include "airfieldsettings.h"
-#include "missiondirectorsettings.h"
-#include "missiondirectorstatus.h"
-#include "missiondirectoruserprogram.h"
-#include "modulesettings.h"
-#include "pathsegmentdescriptor.h"
 #include "waypoint.h"
 
-static missionProgram autonomous_landing;
-static missionProgram go_round;
-static missionProgram shut_down;
 
-static missionPipeline shut_down_queue;
-static missionPipeline go_round_queue;
-
-static missionPipeline landing_queue = {
-	.mission = &autonomous_landing,
-	.on_success = &shut_down_queue,
-	.on_failure = &go_round_queue
+// Private constants
+enum airplane_configuration {
+	CLEAN,
+	FIRST_FLAPS,
+	SECOND_FLAPS,
+	FULL_FLAPS
 };
 
-static missionPipeline shut_down_queue = {
-	.mission = &shut_down,
-	.on_success = NULL,
-	.on_failure = NULL
+enum landing_fsm {
+	APPROACHING_IAP, // Initial Approach Point
+	APPROACHING_LTP, // Last Turn Point
+	APPROACHING_LAP, // Last Approach Point
+	APPROACHING_RSP, // Runway Start Point
+	APPROACHING_REP  // Runway End Point
 };
 
-static missionPipeline go_round_queue = {
-	.mission = &go_round,
-	.on_success = &landing_queue,
-	.on_failure = NULL
+enum landing_waypoints {
+	WAYPOINT_IAP, // Initial Approach Point
+	WAYPOINT_LTP, // Last Turn Point
+	WAYPOINT_LAP, // Last Approach Point
+	WAYPOINT_RSP, // Runway Start Point
+	WAYPOINT_REP  // Runway End Point
 };
 
-
-//&(missionPipeline) {
-//		.mission = &magFilter,
-//        .on_success = NULL,
-//		.on_failure = NULL,
-//        }
-//	}
-//static const missionPipeline *auto_landing_mission = &(missionPipeline) {
-//    .mission = NULL,
-//    .on_success = NULL,
-//	.on_failure = NULL,
-//};
-
-
-int8_t initialize_landing(); //<-- FIXME: Replace this by an include to the proper library function
-
-
-
-#define MAX_QUEUE_SIZE 2
-#define STACK_SIZE_BYTES 2000
-#define TASK_PRIORITY (tskIDLE_PRIORITY+2)
-#define MISSION_DIRECTOR_PERIOD_MS 500
+// Private types
 
 // Private variables
-static xTaskHandle taskHandle;
-static bool module_enabled = false;
+static float NED[3]; // UAV's NED coordinates, in [m]
+static float calibrated_airspeed; // UAV's calibrated airspeed. We use calibrated airspeed because we're interested in the stall speed
 
 // Private functions
-static void MissionDirectorTask(void *parameters);
-//static bool is_success_possible(enum landing_fsm landing_fsm, enum airplane_configuration airplane_configuration);
-//static bool is_mission_completed();
-
-/**
- * Start the module, called on startup
- */
-static int32_t MissionDirectorStart(void)
-{
-	
-	if (!module_enabled)
-		return -1;
-
-	// Start main task
-	xTaskCreate(MissionDirectorTask, (signed char *)"MissionDirector", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY, &taskHandle);
-	TaskMonitorAdd(TASKINFO_RUNNING_MISSIONDIRECTOR, taskHandle);
-	return 0;
-}
-
-
-/**
- * Initialise the module, called on startup
- */
-static int32_t MissionDirectorInitialize(void)
-{
-	ModuleSettingsInitialize();
-	
-#ifdef MODULE_MissionDirector_BUILTIN
-	module_enabled = true;
-#else
-	uint8_t module_state[MODULESETTINGS_ADMINSTATE_NUMELEM];
-	ModuleSettingsAdminStateGet(module_state);
-	if (module_state[MODULESETTINGS_ADMINSTATE_MISSIONDIRECTOR] == MODULESETTINGS_ADMINSTATE_ENABLED) {
-		module_enabled = true;
-	} else {
-		module_enabled = false;
-	}
-#endif
-	
-	if (!module_enabled) //If module not enabled...
-		return -1;
-
-	// Initialize UAVOs
-	AirfieldSettingsInitialize();
-	MissionDirectorSettingsInitialize();
-	MissionDirectorStatusInitialize();
-	MissionDirectorUserProgramInitialize();
-
-	return 0;
-}
-
-MODULE_INITCALL(MissionDirectorInitialize, MissionDirectorStart);
-
-
-static void MissionDirectorTask(void *parameters)
-{
-	// FIXME: This obviously shouldn't be here, since it's landing specific
-	{
-		// Don't run if the necessary UAVOs are not instantiated
-		while (AirfieldSettingsHandle() == NULL ||
-			WaypointHandle() == NULL) {
-			// Delay 1 second
-			vTaskDelay(TICKS2MS(1000));
-
-			MissionDirectorStatusData missionDirectorStatus;
-			MissionDirectorStatusGet(&missionDirectorStatus);
-			missionDirectorStatus.MissionID = rand() %100;
-			MissionDirectorStatusSet(&missionDirectorStatus);
-
-		}
-
-		int8_t ret = missionFixedwingLandingInitialize(&autonomous_landing);
-		if (ret != 0)
-		{
-			vTaskDelay(TICKS2MS(1000));
-
-			MissionDirectorStatusData missionDirectorStatus;
-			MissionDirectorStatusGet(&missionDirectorStatus);
-			missionDirectorStatus.Latitude = rand() %100;
-			missionDirectorStatus.MissionID = WaypointGetNumInstances();
-			MissionDirectorStatusSet(&missionDirectorStatus);
-		}
-	}
-
-	{
-//		if (0)
-//			landing_mission = NULL;
-	}
-
-	portTickType lastSysTime;
-	bool success_is_possible = true;
-	bool is_succeeded = false;
-	uint8_t old_MissionID = 0xFF;
-
-//	enum airplane_configuration airplane_configuration = CLEAN;
-//	enum landing_fsm landing_fsm = APPROACHING_IAP;
-
-	// Main task loop
-	lastSysTime = xTaskGetTickCount();
-	while (1) {
-		MissionDirectorStatusData missionDirectorStatus;
-		MissionDirectorStatusGet(&missionDirectorStatus);
-		vTaskDelayUntil(&lastSysTime, MS2TICKS(MISSION_DIRECTOR_PERIOD_MS));
-
-		if (old_MissionID != missionDirectorStatus.MissionID) {
-			old_MissionID = missionDirectorStatus.MissionID;
-			success_is_possible = true;
-			is_succeeded = false;
-
-			missionDirectorStatus.Successability = MISSIONDIRECTORSTATUS_SUCCESSABILITY_CANSUCCEED;
-			MissionDirectorStatusSet(&missionDirectorStatus);
-		}
-
-		// Check for success.
-		/*
-		 * Right now, success is just if we have arrived at the end of our path plan
-		 */
-//		is_succeeded = is_mission_completed();
-		if (is_succeeded == true) {
-			missionDirectorStatus.Successability = MISSIONDIRECTORSTATUS_SUCCESSABILITY_SUCCEEDED;
-			MissionDirectorStatusSet(&missionDirectorStatus);
-			continue;
-		}
-
-		// Check if success is possible.
-		/*
-		 * Start with two simple cases, one for takeoff and one for landing.
-		 */
-//		success_is_possible = is_success_possible(landing_fsm, airplane_configuration);
-
-		// If success is impossible, go to plan B.
-		if (success_is_possible == false) {
-			missionDirectorStatus.Successability = MISSIONDIRECTORSTATUS_SUCCESSABILITY_CANNOTSUCCEED;
-			MissionDirectorStatusSet(&missionDirectorStatus);
-			continue;
-		}
-	}
-}
-
-
-//-----------------------------------------------------//
-//-----------------------------------------------------//
-//-----------------------------------------------------//
-//-----------------------------------------------------//
-//-----------------------------------------------------//
-//-----------------------------------------------------//
-//-----------------------------------------------------//
-
-
-//-----------------------------------------------------//
-//-----------------------------------------------------//
-//-----------------------------------------------------//
-//-----------------------------------------------------//
-//-----------------------------------------------------//
-//-----------------------------------------------------//
-//-----------------------------------------------------//
-
-
-
-
-
-
-//static float NED[3]; // UAV's NED coordinates, in [m]
-//static float calibrated_airspeed; // UAV's calibrated airspeed. We use calibrated airspeed because we're interested in the stall speed
+static int8_t initialize_landing(missionProgram *self);
 
 /* From http://www.pprune.org/tech-log/317172-vertical-speed-touchdown.html
  * "The A330 will print a Post Flight Report obviously at the end of the flight.
@@ -285,7 +98,7 @@ static void MissionDirectorTask(void *parameters)
  * which the design speed allows for up to 60m/s (~116kts) touchdown speed without requiring a flare.
 */
 
-/*
+
 #define MAXIMUM_VERTICAL_TOUCHDOWN_SPEED 3.0f // in [m/s]
 #define DESIRED_VERTICAL_TOUCHDOWN_SPEED 1.0f // in [m/s]
 #define MINIMUM_VERTICAL_TOUCHDOWN_SPEED 0.5f // in [m/s]
@@ -308,38 +121,45 @@ static void MissionDirectorTask(void *parameters)
 #define CROSS_TRACK_PATTERN_ERROR 20; // Allowable error between IAP and LTP, in [m]. FIXME: THIS SHOULD NOT BE A MAGIC NUMBER, BUT INSTEAD BE A FUNCTION OF BANK ANGLE AND AIRSPEED. THE IDEA IS TO ALLOW THE AIRPLANE TO APPROACH THE IAP FROM THE COMPLETELY OPPOSITE DIRECTION TO THE LTP AND YET STILL BE ABLE TO DO A BANKING MANEUVER FROM THE IAP TO THE LTP
 
 // All tuples in NED coordinates
-float *IAP; // Initial Approach Point, in NED coordinates
-float *LTP; // Last Turn Point, in NED coordinates
-float *LAP; // Last Approach Point, in NED coordinates
-float *RSP; // Runway Start Point, in NED coordinates
-float *REP; // Runway End Point, in NED coordinates
+static float *IAP; // Initial Approach Point, in NED coordinates
+static float *LTP; // Last Turn Point, in NED coordinates
+static float *LAP; // Last Approach Point, in NED coordinates
+static float *RSP; // Runway Start Point, in NED coordinates
+static float *REP; // Runway End Point, in NED coordinates
 
-float runway_heading_R;
+static float runway_heading_R;
 
-float minimum_glidepath_angle_R; // Minimum glidepath angle in [rad]
-float desired_glidepath_angle_R; // Desired glidepath angle in [rad]
-float maximum_glidepath_angle_R; // Maximum glidepath angle in [rad]
-float desired_flare_speed; // The desired speed at flare. This speed is maintained during most of the landing phase, especially on final approach
+static float minimum_glidepath_angle_R; // Minimum glidepath angle in [rad]
+static float desired_glidepath_angle_R; // Desired glidepath angle in [rad]
+static float maximum_glidepath_angle_R; // Maximum glidepath angle in [rad]
+static float desired_flare_speed; // The desired speed at flare. This speed is maintained during most of the landing phase, especially on final approach
 
-float minimum_pattern_altitude;
-float maximum_pattern_altitude;
-float desired_pattern_altitude;
-float crosstrack_iap_to_ltp_error;
+static float minimum_pattern_altitude;
+static float maximum_pattern_altitude;
+static float desired_pattern_altitude;
+static float crosstrack_iap_to_ltp_error;
 
-float crosstrack_ltp_to_lap_error;
-float LT_center[3]; // Center of Last Turn, in NED coordinates
-float arc_start_rad;
-float LT_arc_length;
-float LT_radius;
-float start_x_track_error;
-float end_x_track_error;
-float end_slope;
-float s_final;
+static float crosstrack_ltp_to_lap_error;
+static float LT_center[3]; // Center of Last Turn, in NED coordinates
+static float arc_start_rad;
+static float LT_arc_length;
+static float LT_radius;
+static float start_x_track_error;
+static float end_x_track_error;
+static float end_slope;
+static float s_final;
 
-float slope_1;
-float IAP2LTP[2];
+static float slope_1;
+static float IAP2LTP[2];
 
-int8_t initialize_landing()
+int32_t missionFixedwingLandingInitialize(missionProgram *handle)
+{
+	handle->init = &initialize_landing;
+	initialize_landing(handle);
+	return 0;
+}
+
+static int8_t initialize_landing(missionProgram *self)
 {
 	AirfieldSettingsData airfieldSettings;
 	AirfieldSettingsGet(&airfieldSettings);
@@ -405,7 +225,7 @@ int8_t initialize_landing()
 	}
 
 //	from_lap_to_rsp;
-	// Final approach parameters, from LAP to RSP
+	/* Final approach parameters, from LAP to RSP */
 	// Get the desired approach glidepath angle
 	desired_flare_speed = stall_speed_full_flaps * 1.3; // Standard industry practice is to approach at 130% of the stall speed
 	desired_glidepath_angle_R = atan(DESIRED_VERTICAL_TOUCHDOWN_SPEED / desired_flare_speed);
@@ -469,123 +289,135 @@ int8_t initialize_landing()
 
 	return 0;
 }
-*/
-///**
-// * @brief is_success_possible Initially, I'm just testing for airspeed and flight path that we want on landing
-// * @return
-// */
-//static bool is_success_possible(enum landing_fsm landing_fsm, enum airplane_configuration airplane_configuration)
-//{
 
-//	// 1) Are we within flight path cone?
-//	/*
-//	 * First we have to define the flight path corridor
-//	 */
-//	switch (landing_fsm) {
-//	case APPROACHING_IAP:
-//		// Nothing to be done when approaching the IAP. All altitudes and attitudes are good
-//		break;
-//	case APPROACHING_LTP:
-//	{
-//		//
-//		float a[2] = {LTP[0], LTP[1]};
-//		float p[2] = {NED[0], NED[1]};
+static bool is_success_possible2(enum landing_fsm landing_fsm, enum airplane_configuration airplane_configuration);
 
-//		float p2a[2] = {a[1]-p[1], a[0]-p[0]};
-//		float bob[2];
-//		for (int i=0; i<2; i++) {
-//			bob[i] = p2a[i] - (IAP2LTP[0]*p2a[0] + IAP2LTP[1]*p2a[1]) * IAP2LTP[i];
-//		}
+/**
+ * @brief is_success_possible Initially, I'm just testing for airspeed and flight path that we want on landing
+ * @return
+ */
+static bool is_success_possible()
+{
+	enum airplane_configuration airplane_configuration = CLEAN;
+	enum landing_fsm landing_fsm = APPROACHING_IAP;
 
-//		float x_track_error2 = powf(bob[0], 2) + powf(bob[1], 2);
+	bool ret = is_success_possible2(landing_fsm, airplane_configuration);
+	return ret;
+}
 
-//		if (x_track_error2 > crosstrack_ltp_to_lap_error*crosstrack_ltp_to_lap_error)
-//			return false;
 
+static bool is_success_possible2(enum landing_fsm landing_fsm, enum airplane_configuration airplane_configuration)
+{
+
+	// 1) Are we within flight path cone?
+	/*
+	 * First we have to define the flight path corridor
+	 */
+	switch (landing_fsm) {
+	case APPROACHING_IAP:
+		// Nothing to be done when approaching the IAP. All altitudes and attitudes are good
+		break;
+	case APPROACHING_LTP:
+	{
+		//
+		float a[2] = {LTP[0], LTP[1]};
+		float p[2] = {NED[0], NED[1]};
+
+		float p2a[2] = {a[1]-p[1], a[0]-p[0]};
+		float bob[2];
+		for (int i=0; i<2; i++) {
+			bob[i] = p2a[i] - (IAP2LTP[0]*p2a[0] + IAP2LTP[1]*p2a[1]) * IAP2LTP[i];
+		}
+
+		float x_track_error2 = powf(bob[0], 2) + powf(bob[1], 2);
+
+		if (x_track_error2 > crosstrack_ltp_to_lap_error*crosstrack_ltp_to_lap_error)
+			return false;
+
+		if (-NED[2] < minimum_pattern_altitude ||
+				-NED[2] > maximum_pattern_altitude) {
+			return false;
+		}
+
+		break;
+	}
+	case APPROACHING_LAP:
+	{
+
+		// Define the arc-length parameter `t`, which linearly grows from 0 to s_final. The position along the arc
+		// is defined as the radial which the UAV is currently on.
+
+		float arc_position = fabsf(atan2f(NED[1]-LT_center[1], NED[0]-LT_center[0]) - arc_start_rad);
+		float t = (arc_position / LT_arc_length) * s_final;
+		float x_track_threshold = start_x_track_error + (end_x_track_error - start_x_track_error) * (cosf(t)/cosf(s_final));
+
+		float x_track_error = LT_radius - sqrtf(powf(NED[0]-LT_center[0], 2) + powf(NED[1]-LT_center[1], 2));
+
+		if (fabsf(x_track_error) > x_track_threshold)
+			return false;
+/* Needs some more work
 //		if (-NED[2] < minimum_pattern_altitude ||
 //				-NED[2] > maximum_pattern_altitude) {
 //			return false;
 //		}
+*/
+		break;
+	}
+	case APPROACHING_RSP:
+	{
+		// Test if UAV is on approach path
+		float runway_bearing_R = atan2f(NED[1] - RSP[1], NED[0] - RSP[0]);
+		if (fabsf(circular_modulus_rad(runway_bearing_R-runway_heading_R)) > MINIMUM_BEARING_ANGLE_DEG) {
+			// We're too far out of the runway convergence zone. Go round!
+			return false;
+		}
 
-//		break;
-//	}
-//	case APPROACHING_LAP:
-//	{
+		// Test if UAV is on glide path
+		float glidepath_intersection_angle = atan((NED[2] - RSP[2]) / sqrtf(powf(NED[0] - RSP[0], 2.0f) + powf(NED[1] - RSP[1], 2.0f)));
+		if (glidepath_intersection_angle > maximum_glidepath_angle_R || glidepath_intersection_angle < minimum_glidepath_angle_R) {
+			// This means we've busted our minimums or maximums. Go round!
+			return false;
+		}
+	}
+		break;
+	case APPROACHING_REP:
+		break;
+	}
 
-//		// Define the arc-length parameter `t`, which linearly grows from 0 to s_final. The position along the arc
-//		// is defined as the radial which the UAV is currently on.
-
-//		float arc_position = fabsf(atan2f(NED[1]-LT_center[1], NED[0]-LT_center[0]) - arc_start_rad);
-//		float t = (arc_position / LT_arc_length) * s_final;
-//		float x_track_threshold = start_x_track_error + (end_x_track_error - start_x_track_error) * (cosf(t)/cosf(s_final));
-
-//		float x_track_error = LT_radius - sqrtf(powf(NED[0]-LT_center[0], 2) + powf(NED[1]-LT_center[1], 2));
-
-//		if (fabsf(x_track_error) > x_track_threshold)
-//			return false;
-///* Needs some more work
-////		if (-NED[2] < minimum_pattern_altitude ||
-////				-NED[2] > maximum_pattern_altitude) {
-////			return false;
-////		}
-//*/
-//		break;
-//	}
-//	case APPROACHING_RSP:
-//	{
-//		// Test if UAV is on approach path
-//		float runway_bearing_R = atan2f(NED[1] - RSP[1], NED[0] - RSP[0]);
-//		if (fabsf(circular_modulus_rad(runway_bearing_R-runway_heading_R)) > MINIMUM_BEARING_ANGLE_DEG) {
-//			// We're too far out of the runway convergence zone. Go round!
-//			return false;
-//		}
-
-//		// Test if UAV is on glide path
-//		float glidepath_intersection_angle = atan((NED[2] - RSP[2]) / sqrtf(powf(NED[0] - RSP[0], 2.0f) + powf(NED[1] - RSP[1], 2.0f)));
-//		if (glidepath_intersection_angle > maximum_glidepath_angle_R || glidepath_intersection_angle < minimum_glidepath_angle_R) {
-//			// This means we've busted our minimums or maximums. Go round!
-//			return false;
-//		}
-//	}
-//		break;
-//	case APPROACHING_REP:
-//		break;
-//	}
-
-//	// 2) Are we sufficiently faster than stall speed?
-//	switch (airplane_configuration) {
-//	case CLEAN:
-//		if (calibrated_airspeed < (STALL_SPEED_MARGIN_RATIO * stall_speed_clean)) {
-//			return false;
-//		}
-//		break;
-//	case FIRST_FLAPS:
-//		if (calibrated_airspeed < (STALL_SPEED_MARGIN_RATIO * stall_speed_first_flaps)) {
-//			return false;
-//		}
-//		break;
-//	case SECOND_FLAPS:
-//		if (calibrated_airspeed < (STALL_SPEED_MARGIN_RATIO * stall_speed_second_flaps)) {
-//			return false;
-//		}
-//		break;
-//	case FULL_FLAPS:
-//		if (calibrated_airspeed < (STALL_SPEED_MARGIN_RATIO * stall_speed_full_flaps)) {
-//			return false;
-//		}
-//		break;
-//	}
+	// 2) Are we sufficiently faster than stall speed?
+	switch (airplane_configuration) {
+	case CLEAN:
+		if (calibrated_airspeed < (STALL_SPEED_MARGIN_RATIO * stall_speed_clean)) {
+			return false;
+		}
+		break;
+	case FIRST_FLAPS:
+		if (calibrated_airspeed < (STALL_SPEED_MARGIN_RATIO * stall_speed_first_flaps)) {
+			return false;
+		}
+		break;
+	case SECOND_FLAPS:
+		if (calibrated_airspeed < (STALL_SPEED_MARGIN_RATIO * stall_speed_second_flaps)) {
+			return false;
+		}
+		break;
+	case FULL_FLAPS:
+		if (calibrated_airspeed < (STALL_SPEED_MARGIN_RATIO * stall_speed_full_flaps)) {
+			return false;
+		}
+		break;
+	}
 
 
-//	// If we made it all the way to the end, then success is still possible.
-//	return true;
-//}
+	// If we made it all the way to the end, then success is still possible.
+	return true;
+}
 
 
-//static bool is_mission_completed()
-//{
-//	return false;
-//}
+static bool is_mission_completed()
+{
+	return false;
+}
 
 /**
  * @}

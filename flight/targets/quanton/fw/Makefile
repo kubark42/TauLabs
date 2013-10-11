@@ -126,6 +126,7 @@ SRC += $(FLIGHTLIB)/path_followers/constant_radius_arc/simple_arc.c
 SRC += $(FLIGHTLIB)/path_followers/constant_radius_arc/roll_limited_arc.c
 SRC += $(FLIGHTLIB)/path_followers/straight_line/simple_line.c
 SRC += $(FLIGHTLIB)/path_followers/straight_line/roll_limited_line.c
+SRC += $(FLIGHTLIB)/mission_library/fixedwing_landing.c
 SRC += $(FLIGHTLIB)/fifo_buffer.c
 SRC += $(FLIGHTLIB)/WorldMagModel.c
 SRC += $(FLIGHTLIB)/insgps13state.c
@@ -311,7 +312,7 @@ CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -Wdouble-promotion
 
 CFLAGS += -Wall
-CFLAGS += -Werror
+#CFLAGS += -Werror
 CFLAGS += -Wa,-adhlns=$(addprefix $(OUTDIR)/, $(notdir $(addsuffix .lst, $(basename $<))))
 # Compiler flags to generate dependency files:
 CFLAGS += -MD -MP -MF $(OUTDIR)/dep/$(@F).d
