@@ -78,7 +78,9 @@ static float NED[3]; // UAV's NED coordinates, in [m]
 static float calibrated_airspeed; // UAV's calibrated airspeed. We use calibrated airspeed because we're interested in the stall speed
 
 // Private functions
-static int8_t initialize_landing(missionProgram *self);
+static int32_t initialize_landing(missionProgram *self);
+static int32_t is_success_possible(missionProgram *self, stateEstimation *state);
+static int32_t is_mission_completed(missionProgram *self, stateEstimation *state);
 
 /* From http://www.pprune.org/tech-log/317172-vertical-speed-touchdown.html
  * "The A330 will print a Post Flight Report obviously at the end of the flight.
@@ -155,11 +157,12 @@ static float IAP2LTP[2];
 int32_t missionFixedwingLandingInitialize(missionProgram *handle)
 {
 	handle->init = &initialize_landing;
-	initialize_landing(handle);
+	handle->completion_test = &is_mission_completed;
+	handle->abort_test = &is_success_possible;
 	return 0;
 }
 
-static int8_t initialize_landing(missionProgram *self)
+static int32_t initialize_landing(missionProgram *self)
 {
 	AirfieldSettingsData airfieldSettings;
 	AirfieldSettingsGet(&airfieldSettings);
@@ -296,7 +299,7 @@ static bool is_success_possible2(enum landing_fsm landing_fsm, enum airplane_con
  * @brief is_success_possible Initially, I'm just testing for airspeed and flight path that we want on landing
  * @return
  */
-static bool is_success_possible()
+static int32_t is_success_possible(missionProgram *self, stateEstimation *state)
 {
 	enum airplane_configuration airplane_configuration = CLEAN;
 	enum landing_fsm landing_fsm = APPROACHING_IAP;
@@ -414,7 +417,7 @@ static bool is_success_possible2(enum landing_fsm landing_fsm, enum airplane_con
 }
 
 
-static bool is_mission_completed()
+static int32_t is_mission_completed(missionProgram *self, stateEstimation *state)
 {
 	return false;
 }

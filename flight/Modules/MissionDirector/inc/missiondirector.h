@@ -56,7 +56,8 @@ typedef struct {
 
 typedef struct missionProgramStruct {
     int32_t (*init)(struct missionProgramStruct *self);
-	int32_t (*mission)(struct missionProgramStruct *self, stateEstimation *state);
+	int32_t (*completion_test)(struct missionProgramStruct *self, stateEstimation *state);
+	int32_t (*abort_test)(struct missionProgramStruct *self, stateEstimation *state);
     void *localdata;
 } missionProgram;
 
@@ -65,7 +66,7 @@ typedef struct missionProgramStruct {
 typedef struct missionPipelineStruct {
      missionProgram *mission;
 	 struct missionPipelineStruct *on_success;
-	 struct missionPipelineStruct *on_failure;
+	 struct missionPipelineStruct *on_abort;
 } missionPipeline;
 
 int32_t missionFixedwingLandingInitialize(missionProgram *handle);

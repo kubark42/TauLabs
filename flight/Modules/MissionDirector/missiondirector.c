@@ -59,37 +59,20 @@ static missionPipeline go_round_queue;
 static missionPipeline landing_queue = {
 	.mission = &autonomous_landing,
 	.on_success = &shut_down_queue,
-	.on_failure = &go_round_queue
+	.on_abort = &go_round_queue
 };
 
 static missionPipeline shut_down_queue = {
 	.mission = &shut_down,
 	.on_success = NULL,
-	.on_failure = NULL
+	.on_abort = NULL
 };
 
 static missionPipeline go_round_queue = {
 	.mission = &go_round,
 	.on_success = &landing_queue,
-	.on_failure = NULL
+	.on_abort = NULL
 };
-
-
-//&(missionPipeline) {
-//		.mission = &magFilter,
-//        .on_success = NULL,
-//		.on_failure = NULL,
-//        }
-//	}
-//static const missionPipeline *auto_landing_mission = &(missionPipeline) {
-//    .mission = NULL,
-//    .on_success = NULL,
-//	.on_failure = NULL,
-//};
-
-
-int8_t initialize_landing(); //<-- FIXME: Replace this by an include to the proper library function
-
 
 
 #define MAX_QUEUE_SIZE 2
@@ -176,28 +159,67 @@ static void MissionDirectorTask(void *parameters)
 		int8_t ret = missionFixedwingLandingInitialize(&autonomous_landing);
 		if (ret != 0)
 		{
-			vTaskDelay(TICKS2MS(1000));
-
 			MissionDirectorStatusData missionDirectorStatus;
 			MissionDirectorStatusGet(&missionDirectorStatus);
 			missionDirectorStatus.Latitude = rand() %100;
 			missionDirectorStatus.MissionID = WaypointGetNumInstances();
 			MissionDirectorStatusSet(&missionDirectorStatus);
+
+			vTaskDelay(TICKS2MS(1000));
 		}
 	}
 
+	static missionPipeline *current;
+	static stateEstimation states;
 	{
-//		if (0)
-//			landing_mission = NULL;
+
+		const missionPipeline *new_mission_chain;
+//		switch (revoSettings.FusionAlgorithm) {
+//        case REVOSETTINGS_FUSIONALGORITHM_COMPLEMENTARY:
+//            new_mission_chain = cfQueue;
+//            break;
+//        case REVOSETTINGS_FUSIONALGORITHM_COMPLEMENTARYMAG:
+//            new_mission_chain = cfmQueue;
+//            break;
+//        case REVOSETTINGS_FUSIONALGORITHM_INS13INDOOR:
+//            new_mission_chain = ekf13iQueue;
+//            break;
+//        case REVOSETTINGS_FUSIONALGORITHM_INS13OUTDOOR:
+//            new_mission_chain = ekf13Queue;
+//            break;
+//        case REVOSETTINGS_FUSIONALGORITHM_INS16INDOOR:
+//            new_mission_chain = ekf16iQueue;
+//            break;
+//        case REVOSETTINGS_FUSIONALGORITHM_INS16OUTDOOR:
+//            new_mission_chain = ekf16Queue;
+//            break;
+//        default:
+//            new_mission_chain = NULL;
+//        }
+
+		new_mission_chain = &landing_queue;
+
+		// initialize missions in pipeline
+		current = (missionPipeline *)new_mission_chain;
+        bool error = 0;
+        while (current != NULL) {
+            int32_t result = current->mission->init((missionProgram *)current->mission);
+            if (result != 0) {
+                error = 1;
+                break;
+            }
+            current = current->on_success;
+
+			/*VVV GET RID OF ME*/
+			current = NULL;
+			/*^^^ GET RID OF ME*/
+        }
 	}
 
 	portTickType lastSysTime;
 	bool success_is_possible = true;
 	bool is_succeeded = false;
 	uint8_t old_MissionID = 0xFF;
-
-//	enum airplane_configuration airplane_configuration = CLEAN;
-//	enum landing_fsm landing_fsm = APPROACHING_IAP;
 
 	// Main task loop
 	lastSysTime = xTaskGetTickCount();
@@ -220,7 +242,10 @@ static void MissionDirectorTask(void *parameters)
 		 * Right now, success is just if we have arrived at the end of our path plan
 		 */
 //		is_succeeded = is_mission_completed();
+//		is_succeeded = current->mission->completion_test((missionProgram *)current->mission, &states);
 		if (is_succeeded == true) {
+            current = current->on_success;
+
 			missionDirectorStatus.Successability = MISSIONDIRECTORSTATUS_SUCCESSABILITY_SUCCEEDED;
 			MissionDirectorStatusSet(&missionDirectorStatus);
 			continue;
@@ -231,9 +256,12 @@ static void MissionDirectorTask(void *parameters)
 		 * Start with two simple cases, one for takeoff and one for landing.
 		 */
 //		success_is_possible = is_success_possible(landing_fsm, airplane_configuration);
+//		success_is_possible = current->mission->completion_test((missionProgram *)current->mission, &states);
 
 		// If success is impossible, go to plan B.
 		if (success_is_possible == false) {
+			current = current->on_abort;
+
 			missionDirectorStatus.Successability = MISSIONDIRECTORSTATUS_SUCCESSABILITY_CANNOTSUCCEED;
 			MissionDirectorStatusSet(&missionDirectorStatus);
 			continue;
