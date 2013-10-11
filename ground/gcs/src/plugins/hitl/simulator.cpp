@@ -709,7 +709,7 @@ void Simulator::updateUAVOs(Output2Hardware out){
             memset(&positionActualData, 0, sizeof(PositionActual::DataFields));
             positionActualData.North = (out.dstN-initN) + noise.positionActualData.North;
             positionActualData.East = (out.dstE-initE) + noise.positionActualData.East;
-            positionActualData.Down = (out.dstD/*-initD*/) + noise.positionActualData.Down;
+            positionActualData.Down = (out.dstD-initD) + noise.positionActualData.Down;
             posActual->setData(positionActualData);
 
             while (groundTruthTime.msecsTo(currentTime) >= settings.groundTruthRate)
