@@ -643,30 +643,37 @@ static int32_t setNavigationRaw()
 {
 	UAVObjEvent ev;
 
-	// Flush these queues for avoid errors
+	// Flush the queue to avoid errors
 	xQueueReceive(baroQueue, &ev, 0);
+
+	// If there is new position data, process it
 	if ( xQueueReceive(gpsQueue, &ev, 0) == pdTRUE && homeLocation.Set == HOMELOCATION_SET_TRUE ) {
 		float NED[3];
 		// Transform the GPS position into NED coordinates
 		GPSPositionData gpsPosition;
 		GPSPositionGet(&gpsPosition);
-		getNED(&gpsPosition, NED);
 
-		NEDPositionData nedPosition;
-		NEDPositionGet(&nedPosition);
-		nedPosition.North = NED[0];
-		nedPosition.East = NED[1];
-		nedPosition.Down = NED[2];
-		NEDPositionSet(&nedPosition);
+		// Only set position if there is a 3D lock
+		if (gpsPosition.Status == GPSPOSITION_STATUS_FIX3D) {
+			getNED(&gpsPosition, NED);
 
-		PositionActualData positionActual;
-		PositionActualGet(&positionActual);
-		positionActual.North = NED[0];
-		positionActual.East = NED[1];
-		positionActual.Down = NED[2];
-		PositionActualSet(&positionActual);
+			NEDPositionData nedPosition;
+			NEDPositionGet(&nedPosition);
+			nedPosition.North = NED[0];
+			nedPosition.East = NED[1];
+			nedPosition.Down = NED[2];
+			NEDPositionSet(&nedPosition);
+
+			PositionActualData positionActual;
+			PositionActualGet(&positionActual);
+			positionActual.North = NED[0];
+			positionActual.East = NED[1];
+			positionActual.Down = NED[2];
+			PositionActualSet(&positionActual);
+		}
 	}
 
+	// If there is new velocity data, process it
 	if ( xQueueReceive(gpsVelQueue, &ev, 0) == pdTRUE ) {
 		// Transform the GPS position into NED coordinates
 		GPSVelocityData gpsVelocity;
@@ -848,7 +855,7 @@ static int32_t updateAttitudeINSGPS(bool first_run, bool outdoor_mode)
 	mag_updated &= (homeLocation.Be[0] != 0 || homeLocation.Be[1] != 0 || homeLocation.Be[2]);
 
 	// A more stringent requirement for GPS to initialize the filter
-	bool gps_init_usable = gps_updated & (gpsData.Satellites >= 7) && (gpsData.PDOP <= 3.5f) && (homeLocation.Set == HOMELOCATION_SET_TRUE);
+	bool gps_init_usable = gps_updated & (gpsData.Satellites >= 7) && (gpsData.PDOP <= 3.5f) && (gpsData.Status == GPSPOSITION_STATUS_FIX3D) && (homeLocation.Set == HOMELOCATION_SET_TRUE);
 
 	if (!inited) {
 		if (!gps_init_usable && outdoor_mode)
@@ -946,7 +953,7 @@ static int32_t updateAttitudeINSGPS(bool first_run, bool outdoor_mode)
 		return 0;
 
 	// Have a minimum requirement for gps usage a little more liberal than initialization
-	gps_updated &= (gpsData.Satellites >= 6) && (gpsData.PDOP <= 4.0f) && (homeLocation.Set == HOMELOCATION_SET_TRUE);
+	gps_updated &= (gpsData.Satellites >= 6) && (gpsData.PDOP <= 4.0f) && (gpsData.Status == GPSPOSITION_STATUS_FIX3D) && (homeLocation.Set == HOMELOCATION_SET_TRUE);
 
 	dT = PIOS_DELAY_DiffuS(ins_last_time) / 1.0e6f;
 	ins_last_time = PIOS_DELAY_GetRaw();
