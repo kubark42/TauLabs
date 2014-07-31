@@ -10,7 +10,7 @@
 #define QWT_POLAR_PICKER_H
 
 #include "qwt_polar_global.h"
-#include "qwt_picker.h"
+#include <qwt_picker.h>
 #include <qvector.h>
 #include <qpainterpath.h>
 
