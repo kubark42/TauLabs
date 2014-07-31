@@ -16,7 +16,10 @@ include( $${QWT_POLAR_ROOT}/qwtpolarfunctions.pri )
 TEMPLATE          = lib
 TARGET            = $$qwtPolarLibraryTarget(qwtpolar)
 
-DESTDIR           = $${QWT_POLAR_ROOT}/lib
+DESTDIR           = $${QWT_POLAR_ROOT}/../../../../../tools/qwtpolar/lib
+
+INCLUDEPATH *= $${QWT_POLAR_ROOT}/../qwt/src
+
 
 contains(QWT_POLAR_CONFIG, QwtPolarDll ) {
 
