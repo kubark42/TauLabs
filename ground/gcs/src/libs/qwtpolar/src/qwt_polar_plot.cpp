@@ -983,7 +983,7 @@ void QwtPolarPlot::drawItems( QPainter *painter,
         if ( item && item->isVisible() )
         {
             painter->save();
-
+/*
             // Unfortunately circular clipping slows down
             // painting a lot. So we better try to avoid it.
 
@@ -1016,7 +1016,7 @@ void QwtPolarPlot::drawItems( QPainter *painter,
                     painter->setClipRegion( clipRegion, Qt::IntersectClip );
                 }
             }
-
+*/
             painter->setRenderHint( QPainter::Antialiasing,
                 item->testRenderHint( QwtPolarItem::RenderAntialiased ) );
 
