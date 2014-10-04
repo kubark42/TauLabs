@@ -38,16 +38,17 @@ private:
 
         ColorStop( double p, const QColor &c ):
             pos( p ),
-            rgb( c.rgb() )
+            rgb( c.rgba() )
         {
             r = qRed( rgb );
             g = qGreen( rgb );
             b = qBlue( rgb );
+            a = qAlpha( rgb );
         }
 
         double pos;
         QRgb rgb;
-        int r, g, b;
+        int r, g, b,a;
     };
 
     inline int findUpper( double pos ) const;
@@ -138,8 +139,9 @@ inline QRgb QwtLinearColorMap::ColorStops::rgb(
         const int r = s1.r + qRound( ratio * ( s2.r - s1.r ) );
         const int g = s1.g + qRound( ratio * ( s2.g - s1.g ) );
         const int b = s1.b + qRound( ratio * ( s2.b - s1.b ) );
+        const int a = s1.a + qRound( ratio * ( s2.a - s1.a ) );
 
-        return qRgb( r, g, b );
+        return qRgba( r, g, b, a );
     }
 }
 
