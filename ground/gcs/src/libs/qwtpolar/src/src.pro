@@ -8,17 +8,19 @@
 
 # qmake project file for building the qwtpolar libraries
 
-QWT_POLAR_ROOT = $${PWD}/..
-include( $${QWT_POLAR_ROOT}/qwtpolarconfig.pri )
-include( $${QWT_POLAR_ROOT}/qwtpolarbuild.pri )
-include( $${QWT_POLAR_ROOT}/qwtpolarfunctions.pri )
+TEMPLATE = lib
+TARGET = QwtPolar
+DEFINES += QWTPOLAR_LIBRARY
+QT += printsupport
+QMAKE_CXXFLAGS += -Wno-sign-compare
 
-TEMPLATE          = lib
-TARGET            = $$qwtPolarLibraryTarget(qwtpolar)
+include(../../../taulabslibrary.pri)
+include( ../qwtpolarconfig.pri )
 
-DESTDIR           = $${QWT_POLAR_ROOT}/../../../../../tools/qwtpolar/lib
-
-INCLUDEPATH *= $${QWT_POLAR_ROOT}/../qwt/src
+# QwtPolar depends on Qwt, so link to Qwt library
+include(../../../../gcs.pri)
+INCLUDEPATH *= $${PWD}/../../qwt/src
+LIBS *= -l$$qtLibraryName(Qwt)
 
 
 contains(QWT_POLAR_CONFIG, QwtPolarDll ) {
@@ -83,16 +85,6 @@ else {
 
     DEFINES += QWT_POLAR_NO_SVG
 }
-
-# Install directives
-
-target.path    = $${QWT_POLAR_INSTALL_LIBS}
-
-doc.files      = $${QWT_POLAR_ROOT}/doc/html
-unix:doc.files      += $${QWT_POLAR_ROOT}/doc/man 
-doc.path       = $${QWT_POLAR_INSTALL_DOCS}
-
-INSTALLS       = target doc
 
 CONFIG(lib_bundle) {
 

@@ -23,4 +23,9 @@ SUBDIRS += sdlgamepad
     SUBDIRS += glc_lib
 }
 
-SUBDIRS +=
+lib_qwt.subdir = qwt
+SUBDIRS += lib_qwt
+
+lib_qwtpolar.subdir = qwtpolar
+lib_qwtpolar.depends = lib_qwt
+SUBDIRS += lib_qwtpolar

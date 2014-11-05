@@ -9,20 +9,7 @@
 include( qwtpolarconfig.pri )
 
 TEMPLATE = subdirs
-CONFIG   += ordered
 
+CONFIG  += warn_off
+CONFIG  += ordered
 SUBDIRS = src
-
-contains(QWT_POLAR_CONFIG, QwtPolarDesigner ) {
-    SUBDIRS += designer
-}
-
-contains(QWT_POLAR_CONFIG, QwtPolarExamples ) {
-    SUBDIRS += examples
-}
-
-qwtpolarspec.files  = qwtpolarconfig.pri qwtpolarfunctions.pri qwtpolar.prf
-qwtpolarspec.path  = $${QWT_POLAR_INSTALL_FEATURES}
-
-INSTALLS += qwtpolarspec
-

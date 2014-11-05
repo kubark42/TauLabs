@@ -10,22 +10,12 @@
 # Install paths
 ######################################################################
 
-QWT_POLAR_VER_MAJ      = 1
-QWT_POLAR_VER_MIN      = 1
-QWT_POLAR_VER_PAT      = 0
-QWT_POLAR_VERSION      = $${QWT_POLAR_VER_MAJ}.$${QWT_POLAR_VER_MIN}.$${QWT_POLAR_VER_PAT}
+#QWT_POLAR_VER_MAJ      = 1
+#QWT_POLAR_VER_MIN      = 1
+#QWT_POLAR_VER_PAT      = 0
+#QWT_POLAR_VERSION      = $${QWT_POLAR_VER_MAJ}.$${QWT_POLAR_VER_MIN}.$${QWT_POLAR_VER_PAT}
 
-unix {
-    QWT_POLAR_INSTALL_PREFIX    = /usr/local/qwtpolar-$$QWT_POLAR_VERSION
-}
-
-win32 {
-    QWT_POLAR_INSTALL_PREFIX    = C:/QwtPolar-$$QWT_POLAR_VERSION
-}
-
-QWT_POLAR_INSTALL_DOCS      = $${QWT_POLAR_INSTALL_PREFIX}/doc
-QWT_POLAR_INSTALL_HEADERS   = $${QWT_POLAR_INSTALL_PREFIX}/include
-QWT_POLAR_INSTALL_LIBS      = $${QWT_POLAR_INSTALL_PREFIX}/lib
+# Remove QWT_POLAR install paths. Use our own.
 
 ######################################################################
 # Designer plugin
@@ -40,13 +30,13 @@ QWT_POLAR_INSTALL_LIBS      = $${QWT_POLAR_INSTALL_PREFIX}/lib
 # it will be a static library.
 ######################################################################
 
-#QWT_POLAR_CONFIG           += QwtPolarDll
+QWT_POLAR_CONFIG           += QwtPolarDll
 
 ######################################################################
 # If you want to export a plot to a SVG document
 ######################################################################
 
-#QWT_POLAR_CONFIG     += QwtPolarSvg
+QWT_POLAR_CONFIG     += QwtPolarSvg
 
 ######################################################################
 # Features
@@ -61,7 +51,7 @@ QWT_POLAR_INSTALL_LIBS      = $${QWT_POLAR_INSTALL_PREFIX}/lib
 # with every Qt upgrade. 
 ######################################################################
 
-QWT_POLAR_INSTALL_FEATURES  = $${QWT_POLAR_INSTALL_PREFIX}/features
+# QWT_POLAR_INSTALL_FEATURES  = $${QWT_POLAR_INSTALL_PREFIX}/features
 # QWT_INSTALL_FEATURES  = $${QT_INSTALL_PREFIX}/features
 
 ######################################################################
@@ -86,6 +76,6 @@ QWT_POLAR_INSTALL_FEATURES  = $${QWT_POLAR_INSTALL_PREFIX}/features
 
 macx:CONFIG(qt_framework, qt_framework|qt_no_framework) {
 
-    QWT_POLAR_CONFIG += QwtPolarFramework
+#    QWT_POLAR_CONFIG += QwtPolarFramework
 }
 
