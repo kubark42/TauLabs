@@ -222,7 +222,7 @@ protected:
     enum sensor_type {ACCEL, GYRO, MAG};
 
     //! Connect and speed up or disconnect a sensor
-    void connectSensor(sensor_type sensor, bool connect);
+    void connectSensor(sensor_type sensor, bool connect, uint16_t speed = SENSOR_UPDATE_PERIOD);
 
     //! Store a measurement at this position and indicate if it is the last one
     bool storeSixPointMeasurement(UAVObject * obj, int position);

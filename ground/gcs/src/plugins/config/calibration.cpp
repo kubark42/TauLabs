@@ -96,7 +96,7 @@ void Calibration::initialize(bool calibrateAccels, bool calibrateMags) {
  * @param sensor The sensor to change
  * @param con Whether to connect or disconnect to this sensor
  */
-void Calibration::connectSensor(sensor_type sensor, bool con)
+void Calibration::connectSensor(sensor_type sensor, bool con, uint16_t updatePeriod_ms)
 {
     if (con) {
         switch (sensor) {
@@ -105,7 +105,7 @@ void Calibration::connectSensor(sensor_type sensor, bool con)
             Accels * accels = Accels::GetInstance(getObjectManager());
             Q_ASSERT(accels);
 
-            assignUpdateRate(accels, SENSOR_UPDATE_PERIOD);
+            assignUpdateRate(accels, updatePeriod_ms);
             connect(accels, SIGNAL(objectUpdated(UAVObject*)), this, SLOT(dataUpdated(UAVObject *)));
         }
             break;
@@ -115,7 +115,7 @@ void Calibration::connectSensor(sensor_type sensor, bool con)
             Magnetometer * mag = Magnetometer::GetInstance(getObjectManager());
             Q_ASSERT(mag);
 
-            assignUpdateRate(mag, SENSOR_UPDATE_PERIOD);
+            assignUpdateRate(mag, updatePeriod_ms);
             connect(mag, SIGNAL(objectUpdated(UAVObject*)), this, SLOT(dataUpdated(UAVObject *)));
         }
             break;
@@ -125,7 +125,7 @@ void Calibration::connectSensor(sensor_type sensor, bool con)
             Gyros * gyros = Gyros::GetInstance(getObjectManager());
             Q_ASSERT(gyros);
 
-            assignUpdateRate(gyros, SENSOR_UPDATE_PERIOD);
+            assignUpdateRate(gyros, updatePeriod_ms);
             connect(gyros, SIGNAL(objectUpdated(UAVObject*)), this, SLOT(dataUpdated(UAVObject *)));
         }
             break;
