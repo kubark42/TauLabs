@@ -9,6 +9,7 @@ include(config_dependencies.pri)
 LIBS *= -l$$qtLibraryName(Qwt)
 
 INCLUDEPATH *= ../../libs/eigen
+INCLUDEPATH *= ../../libs/qwt/src
 
 OTHER_FILES += Config.pluginspec \
     Config.json
