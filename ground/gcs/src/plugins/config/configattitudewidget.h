@@ -82,6 +82,9 @@ private slots:
     //! Display the plane in various positions
     void displayPlane(int i);
 
+    //! Display the point cloud superimposed on a unit sphere
+    void displayEllipsoidFit(QVector< QVector<double> > data);
+
     // Slots for measuring the sensor noise
     void do_SetDirty();
     void configureSixPoint();

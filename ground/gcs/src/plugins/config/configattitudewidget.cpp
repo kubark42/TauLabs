@@ -55,6 +55,15 @@
 #include "assertions.h"
 #include "calibration.h"
 
+#include <qwt/src/qwt_symbol.h>
+#include <qwt/src/qwt_legend.h>
+#include <qwt/src/qwt_scale_engine.h>
+
+#include <qwtpolar/src/qwt_polar_renderer.h>
+#include <qwtpolar/src/qwt_polar_grid.h>
+#include <qwtpolar/src/qwt_polar_marker.h>
+
+
 #define sign(x) ((x < 0) ? -1 : 1)
 
 // Uncomment this to enable 6 point calibration on the accels
@@ -63,6 +72,49 @@
 const double ConfigAttitudeWidget::maxVarValue = 0.1;
 
 // *****************
+
+/**
+ * @brief The JetColorMap class Colormap based off of MATLAB's jet colormap
+ */
+class JetColorMap
+{
+public:
+    static uint8_t red(double gray) {
+        if (gray < -1)
+            gray = -1;
+        else if (gray > 1)
+            gray = 1;
+        return round(base(gray - 0.5)*255);
+    }
+    static uint8_t green(double gray) {
+        if (gray < -1)
+            gray = -1;
+        else if (gray > 1)
+            gray = 1;
+        return round(base(gray)*255);
+    }
+    static uint8_t blue(double gray) {
+        if (gray < -1)
+            gray = -1;
+        else if (gray > 1)
+            gray = 1;
+        return round(base(gray + 0.5)*255);
+    }
+
+private:
+    static double interpolate(double val, double x0, double y0, double x1, double y1) {
+        return (val-x0)*(y1-y0)/(x1-x0) + y0;
+    }
+
+    static double base(double val) {
+        if (val <= -0.75) return 0;
+        else if (val <= -0.25) return interpolate(val, -0.75, 0.0, -0.25, 1.0);
+        else if (val <= 0.25) return 1.0;
+        else if (val <= 0.75) return interpolate(val, 1.0, 0.25, 0.0, 0.75);
+        else return 0.0;
+    }
+};
+
 
 class Thread : public QThread
 {
@@ -197,6 +249,113 @@ void ConfigAttitudeWidget::resizeEvent(QResizeEvent *event)
     Q_UNUSED(event)
     m_ui->sixPointHelp->fitInView(paperplane,Qt::KeepAspectRatio);
 }
+
+
+/**
+  Plot the point cloud
+  */
+void ConfigAttitudeWidget::displayEllipsoidFit(QVector< QVector<double> > data)
+{
+    QwtPolarPlot *upperHemisphere_plot = new QwtPolarPlot(QwtText("Upper hemisphere"), this);
+    QwtPolarPlot *lowerHemisphere_plot = new QwtPolarPlot(QwtText("Lower hemisphere"), this);
+
+    const QwtInterval radialInterval(0.0, 180.0);
+    const QwtInterval azimuthInterval(0.0, 360.0);
+
+    // Configure polar plots
+    upperHemisphere_plot->setAutoReplot(false);
+    upperHemisphere_plot->setPlotBackground(QColor(253,253,253));
+    lowerHemisphere_plot->setAutoReplot(false);
+    lowerHemisphere_plot->setPlotBackground(QColor(253,253,253));
+
+    // Configure origin angles
+    upperHemisphere_plot->setAzimuthOrigin(M_PI/2.0);
+    lowerHemisphere_plot->setAzimuthOrigin(3*M_PI/2.0);
+
+    // Configure angle scales
+    upperHemisphere_plot->setScaleMaxMinor(QwtPolar::Azimuth, 1);
+    upperHemisphere_plot->setScale(QwtPolar::Azimuth,
+        azimuthInterval.maxValue(), azimuthInterval.minValue(),
+        azimuthInterval.width() / 12);
+    upperHemisphere_plot->setScaleMaxMinor(QwtPolar::Azimuth, 1);
+    lowerHemisphere_plot->setScale(QwtPolar::Azimuth,
+        azimuthInterval.minValue(), azimuthInterval.maxValue(),
+        azimuthInterval.width() / 12);
+
+    // Configure radial scales
+    upperHemisphere_plot->setScaleMaxMinor(QwtPolar::Radius, 2);
+    upperHemisphere_plot->setScaleMaxMajor(QwtPolar::Radius, 3);
+    upperHemisphere_plot->setScale(QwtPolar::Radius,
+        radialInterval.minValue(), radialInterval.maxValue());
+
+    lowerHemisphere_plot->setScaleMaxMinor(QwtPolar::Radius, 2);
+    lowerHemisphere_plot->setScaleMaxMajor(QwtPolar::Radius, 3);
+    lowerHemisphere_plot->setScale(QwtPolar::Radius,
+        radialInterval.minValue(), radialInterval.maxValue());
+
+    // Configure grids, axes
+    QwtPolarGrid *upperHemisphere_grid = new QwtPolarGrid();
+    QwtPolarGrid *lowerHemisphere_grid = new QwtPolarGrid();
+    upperHemisphere_grid->setPen(QPen(Qt::black));
+    lowerHemisphere_grid->setPen(QPen(Qt::black));
+    for (int scaleId = 0; scaleId < QwtPolar::ScaleCount; scaleId++)
+    {
+        upperHemisphere_grid->showGrid(scaleId);
+        upperHemisphere_grid->showMinorGrid(scaleId);
+        lowerHemisphere_grid->showGrid(scaleId);
+        lowerHemisphere_grid->showMinorGrid(scaleId);
+
+        QPen minorPen(Qt::gray);
+        upperHemisphere_grid->setMinorGridPen(scaleId, minorPen);
+        lowerHemisphere_grid->setMinorGridPen(scaleId, minorPen);
+    }
+    upperHemisphere_grid->setAxisPen(QwtPolar::AxisAzimuth, QPen(Qt::black));
+    lowerHemisphere_grid->setAxisPen(QwtPolar::AxisAzimuth, QPen(Qt::black));
+
+    upperHemisphere_grid->showAxis(QwtPolar::AxisAzimuth, true);
+    upperHemisphere_grid->showAxis(QwtPolar::AxisLeft, false);
+    upperHemisphere_grid->showAxis(QwtPolar::AxisRight, true);
+    upperHemisphere_grid->showAxis(QwtPolar::AxisTop, true);
+    upperHemisphere_grid->showAxis(QwtPolar::AxisBottom, false);
+    upperHemisphere_grid->showGrid(QwtPolar::Azimuth, true);
+    upperHemisphere_grid->showGrid(QwtPolar::Radius, true);
+    lowerHemisphere_grid->showAxis(QwtPolar::AxisAzimuth, true);
+    lowerHemisphere_grid->showAxis(QwtPolar::AxisLeft, false);
+    lowerHemisphere_grid->showAxis(QwtPolar::AxisRight, true);
+    lowerHemisphere_grid->showAxis(QwtPolar::AxisTop, true);
+    lowerHemisphere_grid->showAxis(QwtPolar::AxisBottom, false);
+    lowerHemisphere_grid->showGrid(QwtPolar::Azimuth, true);
+    lowerHemisphere_grid->showGrid(QwtPolar::Radius, true);
+
+    upperHemisphere_grid->attach(upperHemisphere_plot);
+    lowerHemisphere_grid->attach(lowerHemisphere_plot);
+
+    // Plot scatter points. The color represents the deviation from the unit sphere
+    foreach (QVector<double> point, data) {
+        const double a_D = atan2(point[1], point[0]) * RAD2DEG;
+        const double r = sqrt(point[0]*point[0] + point[1]*point[1]) * 180;
+        const double err = sqrt(point[0]*point[0] + point[1]*point[1] + point[2]*point[2]) - 1.0;
+        const double errScaleFactor = 10; // Scale by 10 in order to magnify error
+
+        const uint8_t alpha = 100; // Set transparency
+        const QColor color(JetColorMap::red(errScaleFactor*err),
+                           JetColorMap::green(errScaleFactor*err),
+                           JetColorMap::blue(errScaleFactor*err), alpha);
+
+        QwtPolarMarker *marker = new QwtPolarMarker();
+        marker->setPosition(QwtPointPolar(a_D, r));
+        marker->setSymbol(new QwtSymbol(QwtSymbol::Ellipse,
+            QBrush(color), QPen(color), QSize(4, 4)));
+        marker->setLabelAlignment(Qt::AlignHCenter | Qt::AlignTop);
+
+        // If point is on or above the plane, plot in the upper hemisphere. Otherwise, plot in the lower hemisphere.
+        if (point[2] >= 0)
+            marker->attach(upperHemisphere_plot);
+        else
+            marker->attach(lowerHemisphere_plot);
+    }
+}
+
 
 /**
   Rotate the paper plane
