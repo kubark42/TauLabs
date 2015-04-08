@@ -51,6 +51,8 @@
 #include <Eigen/Cholesky>
 #include <Eigen/SVD>
 #include <Eigen/QR>
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
 #include <cstdlib>
 
 #define META_OPERATIONS_TIMEOUT 5000
@@ -265,6 +267,56 @@ void Calibration::dataUpdated(UAVObject * obj) {
             disconnect(&timer,SIGNAL(timeout()),this,SLOT(timeout()));
         }
         break;
+    case ELLIPSOIDAL_CALIBRATION_COLLECT:
+        // Store the measurement, and check the result to see if the calibration is done.
+        if(storeEllipsoidCalibrationMeasurement(obj) == true) {
+            // All data collected.  Disconnect and reset all UAVOs, and compute value
+            connectSensor(GYRO, false);
+            if (calibrateAccels) {
+                connectSensor(ACCEL, false);
+            }
+            if (calibrateMags) {
+                connectSensor(MAG, false);
+            }
+            setMetadata(originalMetaData);
+
+            emit toggleControls(true);
+
+            // Do ellipsoid fit calculation
+            int ret = computeEllipsoidFit(mag_accum_x, mag_accum_y, mag_accum_z);
+            if (ret == CALIBRATION_SUCCESS) {
+                // Load calibration results
+                SensorSettings * sensorSettings = SensorSettings::GetInstance(getObjectManager());
+                SensorSettings::DataFields sensorSettingsData = sensorSettings->getData();
+
+
+                // Generate result messages
+                QString accelCalibrationResults = "";
+                QString magCalibrationResults = "";
+                if (calibrateAccels == true) {
+                    accelCalibrationResults = QString(tr("Accelerometer bias, in [m/s^2]: x=%1, y=%2, z=%3\n")).arg(sensorSettingsData.AccelBias[SensorSettings::ACCELBIAS_X], -9).arg(sensorSettingsData.AccelBias[SensorSettings::ACCELBIAS_Y], -9).arg(sensorSettingsData.AccelBias[SensorSettings::ACCELBIAS_Z], -9) +
+                                              QString(tr("Accelerometer scale, in [-]:    x=%1, y=%2, z=%3\n")).arg(sensorSettingsData.AccelScale[SensorSettings::ACCELSCALE_X], -9).arg(sensorSettingsData.AccelScale[SensorSettings::ACCELSCALE_Y], -9).arg(sensorSettingsData.AccelScale[SensorSettings::ACCELSCALE_Z], -9);
+
+                }
+                if (calibrateMags == true) {
+                    magCalibrationResults = QString(tr("Magnetometer bias, in [mG]: x=%1, y=%2, z=%3\n")).arg(sensorSettingsData.MagBias[SensorSettings::MAGBIAS_X], -9).arg(sensorSettingsData.MagBias[SensorSettings::MAGBIAS_Y], -9).arg(sensorSettingsData.MagBias[SensorSettings::MAGBIAS_Z], -9) +
+                                            QString(tr("Magnetometer scale, in [-]: x=%4, y=%5, z=%6")).arg(sensorSettingsData.MagScale[SensorSettings::MAGSCALE_X], -9).arg(sensorSettingsData.MagScale[SensorSettings::MAGSCALE_Y], -9).arg(sensorSettingsData.MagScale[SensorSettings::MAGSCALE_Z], -9);
+                }
+
+                // Emit SIGNAL containing calibration success message
+                emit showSixPointMessage(QString(tr("Calibration succeeded")) + QString("\n") + accelCalibrationResults + QString("\n") + magCalibrationResults);
+            } else{
+                //Return sensor calibration values to their original settings
+                resetSensorCalibrationToOriginalValues();
+
+                if (ret == ACCELEROMETER_FAILED) {
+                    emit showSixPointMessage(tr("Accelerometer calibration failed. Original values have been written back to device. Perhaps you moved too much during the calculation? Please repeat calibration."));
+                } else if (ret == MAGNETOMETER_FAILED) {
+                    emit showSixPointMessage(tr("Magnetometer calibration failed. Original values have been written back to device. Perhaps you performed the calibration near iron? Please repeat calibration."));
+                }
+            }
+        }
+        break;
     case SIX_POINT_COLLECT1:
         // These state collect each position for six point calibration and
         // when enough data is acquired advance to the next step
@@ -369,7 +421,7 @@ void Calibration::dataUpdated(UAVObject * obj) {
                 resetSensorCalibrationToOriginalValues();
 
                 if(ret==ACCELEROMETER_FAILED){
-                    emit showSixPointMessage(tr("Acceleromter calibration failed. Original values have been written back to device. Perhaps you moved too much during the calculation? Please repeat calibration."));
+                    emit showSixPointMessage(tr("Accelerometer calibration failed. Original values have been written back to device. Perhaps you moved too much during the calculation? Please repeat calibration."));
                 }
                 else if(ret==MAGNETOMETER_FAILED){
                     emit showSixPointMessage(tr("Magnetometer calibration failed. Original values have been written back to device. Perhaps you performed the calibration near iron? Please repeat calibration."));
@@ -447,6 +499,18 @@ void Calibration::timeout()
             connectSensor(MAG, false);
         calibration_state = IDLE;
         emit showSixPointMessage(tr("Six point data collection timed out"));
+        emit sixPointProgressChanged(0);
+        break;
+    case ELLIPSOIDAL_CALIBRATION_COLLECT:
+        connectSensor(GYRO, false);
+        if (calibrateAccels) {
+            connectSensor(ACCEL, false);
+        }
+        if (calibrateMags) {
+            connectSensor(MAG, false);
+        }
+        calibration_state = IDLE;
+        emit showSixPointMessage(tr("Ellipsoid fit data collection timed out"));
         emit sixPointProgressChanged(0);
         break;
     case GYRO_TEMP_CAL:
@@ -544,6 +608,130 @@ void Calibration::doStartLeveling() {
     timer.start(5000 + (NUM_SENSOR_UPDATES_LEVELING * SENSOR_UPDATE_PERIOD));
     connect(&timer,SIGNAL(timeout()),this,SLOT(timeout()));
 }
+
+
+void Calibration::doEllipsoidCalibration()
+{
+    // Save initial sensor settings
+    SensorSettings * sensorSettings = SensorSettings::GetInstance(getObjectManager());
+    Q_ASSERT(sensorSettings);
+    SensorSettings::DataFields sensorSettingsData = sensorSettings->getData();
+
+    AttitudeSettings * attitudeSettings = AttitudeSettings::GetInstance(getObjectManager());
+    Q_ASSERT(attitudeSettings);
+    AttitudeSettings::DataFields attitudeSettingsData = attitudeSettings->getData();
+    double rpy[3] = { attitudeSettingsData.BoardRotation[AttitudeSettings::BOARDROTATION_ROLL] * DEG2RAD / 100.0,
+                      attitudeSettingsData.BoardRotation[AttitudeSettings::BOARDROTATION_PITCH] * DEG2RAD / 100.0,
+                      attitudeSettingsData.BoardRotation[AttitudeSettings::BOARDROTATION_YAW] * DEG2RAD / 100.0};
+    Euler2R(rpy, boardRotationMatrix);
+
+    // If calibrating the accelerometer, remove any scaling
+    calibrateAccels = false;
+    if (calibrateAccels) {
+        initialAccelsScale[0]=sensorSettingsData.AccelScale[SensorSettings::ACCELSCALE_X];
+        initialAccelsScale[1]=sensorSettingsData.AccelScale[SensorSettings::ACCELSCALE_Y];
+        initialAccelsScale[2]=sensorSettingsData.AccelScale[SensorSettings::ACCELSCALE_Z];
+        initialAccelsBias[0]=sensorSettingsData.AccelBias[SensorSettings::ACCELBIAS_X];
+        initialAccelsBias[1]=sensorSettingsData.AccelBias[SensorSettings::ACCELBIAS_Y];
+        initialAccelsBias[2]=sensorSettingsData.AccelBias[SensorSettings::ACCELBIAS_Z];
+
+        // Reset the scale and bias to get a correct result
+        sensorSettingsData.AccelScale[SensorSettings::ACCELSCALE_X] = 1.0;
+        sensorSettingsData.AccelScale[SensorSettings::ACCELSCALE_Y] = 1.0;
+        sensorSettingsData.AccelScale[SensorSettings::ACCELSCALE_Z] = 1.0;
+        sensorSettingsData.AccelBias[SensorSettings::ACCELBIAS_X] = 0.0;
+        sensorSettingsData.AccelBias[SensorSettings::ACCELBIAS_Y] = 0.0;
+        sensorSettingsData.AccelBias[SensorSettings::ACCELBIAS_Z] = 0.0;
+        sensorSettingsData.ZAccelOffset = 0.0;
+    }
+
+    // If calibrating the magnetometer, remove any scaling
+    if (calibrateMags || 1) {
+        calibrateMags = true;
+
+        initialMagsScale[0]=sensorSettingsData.MagScale[SensorSettings::MAGSCALE_X];
+        initialMagsScale[1]=sensorSettingsData.MagScale[SensorSettings::MAGSCALE_Y];
+        initialMagsScale[2]=sensorSettingsData.MagScale[SensorSettings::MAGSCALE_Z];
+        initialMagsBias[0]= sensorSettingsData.MagBias[SensorSettings::MAGBIAS_X];
+        initialMagsBias[1]= sensorSettingsData.MagBias[SensorSettings::MAGBIAS_Y];
+        initialMagsBias[2]= sensorSettingsData.MagBias[SensorSettings::MAGBIAS_Z];
+
+        // Reset the scale to get a correct result
+        sensorSettingsData.MagScale[SensorSettings::MAGSCALE_X] = 1;
+        sensorSettingsData.MagScale[SensorSettings::MAGSCALE_Y] = 1;
+        sensorSettingsData.MagScale[SensorSettings::MAGSCALE_Z] = 1;
+        sensorSettingsData.MagBias[SensorSettings::MAGBIAS_X] = 0;
+        sensorSettingsData.MagBias[SensorSettings::MAGBIAS_Y] = 0;
+        sensorSettingsData.MagBias[SensorSettings::MAGBIAS_Z] = 0;
+    }
+
+    sensorSettings->setData(sensorSettingsData);
+
+    // Clear the accumulators
+    accel_accum_x.clear();
+    accel_accum_y.clear();
+    accel_accum_z.clear();
+    mag_accum_x.clear();
+    mag_accum_y.clear();
+    mag_accum_z.clear();
+
+    // TODO: Document why the thread needs to wait 100ms.
+    Thread::usleep(100000);
+
+    // Save previous sensor states
+    originalMetaData = getObjectUtilManager()->readAllNonSettingsMetadata();
+
+    // Make all UAVObject rates update slowly
+    slowDataUpdates();
+
+    // Call the sensor disconnect, because it slows down the sensor updates.
+    /* FixMe: This is very brittle, as if a new sensor is added to the calibration scheme that sensor will
+     * have to be set to false in every section which (ab)uses connectSensor() in this manner
+     */
+    connectSensor(ACCEL, false);
+    connectSensor(GYRO, false);
+    connectSensor(MAG, false);
+
+    // Connect sensors and set higher update rate
+    if (calibrateAccels)
+        connectSensor(ACCEL, true, 50);
+    if(calibrateMags)
+        connectSensor(MAG, true, 50);
+
+    // Show UI parts and update the calibration state
+    emit toggleControls(false);
+    calibration_state = ELLIPSOIDAL_CALIBRATION_COLLECT;
+
+    // Set up timeout timer
+    timer.setSingleShot(true);
+    timer.start(180000 + 0*(0*NUM_SENSOR_UPDATES_LEVELING * SENSOR_UPDATE_PERIOD)*0);
+    connect(&timer,SIGNAL(timeout()),this,SLOT(timeout()));
+}
+
+void Calibration::doCancelEllipsoidCalibration()
+{
+    //Return sensor calibration values to their original settings
+    resetSensorCalibrationToOriginalValues();
+
+    // Disconnect sensors and reset UAVO update rates
+    if (calibrateAccels)
+        connectSensor(ACCEL, false);
+    if(calibrateMags)
+        connectSensor(MAG, false);
+
+    setMetadata(originalMetaData);
+
+    calibration_state = IDLE;
+    emit toggleControls(true);
+    emit toggleSavePosition(false);
+    emit updatePlane(0);
+    emit sixPointProgressChanged(0);
+    disconnect(&timer,SIGNAL(timeout()),this,SLOT(timeout()));
+
+    emit showSixPointMessage(tr("Calibration canceled."));
+
+}
+
 
 /**
   * Called by the "Start" button.  Sets up the meta data and enables the
@@ -1005,6 +1193,65 @@ bool Calibration::storeLevelingMeasurement(UAVObject *obj) {
     return false;
 }
 
+
+
+/**
+ * @brief Calibration::storeEllipsoidCalibrationMeasurement Store a measurement, and if there
+ * is sufficient data coverage of the full sphere then stop collecting data
+ * @return true if data coverage is sufficient
+ */
+bool Calibration::storeEllipsoidCalibrationMeasurement(UAVObject *obj) {
+    Magnetometer *mags = Magnetometer::GetInstance(getObjectManager());
+    Accels *accels = Accels::GetInstance(getObjectManager());
+
+    // Accumulate samples
+    if(obj->getObjID() == Accels::OBJID) {
+        Accels::DataFields accelsData = accels->getData();
+
+        double accels_body[3] = {accelsData.x, accelsData.y, accelsData.z};
+        double accels_sensor[3];
+        rotate_vector(boardRotationMatrix, accels_body, accels_sensor, false);
+        accel_accum_x.append(accels_sensor[0]);
+        accel_accum_y.append(accels_sensor[1]);
+        accel_accum_z.append(accels_sensor[2]);
+    } else if (obj->getObjID() == Magnetometer::OBJID) {
+        Magnetometer::DataFields magData = mags->getData();
+
+        double mags_body[3] = {magData.x, magData.y, magData.z};
+        double mags_sensor[3];
+        rotate_vector(boardRotationMatrix, mags_body, mags_sensor, false);
+        mag_accum_x.append(mags_sensor[0]);
+        mag_accum_y.append(mags_sensor[1]);
+        mag_accum_z.append(mags_sensor[2]);
+    } else {
+        // We shouldn't be able to get here
+        qDebug() << "Triggering on wrong UAVO: " << obj->getName();
+        Q_ASSERT(0);
+    }
+
+    int sphereCompletion = 0;
+
+	 // Periodically recompute the fit
+    if (mag_accum_x.length() % 3 == 0 && mag_accum_x.length() > 0) {
+        sphereCompletion = computeEllipsoidFit(mag_accum_x, mag_accum_y, mag_accum_z);
+
+        // update the progress indicator
+        emit sixPointProgressChanged(sphereCompletion / (2.0 * SPHERE_RADIAL_SECTORS * SPHERE_AZIMUTH_SECTORS) * 100);
+
+        // If we have enough samples, then stop sampling and compute the biases and scale biases
+        if (sphereCompletion == 2 * SPHERE_RADIAL_SECTORS * SPHERE_AZIMUTH_SECTORS) {
+
+            // Since we have successfully retrieved a data set, turn off timeout timer
+            timer.stop();
+            disconnect(&timer,SIGNAL(timeout()),this,SLOT(timeout()));
+
+            return true;
+        }
+    }
+    return false;
+}
+
+
 /**
   * Grab a sample of accel or mag data while in this position and
   * store it for averaging.
@@ -1187,8 +1434,177 @@ void Calibration::updateTempCompCalibrationDisplay()
         yCurve->plotData(gyro_accum_temp, gyro_accum_y, yCoeffs);
     if (zCurve != NULL)
         zCurve->plotData(gyro_accum_temp, gyro_accum_z, zCoeffs);
-
 }
+
+
+/**
+ * @brief Calibration::computeEllipsoidFit Compute the unit spherical transformation fit for
+ * an uncalibrated data set distributed across an ellipsoid which is not centered on (0,0,0)
+ * and which has a rotation misalignment. See, for instance,
+ * http://www.m-hikari.com/ams/ams-2014/ams-149-152-2014/malyuginaAMS149-152-2014.pdf
+ *
+ * @param accum_x data points along the x-axis
+ * @param accum_y data points along the y-axis
+ * @param accum_z data points along the z-axis
+ * @return
+ */
+int Calibration::computeEllipsoidFit(QList<double> accum_x, QList<double> accum_y, QList<double> accum_z)
+{
+    Eigen::VectorXd measurement_x;
+    Eigen::VectorXd measurement_y;
+    Eigen::VectorXd measurement_z;
+
+    measurement_x.resize(accum_x.length());
+    measurement_y.resize(accum_y.length());
+    measurement_z.resize(accum_z.length());
+
+    for (int i=0; i<accum_x.length(); i++) {
+        measurement_x(i) = accum_x.at(i);
+        measurement_y(i) = accum_y.at(i);
+        measurement_z(i) = accum_z.at(i);
+    }
+
+    // Fit ellipsoid in the form Ax^2 + By^2 + Cz^2 + 2Dxy + 2Exz + 2Fyz + 2Gx + 2Hy + 2Iz = 1
+    Eigen::MatrixXd D(measurement_x.rows(), 9);
+    D << (    measurement_x.array() * measurement_x.array()).matrix(),
+         (    measurement_y.array() * measurement_y.array()).matrix(),
+         (    measurement_z.array() * measurement_z.array()).matrix(),
+         (2 * measurement_x.array() * measurement_y.array()).matrix(),
+         (2 * measurement_x.array() * measurement_z.array()).matrix(),
+         (2 * measurement_y.array() * measurement_z.array()).matrix(),
+         (2 * measurement_x.array()).matrix(),
+         (2 * measurement_y.array()).matrix(),
+         (2 * measurement_z.array()).matrix();
+
+    // Solve the normal system of equations, sum(D') = D'*D*v;
+    Eigen::VectorXd v(9);
+    v = (D.transpose()*D).ldlt().solve(D.transpose().rowwise().sum());
+
+    // Form the algebraic form of the ellipsoid
+    Eigen::Matrix4d A;
+    A << v(0), v(3), v(4), v(6),
+         v(3), v(1), v(5), v(7),
+         v(4), v(5), v(2), v(8),
+         v(6), v(7), v(8), -1;
+
+    // Find the center of the ellipsoid
+    Eigen::Vector3d center;
+    center = -A.block(0,0,3,3).ldlt().solve(Eigen::Vector3d(v(6), v(7), v(8)));
+
+    // Form the corresponding rigid transformation matrix
+    Eigen::Matrix4d T;
+    T.setIdentity();
+    T(3,0) = center(0);
+    T(3,1) = center(1);
+    T(3,2) = center(2);
+
+    // Translate to the center
+    Eigen::Matrix4d R = T * A * T.transpose();
+
+    // Solve the eigenproblem, which will have only real components
+    Eigen::Matrix3d Q;
+    Q = R.block(0,0,3,3) / -R(3,3);
+
+    // Solve the eigenproblem, which will have only real components
+    Eigen::EigenSolver<Eigen::MatrixXd> es;
+    es.compute(Q, true);
+    Eigen::MatrixXd evals = es.eigenvalues().real().asDiagonal();
+    Eigen::MatrixXd evecs = es.eigenvectors().real();
+
+    // Calculate the ellipsoid's radii.
+    Eigen::Matrix3d radii;
+    radii = evals.inverse().array().sqrt().matrix();
+
+    // Compute the soft iron correction from the principal axis of the ellipsoid.
+    // This is what scales the ellipsoid to the unit sphere. The 0.5 is the radius
+    // of the unit sphere
+    // NOTE: had to switch X and Y axis to fit original data
+    Eigen::Matrix3d W;
+    W.setZero(3,3);
+    W(0,0) = 1/radii(0,0);
+    W(1,1) = 1/radii(1,1);
+    W(2,2) = 1/radii(2,2);
+
+    Eigen::Matrix3d RR;
+
+    RR << evecs.col(0), evecs.col(1), evecs.col(2);
+
+    // Calculate soft magnetic rotation
+    Eigen::Matrix3d b_soft;
+    b_soft = RR*W*RR.transpose();
+
+    // Compute hard magnetic translation
+    Eigen::Vector3d b_hard;
+    b_hard = center;
+
+    // Correct data set and visualize, using new calibration coefficients
+    Eigen::MatrixXd dummyTmp(measurement_x.rows(),4);
+    Eigen::Matrix4d translationMat;
+    dummyTmp << measurement_x, measurement_y, measurement_z, Eigen::MatrixXd::Ones(measurement_x.rows(),1);
+    translationMat << Eigen::MatrixXd::Identity(3,3), Eigen::MatrixXd::Zero(3,1),
+            -b_hard(0), -b_hard(1), -b_hard(2), 1;
+    Eigen::MatrixXd B_temp = (dummyTmp*translationMat).leftCols(3);
+    Eigen::MatrixXd B = (b_soft * B_temp.transpose()).transpose();
+
+    // Convert to QVector
+    QVector< QVector<double> > correctedData;
+    correctedData.resize(B.rows());
+    for (int i=0; i<B.rows(); i++) {
+         correctedData[i] = QVector<double>() << B(i,0) << B(i,1) << B(i,2);
+    }
+
+    // Check if all sectors are covered by at least NUM_POINTS_IN_SPHERE_SECTOR points
+    Eigen::MatrixXi sector = Eigen::MatrixXi::Zero(2*SPHERE_RADIAL_SECTORS, SPHERE_AZIMUTH_SECTORS);
+
+    foreach (QVector<double> point, correctedData) {
+        // Compute 2D radius and azimuth
+        const double a_D = fmod(atan2(point[1], point[0]) * RAD2DEG + 360, 360);
+        const double r = sqrt(point[0]*point[0] + point[1]*point[1]) * 180;
+
+        // Determine which bin is filled
+        uint8_t whichHemisphere = (point[2] > 0) ? 0 : 1;
+        uint8_t thetaBin = floor(a_D * (SPHERE_AZIMUTH_SECTORS/360.0));
+        uint8_t radiusBin = floor(r * ((SPHERE_RADIAL_SECTORS)/180.0));
+        if (radiusBin >= SPHERE_RADIAL_SECTORS) {
+            radiusBin = SPHERE_RADIAL_SECTORS - 1;
+        }
+
+        // Fill the bin
+        sector(whichHemisphere*SPHERE_RADIAL_SECTORS + radiusBin, thetaBin) = sector(whichHemisphere + radiusBin, thetaBin)+1;
+    }
+
+    QVector< QVector<float> > sectorPercent(2*SPHERE_RADIAL_SECTORS);;
+    uint16_t sphereCompletion = 0;
+    for (int i=0; i<2*SPHERE_RADIAL_SECTORS; i++) {
+        sectorPercent[i].resize(SPHERE_AZIMUTH_SECTORS);
+        for (int j=0; j<SPHERE_AZIMUTH_SECTORS; j++) {
+            if (sector(i,j) >= MINIMUM_POINTS_IN_SPHERE_SECTOR) {
+                sphereCompletion++;
+                sectorPercent[i][j] = 1.0;
+            } else {
+                sectorPercent[i][j] = (float)(sector(i,j)) / MINIMUM_POINTS_IN_SPHERE_SECTOR;
+            }
+        }
+    }
+
+    // Send data to visualization.
+    emit updateEllipsoidFit(correctedData, sectorPercent, false);
+
+    // Check if calibration is complete
+    if (sphereCompletion == 2 * SPHERE_RADIAL_SECTORS * SPHERE_AZIMUTH_SECTORS) {
+        emit calibrationCompleted();
+        emit updateEllipsoidFit(correctedData, (QVector< QVector<float> >) ((float)NULL), true); // Cast to float first to prevent compiler warning
+
+        qDebug() << "Calibration successful. b_hard: " <<
+                    b_hard(0) << b_hard(1) << b_hard(2) <<
+                    "\nb_soft:" << b_soft(0,0) << b_soft(0,1) << b_soft(0,2) << "\n" <<
+                    b_soft(1,0) << b_soft(1,1) << b_soft(1,2) << "\n" <<
+                    b_soft(2,0) << b_soft(2,1) << b_soft(2,2);
+    }
+
+    return sphereCompletion;
+}
+
 
 /**
  * @brief Calibration::tempCalProgressChanged Compute a polynominal fit to all

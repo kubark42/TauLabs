@@ -57,6 +57,7 @@ public:
 private:
     enum CALIBRATION_STATE {
         IDLE, LEVELING, YAW_ORIENTATION,
+        ELLIPSOIDAL_CALIBRATION_COLLECT,
         SIX_POINT_WAIT1, SIX_POINT_COLLECT1,
         SIX_POINT_WAIT2, SIX_POINT_COLLECT2,
         SIX_POINT_WAIT3, SIX_POINT_COLLECT3,
@@ -84,6 +85,12 @@ public slots:
 
     //! Indicates UAV is in a position to collect data during 6pt calibration
     void doSaveSixPointPosition();
+
+    //! Start a sensor calibration using the ellipsoid fit technique
+    void doEllipsoidCalibration();
+
+    //! Cancels the ellipsoidal fit calibration routine
+    void doCancelEllipsoidCalibration();
 
     //! Start collecting gyro temp calibration data
     void doStartTempCal();
@@ -119,6 +126,9 @@ signals:
 
     //! Change the UAV visualization
     void updatePlane(int position);
+
+    //! Update the points fit to the ellipsoid
+    void updateEllipsoidFit(QVector<QVector<double> >, QVector< QVector<float> >, bool);
 
     //! Show an instruction to the user for six point calibration
     void showSixPointMessage(QString message);
@@ -204,6 +214,9 @@ private:
     static const int NUM_SENSOR_UPDATES_LEVELING = 300;
     static const int NUM_SENSOR_UPDATES_YAW_ORIENTATION = 300;
     static const int NUM_SENSOR_UPDATES_SIX_POINT = 100;
+    static const int MINIMUM_POINTS_IN_SPHERE_SECTOR = 12;
+    static const int SPHERE_RADIAL_SECTORS = 2;
+    static const int SPHERE_AZIMUTH_SECTORS = 4;
     static const int SENSOR_UPDATE_PERIOD = 20;
     static const int NON_SENSOR_UPDATE_PERIOD = 0;
     double MIN_TEMPERATURE_RANGE;
@@ -224,6 +237,9 @@ protected:
     //! Connect and speed up or disconnect a sensor
     void connectSensor(sensor_type sensor, bool connect, uint16_t speed = SENSOR_UPDATE_PERIOD);
 
+    //! Store a measurement for later use calculating the ellipsoid
+    bool storeEllipsoidCalibrationMeasurement(UAVObject *obj);
+
     //! Store a measurement at this position and indicate if it is the last one
     bool storeSixPointMeasurement(UAVObject * obj, int position);
 
@@ -235,6 +251,9 @@ protected:
 
     //! Computes the scale and bias for the accelerometer and mag
     int computeScaleBias();
+
+    //! Computes the scale, bias, and rotation for the accelerometer and mag
+    int computeEllipsoidFit(QList<double> accum_x, QList<double> accum_y, QList<double> accum_z);
 
     int SixPointInConstFieldCal( double ConstMag, double x[6], double y[6], double z[6], double S[3], double b[3] );
     int LinearEquationsSolving(int nDim, double* pfMatr, double* pfVect, double* pfSolution);
