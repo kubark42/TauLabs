@@ -44,6 +44,11 @@
 #include <QMutex>
 
 class Ui_Widget;
+class QwtPolarPlot;
+class QwtPolarMarker;
+class QwtPolarGrid;
+class QwtPolarSpectrogram;
+class HemisphereSpectrogramData;
 
 class ConfigAttitudeWidget: public ConfigTaskWidget
 {
@@ -52,7 +57,7 @@ class ConfigAttitudeWidget: public ConfigTaskWidget
 public:
     ConfigAttitudeWidget(QWidget *parent = 0);
     ~ConfigAttitudeWidget();
-    
+
 protected:
     void showEvent(QShowEvent *event);
     void resizeEvent(QResizeEvent *event);
@@ -75,6 +80,24 @@ private:
     bool board_has_accelerometer;
     bool board_has_magnetometer;
 
+    void seuptEllipsoidDisplay();
+    QVector<QwtPolarMarker *> markerList;
+    QwtPolarPlot *upperHemisphere_plot;
+    QwtPolarPlot *lowerHemisphere_plot;
+    QwtPolarGrid *upperHemisphere_grid;
+    QwtPolarGrid *lowerHemisphere_grid;
+    QwtPolarSpectrogram *upperHemisphere_spectrogram;
+    QwtPolarSpectrogram *lowerHemisphere_spectrogram;
+    HemisphereSpectrogramData *upperHemisphere_spectrogramData;
+    HemisphereSpectrogramData *lowerHemisphere_spectrogramData;
+
+
+
+    QHBoxLayout *layout;
+
+
+
+
 private slots:
     //! Overriden method from the configTaskWidget to update UI
     virtual void refreshWidgetsValues(UAVObject * obj=NULL);
@@ -83,7 +106,7 @@ private slots:
     void displayPlane(int i);
 
     //! Display the point cloud superimposed on a unit sphere
-    void displayEllipsoidFit(QVector< QVector<double> > data);
+    void displayEllipsoidFit(QVector< QVector<double> > data, QVector< QVector<float> > sector, bool);
 
     // Slots for measuring the sensor noise
     void do_SetDirty();

@@ -23,7 +23,7 @@
       <attribute name="title">
        <string>Sensor Settings</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_7" stretch="0,0,0,0,0">
+      <layout class="QVBoxLayout" name="verticalLayout_7" stretch="0,0,0,0,0,0">
        <item>
         <widget class="QGroupBox" name="groupBox">
          <property name="title">
@@ -231,6 +231,49 @@
         </widget>
        </item>
        <item>
+        <widget class="QGroupBox" name="groupBox_6">
+         <property name="title">
+          <string>Enhanced magnetometer calibration</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_2">
+          <item row="0" column="0">
+           <widget class="QPushButton" name="pb_ellipsoidCalibration">
+            <property name="text">
+             <string>Start</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QCheckBox" name="checkBox">
+            <property name="text">
+             <string>Calculate sensor rotation bias</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <spacer name="horizontalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="0" column="2">
+           <widget class="QPushButton" name="pb_ellipsoidCalibrationCancel">
+            <property name="text">
+             <string>Cancel</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
         <widget class="QGroupBox" name="groupBox_4">
          <property name="title">
           <string>Automatic level detection</string>
@@ -243,6 +286,26 @@
             </property>
             <property name="textVisible">
              <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QPushButton" name="levelingAndBiasStart">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Takes the current attitude as level and additionally computes the&lt;/p&gt;&lt;p&gt;z-accel offset to match gravity. This produces a more accurate&lt;/p&gt;&lt;p&gt;altitude hold for VTOL aircrafts.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="text">
+             <string>Start and Zero Vertical</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Place vehicle level and click start.</string>
             </property>
            </widget>
           </item>
@@ -269,26 +332,6 @@
             </property>
             <property name="text">
              <string>Start</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label">
-            <property name="text">
-             <string>Place vehicle level and click start.</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QPushButton" name="levelingAndBiasStart">
-            <property name="enabled">
-             <bool>false</bool>
-            </property>
-            <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Takes the current attitude as level and additionally computes the&lt;/p&gt;&lt;p&gt;z-accel offset to match gravity. This produces a more accurate&lt;/p&gt;&lt;p&gt;altitude hold for VTOL aircrafts.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="text">
-             <string>Start and Zero Vertical</string>
             </property>
            </widget>
           </item>
@@ -1293,6 +1336,7 @@ specific calibration button on top of the screen.</string>
   </customwidget>
  </customwidgets>
  <resources>
+  <include location="../coreplugin/core.qrc"/>
   <include location="../coreplugin/core.qrc"/>
  </resources>
  <connections/>

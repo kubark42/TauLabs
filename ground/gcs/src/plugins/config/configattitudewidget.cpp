@@ -57,11 +57,15 @@
 
 #include <qwt/src/qwt_symbol.h>
 #include <qwt/src/qwt_legend.h>
+#include <qwt/src/qwt_color_map.h>
+#include <qwt/src/qwt_raster_data.h>
 #include <qwt/src/qwt_scale_engine.h>
 
 #include <qwtpolar/src/qwt_polar_renderer.h>
 #include <qwtpolar/src/qwt_polar_grid.h>
 #include <qwtpolar/src/qwt_polar_marker.h>
+#include <qwtpolar/src/qwt_polar_spectrogram.h>
+
 
 
 #define sign(x) ((x < 0) ? -1 : 1)
@@ -72,6 +76,71 @@
 const double ConfigAttitudeWidget::maxVarValue = 0.1;
 
 // *****************
+
+class HemisphereSpectrogramData: public QwtRasterData
+{
+public:
+    HemisphereSpectrogramData(bool isLowerHemisphere)
+    {
+        this->isLowerHemisphere = isLowerHemisphere;
+        setInterval(Qt::ZAxis, QwtInterval(0.0, 1.0));
+    }
+
+    virtual double value( double azimuth, double radius ) const
+    {
+        // If there is no sectorPercent data, show default color
+        if (sectorPercent.empty() == true) {
+            return 0;
+        }
+
+        // Determine number of sectors
+        uint16_t numRadialSectors = sectorPercent.length()/2;
+        uint16_t numAzimulthalSectors = sectorPercent[0].length();
+
+        // Determine in which sector the point falls.
+        uint16_t radiusIdx = floor(radius / 180.0 * numRadialSectors);
+        uint16_t azimuthIdx = floor(azimuth / 360.0 * numAzimulthalSectors);
+
+        // Saturate the index
+        if (azimuthIdx >= numAzimulthalSectors)
+            azimuthIdx = numAzimulthalSectors - 1;
+        if (radiusIdx >= numRadialSectors)
+            radiusIdx = numRadialSectors - 1;
+
+        double category = floor(sectorPercent[radiusIdx + numRadialSectors*isLowerHemisphere][azimuthIdx]*3)/3;
+
+        return category;
+    }
+
+    QVector< QVector<float> > sectorPercent;
+
+private:
+    bool isLowerHemisphere;
+};
+
+/**
+ * @brief The ColorMap class Defines a program-wide colormap
+ */
+class ColorMap: public QwtLinearColorMap
+{
+public:
+    ColorMap():
+        QwtLinearColorMap()
+    {
+        // Set transparency
+        uint8_t alpha = 35;
+
+        // The color interval must be created separately. These are the absolute
+        // maximum and minimum values of the colormap. The colorstops define the
+        // range in between.
+        setColorInterval(QColor(255, 255, 255, 0), QColor(0, 255, 0, alpha));
+
+        // Input values given normalized to 1.
+        addColorStop( 0.001, QColor(255,   0, 0, alpha));
+        addColorStop( 0.500, QColor(255, 255, 0, alpha));
+    }
+};
+
 
 /**
  * @brief The JetColorMap class Colormap based off of MATLAB's jet colormap
@@ -135,6 +204,9 @@ ConfigAttitudeWidget::ConfigAttitudeWidget(QWidget *parent) :
 {
     m_ui->setupUi(this);
 
+    // Initialization of the ellipsoid display widget
+    seuptEllipsoidDisplay();
+
     // Initialization of the Paper plane widget
     m_ui->sixPointHelp->setScene(new QGraphicsScene(this));
 
@@ -187,6 +259,8 @@ ConfigAttitudeWidget::ConfigAttitudeWidget(QWidget *parent) :
     connect(m_ui->sixPointStart, SIGNAL(clicked()), &calibration, SLOT(doStartSixPoint()));
     connect(m_ui->sixPointSave, SIGNAL(clicked()), &calibration, SLOT(doSaveSixPointPosition()));
     connect(m_ui->sixPointCancel, SIGNAL(clicked()), &calibration, SLOT(doCancelSixPoint()));
+    connect(m_ui->pb_ellipsoidCalibration, SIGNAL(clicked()), &calibration, SLOT(doEllipsoidCalibration()));
+    connect(m_ui->pb_ellipsoidCalibrationCancel, SIGNAL(clicked()), &calibration, SLOT(doCancelEllipsoidCalibration()));
     connect(m_ui->cbCalibrateAccels, SIGNAL(clicked()), this, SLOT(configureSixPoint()));
     connect(m_ui->cbCalibrateMags, SIGNAL(clicked()), this, SLOT(configureSixPoint()));
     connect(m_ui->startTempCal, SIGNAL(clicked()), &calibration, SLOT(doStartTempCal()));
@@ -203,11 +277,13 @@ ConfigAttitudeWidget::ConfigAttitudeWidget(QWidget *parent) :
     connect(&calibration, SIGNAL(sixPointProgressChanged(int)), m_ui->sixPointProgress, SLOT(setValue(int)));
     connect(&calibration, SIGNAL(showSixPointMessage(QString)), m_ui->sixPointCalibInstructions, SLOT(setText(QString)));
     connect(&calibration, SIGNAL(updatePlane(int)), this, SLOT(displayPlane(int)));
+    connect(&calibration, SIGNAL(updateEllipsoidFit(QVector<QVector<double> >, QVector< QVector<float> >, bool)), this, SLOT(displayEllipsoidFit(QVector<QVector<double> >, QVector< QVector<float> >, bool)));
 
     // Let the calibration gadget control some control enables
     connect(&calibration, SIGNAL(toggleSavePosition(bool)), m_ui->sixPointSave, SLOT(setEnabled(bool)));
     connect(&calibration, SIGNAL(toggleControls(bool)), m_ui->sixPointStart, SLOT(setEnabled(bool)));
     connect(&calibration, SIGNAL(toggleControls(bool)), m_ui->sixPointCancel, SLOT(setDisabled(bool)));
+    connect(&calibration, SIGNAL(toggleControls(bool)), m_ui->pb_ellipsoidCalibration, SLOT(setEnabled(bool)));
     connect(&calibration, SIGNAL(toggleControls(bool)), m_ui->yawOrientationStart, SLOT(setEnabled(bool)));
     connect(&calibration, SIGNAL(toggleControls(bool)), m_ui->levelingStart, SLOT(setEnabled(bool)));
     connect(&calibration, SIGNAL(toggleControls(bool)), m_ui->levelingAndBiasStart, SLOT(setEnabled(bool)));
@@ -252,21 +328,26 @@ void ConfigAttitudeWidget::resizeEvent(QResizeEvent *event)
 
 
 /**
-  Plot the point cloud
-  */
-void ConfigAttitudeWidget::displayEllipsoidFit(QVector< QVector<double> > data)
+ * @brief ConfigAttitudeWidget::seuptEllipsoidDisplay
+ */
+void ConfigAttitudeWidget::seuptEllipsoidDisplay()
 {
-    QwtPolarPlot *upperHemisphere_plot = new QwtPolarPlot(QwtText("Upper hemisphere"), this);
-    QwtPolarPlot *lowerHemisphere_plot = new QwtPolarPlot(QwtText("Lower hemisphere"), this);
+    /* Scatterpoint graph*/
+    upperHemisphere_plot = new QwtPolarPlot(QwtText("Upper hemisphere"), this);
+    lowerHemisphere_plot = new QwtPolarPlot(QwtText("Lower hemisphere"), this);
+
+    layout = new QHBoxLayout(m_ui->sixPointCalibInstructions);
+    layout->addWidget(upperHemisphere_plot, 10);
+    layout->addWidget(lowerHemisphere_plot, 10);
 
     const QwtInterval radialInterval(0.0, 180.0);
     const QwtInterval azimuthInterval(0.0, 360.0);
 
     // Configure polar plots
     upperHemisphere_plot->setAutoReplot(false);
-    upperHemisphere_plot->setPlotBackground(QColor(253,253,253));
+    upperHemisphere_plot->setPlotBackground(Qt::white);
     lowerHemisphere_plot->setAutoReplot(false);
-    lowerHemisphere_plot->setPlotBackground(QColor(253,253,253));
+    lowerHemisphere_plot->setPlotBackground(Qt::white);
 
     // Configure origin angles
     upperHemisphere_plot->setAzimuthOrigin(M_PI/2.0);
@@ -294,8 +375,8 @@ void ConfigAttitudeWidget::displayEllipsoidFit(QVector< QVector<double> > data)
         radialInterval.minValue(), radialInterval.maxValue());
 
     // Configure grids, axes
-    QwtPolarGrid *upperHemisphere_grid = new QwtPolarGrid();
-    QwtPolarGrid *lowerHemisphere_grid = new QwtPolarGrid();
+    upperHemisphere_grid = new QwtPolarGrid();
+    lowerHemisphere_grid = new QwtPolarGrid();
     upperHemisphere_grid->setPen(QPen(Qt::black));
     lowerHemisphere_grid->setPen(QPen(Qt::black));
     for (int scaleId = 0; scaleId < QwtPolar::ScaleCount; scaleId++)
@@ -330,6 +411,37 @@ void ConfigAttitudeWidget::displayEllipsoidFit(QVector< QVector<double> > data)
     upperHemisphere_grid->attach(upperHemisphere_plot);
     lowerHemisphere_grid->attach(lowerHemisphere_plot);
 
+    /* Raster graph. This provides the background shading. */
+    upperHemisphere_spectrogram = new QwtPolarSpectrogram();
+    lowerHemisphere_spectrogram = new QwtPolarSpectrogram();
+    upperHemisphere_spectrogramData = new HemisphereSpectrogramData(false);
+    lowerHemisphere_spectrogramData = new HemisphereSpectrogramData(true);
+    upperHemisphere_spectrogram->setPaintAttribute(QwtPolarSpectrogram::ApproximatedAtan, true);
+    lowerHemisphere_spectrogram->setPaintAttribute(QwtPolarSpectrogram::ApproximatedAtan, true);
+    upperHemisphere_spectrogram->setRenderThreadCount(0); // use multi threading
+    lowerHemisphere_spectrogram->setRenderThreadCount(0); // use multi threading
+    upperHemisphere_spectrogram->setData(upperHemisphere_spectrogramData);
+    lowerHemisphere_spectrogram->setData(lowerHemisphere_spectrogramData);
+    upperHemisphere_spectrogram->setColorMap(new ColorMap());
+    lowerHemisphere_spectrogram->setColorMap(new ColorMap());
+
+    upperHemisphere_spectrogram->attach(upperHemisphere_plot);
+    lowerHemisphere_spectrogram->attach(lowerHemisphere_plot);
+}
+
+/**
+ * @brief ConfigAttitudeWidget::displayEllipsoidFit Plot the point cloud
+ * @param data n x 3 matrix of points
+ */
+void ConfigAttitudeWidget::displayEllipsoidFit(QVector< QVector<double> > data, QVector< QVector<float> > sectorPercent, bool lastRun)
+{
+    /* Scatterpoint */
+    // Clear old marker points
+    foreach (QwtPolarMarker *marker, markerList) {
+        marker->detach();
+    }
+    markerList.clear();
+
     // Plot scatter points. The color represents the deviation from the unit sphere
     foreach (QVector<double> point, data) {
         const double a_D = atan2(point[1], point[0]) * RAD2DEG;
@@ -344,8 +456,7 @@ void ConfigAttitudeWidget::displayEllipsoidFit(QVector< QVector<double> > data)
 
         QwtPolarMarker *marker = new QwtPolarMarker();
         marker->setPosition(QwtPointPolar(a_D, r));
-        marker->setSymbol(new QwtSymbol(QwtSymbol::Ellipse,
-            QBrush(color), QPen(color), QSize(4, 4)));
+        marker->setSymbol(new QwtSymbol(QwtSymbol::Ellipse, QBrush(color), QPen(color), QSize(4, 4)));
         marker->setLabelAlignment(Qt::AlignHCenter | Qt::AlignTop);
 
         // If point is on or above the plane, plot in the upper hemisphere. Otherwise, plot in the lower hemisphere.
@@ -353,7 +464,22 @@ void ConfigAttitudeWidget::displayEllipsoidFit(QVector< QVector<double> > data)
             marker->attach(upperHemisphere_plot);
         else
             marker->attach(lowerHemisphere_plot);
+
+        markerList.append(marker);
     }
+
+    // Replot last point as a large X marker with a bright color, making it clear where the magnetometer is currently pointed
+    markerList.last()->setSymbol(new QwtSymbol(QwtSymbol::XCross, QBrush(Qt::magenta), QPen(Qt::magenta), QSize(14, 14)));
+
+    /* Raster map */
+    if (!(data.length() % 20) || lastRun == true) {
+        upperHemisphere_spectrogramData->sectorPercent = sectorPercent;
+        lowerHemisphere_spectrogramData->sectorPercent = sectorPercent;
+    }
+
+    // Trigger graph redraw
+    upperHemisphere_plot->replot();
+    lowerHemisphere_plot->replot();
 }
 
 
