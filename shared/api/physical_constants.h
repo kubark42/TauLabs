@@ -80,6 +80,12 @@
 #define WGS84_EPS             8.1819190842622e-2f // first eccentricity, i.e. sqrtf(1-WGS84_B^2/WGS84_A^2)
 #define WGS84_EPS2                6.694379990e-3f // first eccentricity squared, i.e. WGS84_EPS^2
 
+// Time conversions
+#define MS2SEC .001f
+#define SEC2MS 1000.0f
+#define US2SEC .000001f
+#define SEC2US 1000000.0f
+
 // Magnetic model parameters (from http://www.ngdc.noaa.gov/geomag/WMM/wmm_ddownload.shtml)
 // Note: MUST be periodically updated. Please also update WorldMagneticModel.c and worldmagneticmodel.c at same time
 // Last update is good until 2020 at the latest
