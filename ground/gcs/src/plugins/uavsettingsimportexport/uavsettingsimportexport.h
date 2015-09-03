@@ -32,6 +32,8 @@
 #include "uavsettingsimportexport_global.h"
 #include "../../../../../build/ground/gcs/gcsversioninfo.h"
 #include "uavsettingsimportexportfactory.h"
+#include "uavtalk/telemetrymanager.h"
+
 class UAVSETTINGSIMPORTEXPORT_EXPORT UAVSettingsImportExportPlugin : public ExtensionSystem::IPlugin
 { 
     Q_OBJECT
@@ -44,11 +46,10 @@ public:
    void extensionsInitialized(); 
    bool initialize(const QStringList & arguments, QString * errorString); 
    void shutdown(); 
+
 private:
    UAVSettingsImportExportFactory *mf;
-
-
-
+   TelemetryManager *telMngr;
 }; 
 
 #endif // UAVSETTINGSIMPORTEXPORT_H
