@@ -63,7 +63,6 @@ UAVSettingsImportExportFactory::UAVSettingsImportExportFactory(QObject *parent):
     // Add Menu entry
     Core::ActionManager *am = Core::ICore::instance()->actionManager();
     Core::ActionContainer *ac = am->actionContainer(Core::Constants::M_FILE);
-
     Core::Command *cmd = am->registerAction(new QAction(this),
                                             "UAVSettingsImportExportPlugin.UAVSettingsExport",
                                             QList<int>() <<
@@ -416,13 +415,13 @@ void UAVSettingsImportExportFactory::exportUAVSettings()
     msgBox.exec();
 }
 
+// Slot called when a new session is started
 void UAVSettingsImportExportFactory::backupUAVSettings()
 {
     QString fileName = "UAVSettingsBackup.uav";
     bool fullExport = true;
 
-    // generate an XML Doc
-    qDebug()<<"Starting UAV settings backup";
+    // Generate an XML doc containing all the Settings UAVObjects
     QString xml = createXMLDocument(Settings, fullExport);
 
     // save file
@@ -430,9 +429,8 @@ void UAVSettingsImportExportFactory::backupUAVSettings()
     if (file.open(QIODevice::WriteOnly) &&
             (file.write(xml.toLatin1()) != -1)) {
         file.close();
-        qDebug()<<"Successfully backed up UAV settings to" << fileName;
     } else {
-        qDebug()<<"Unable to backup UAV settings";
+        qDebug()<<"Unable to backup UAV settings to" << fileName;
     }
     return;
 }
