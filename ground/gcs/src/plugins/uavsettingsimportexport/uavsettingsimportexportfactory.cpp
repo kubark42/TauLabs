@@ -52,6 +52,9 @@
 #include <QFileDialog>
 #include <QMessageBox>
 
+// for UAVObject settings backup
+#include "utils/pathutils.h"
+
 UAVSettingsImportExportFactory::~UAVSettingsImportExportFactory()
 {
     // Do nothing
@@ -219,6 +222,12 @@ void UAVSettingsImportExportFactory::importUAVSettings()
     swui.exec();
 }
 
+// calculates md5 checksum of a QString
+QString UAVSettingsImportExportFactory::md5Checksum(QString str) {
+    QTextCodec *codec = QTextCodec::codecForName("ISO 8859-1");
+    QByteArray utf8 = codec->fromUnicode(str);
+    return QString(QCryptographicHash::hash(utf8,QCryptographicHash::Md5).toHex());
+}
 
 // Create an XML document from UAVObject database
 QString UAVSettingsImportExportFactory::createXMLDocument(const enum storedData what, const bool fullExport)
@@ -418,19 +427,77 @@ void UAVSettingsImportExportFactory::exportUAVSettings()
 // Slot called when a new session is started
 void UAVSettingsImportExportFactory::backupUAVSettings()
 {
-    QString fileName = "UAVSettingsBackup.uav";
     bool fullExport = true;
 
-    // Generate an XML doc containing all the Settings UAVObjects
-    QString xml = createXMLDocument(Settings, fullExport);
+    // Get CPUSerial
+    ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
+    UAVObjectUtilManager *utilMngr = pm->getObject<UAVObjectUtilManager>();
+    deviceDescriptorStruct board;
+    utilMngr->getBoardDescriptionStruct(board);
+    QString CPUSerial(utilMngr->getBoardCPUSerial().toHex());
 
-    // save file
-    QFile file(fileName);
-    if (file.open(QIODevice::WriteOnly) &&
-            (file.write(xml.toLatin1()) != -1)) {
-        file.close();
+    // Determine filename and directory of the UAVSettings cache
+    QString pathName = Utils::PathUtils().GetStoragePath()+"boardsettingscache"
+                       +QDir::separator()+CPUSerial+QDir::separator();
+    uint curtime = QDateTime::currentDateTime().toTime_t();
+    QString newFileName = pathName+QString::number(curtime)+".uav";
+
+    // If the UAVSettings cache directory doesn't exist, create it. Otherwise determine the most recent cache file
+    QString mrFileName;  // most recent cache file
+    QDir dir(pathName);
+    if (!dir.exists()) {
+        if (!dir.mkpath(".")) {
+            qDebug()<<"Unable to create directory '" << pathName << "' for UAVSettings cache.";
+            return;
+        }
     } else {
-        qDebug()<<"Unable to backup UAV settings to" << fileName;
+        // Find most recent UAVSettings cache file
+        QDirIterator it(pathName, QStringList() << "*.uav", QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            QString foundFileName = it.next();
+
+            // UAVSettings cache files begin with a timestamp. The most recent cache file
+            // lexicographically first (assuming system time is correct).
+            if (mrFileName.isNull() || foundFileName>mrFileName) {
+                mrFileName = foundFileName;
+            }
+        }
+    }
+
+    // Generate an XML string containing all the Settings UAVObjects
+    QString curSettings = createXMLDocument(Settings, fullExport);
+
+    // Compare current settings to the most recent UAVSettings cache file to see if settings have changed
+    bool createNewFile = true;
+    if (!mrFileName.isNull()) {
+        QFile mrFile(mrFileName);
+
+        if (mrFile.open(QFile::ReadOnly)) {
+            // Read contents of the most recent UAVSettings cache file
+            QTextStream in(&mrFile);
+            QString mrSettings = in.readAll();
+            mrFile.close();
+
+            // compare MD5 checksums of current settings and the most recent settings
+            QString mrSettingsMd5 = md5Checksum(mrSettings);
+            QString curSettingsMd5 = md5Checksum(curSettings);
+
+            if (curSettingsMd5 == mrSettingsMd5) {
+               // settings have not changed, no need to save a new cache
+               createNewFile = false;
+            }
+        }
+    }
+
+    // If UAVSettings have changed, then save new UAVSettings cache file
+    if (createNewFile) {
+        QFile newFile(newFileName);
+        if (newFile.open(QIODevice::WriteOnly) &&
+                (newFile.write(curSettings.toLatin1()) != -1)) {
+            newFile.close();
+        } else {
+            qDebug()<<"Unable to backup UAV settings to" << newFileName;
+        }
     }
     return;
 }

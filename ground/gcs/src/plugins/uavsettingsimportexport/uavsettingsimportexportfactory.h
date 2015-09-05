@@ -41,6 +41,7 @@ public:
 private:
     enum storedData { Settings, Data, Both };
     QString createXMLDocument(const enum storedData, const bool fullExport);
+    QString md5Checksum(QString str);
 
 public slots:
     void backupUAVSettings();
