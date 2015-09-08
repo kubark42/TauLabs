@@ -222,11 +222,17 @@ void UAVSettingsImportExportFactory::importUAVSettings()
     swui.exec();
 }
 
-// calculates md5 checksum of a QString
-QString UAVSettingsImportExportFactory::md5Checksum(QString str) {
-    QTextCodec *codec = QTextCodec::codecForName("ISO 8859-1");
+/**
+ * @brief UAVSettingsImportExportFactory::md5Checksum calculates md5 checksum of a QString
+ * @param str
+ * @return md5checksum of str
+ */
+QString UAVSettingsImportExportFactory::md5Checksum(QString str)
+{
+    QTextCodec *codec = QTextCodec::codecForName("ISO 8859-1"); // encoding scheme was chosen arbitrarily
     QByteArray utf8 = codec->fromUnicode(str);
-    return QString(QCryptographicHash::hash(utf8,QCryptographicHash::Md5).toHex());
+    QString checksum = QString(QCryptographicHash::hash(utf8, QCryptographicHash::Md5).toHex());
+    return checksum;
 }
 
 // Create an XML document from UAVObject database
@@ -424,12 +430,15 @@ void UAVSettingsImportExportFactory::exportUAVSettings()
     msgBox.exec();
 }
 
-// Slot called when a new session is started
+/**
+ * @brief UAVSettingsImportExportFactory::backupUAVSettings Creates cache file containing a vehicle's
+ * current UAVSettings. This function is a slot called when a new session is started.
+ */
 void UAVSettingsImportExportFactory::backupUAVSettings()
 {
     bool fullExport = true;
 
-    // Get CPUSerial
+    // Get CPUSerial (which is a byte array) as a hex string.
     ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
     UAVObjectUtilManager *utilMngr = pm->getObject<UAVObjectUtilManager>();
     deviceDescriptorStruct board;
@@ -437,12 +446,12 @@ void UAVSettingsImportExportFactory::backupUAVSettings()
     QString CPUSerial(utilMngr->getBoardCPUSerial().toHex());
 
     // Determine filename and directory of the UAVSettings cache
-    QString pathName = Utils::PathUtils().GetStoragePath()+"boardsettingscache"
-                       +QDir::separator()+CPUSerial+QDir::separator();
-    uint curtime = QDateTime::currentDateTime().toTime_t();
-    QString newFileName = pathName+QString::number(curtime)+".uav";
+    QString pathName = QDir::cleanPath(Utils::PathUtils().GetStoragePath() + "boardsettingscache"
+                                     + QDir::separator() + CPUSerial + QDir::separator());
+    quint32 currentTime = QDateTime::currentDateTime().toTime_t();
+    QString newFileName = QDir(pathName).filePath(QString::number(currentTime) + ".uav");
 
-    // If the UAVSettings cache directory doesn't exist, create it. Otherwise determine the most recent cache file
+    // If the UAVSettings cache directory doesn't exist, create it. Otherwise determine the most recent cache file.
     QString mrFileName;  // most recent cache file
     QDir dir(pathName);
     if (!dir.exists()) {
@@ -456,18 +465,19 @@ void UAVSettingsImportExportFactory::backupUAVSettings()
         while (it.hasNext()) {
             QString foundFileName = it.next();
 
-            // UAVSettings cache files begin with a timestamp. The most recent cache file
+            // UAVSettings cache filenames begin with a timestamp. The most recent cache file is
             // lexicographically first (assuming system time is correct).
-            if (mrFileName.isNull() || foundFileName>mrFileName) {
+            if ( mrFileName.isNull() || (foundFileName > mrFileName) ) {
                 mrFileName = foundFileName;
             }
         }
     }
 
     // Generate an XML string containing all the Settings UAVObjects
-    QString curSettings = createXMLDocument(Settings, fullExport);
+    QString currentSettings = createXMLDocument(Settings, fullExport);
 
-    // Compare current settings to the most recent UAVSettings cache file to see if settings have changed
+    // Compare the MD5 checksum of the current settings to the MD5 checksum of the most recent
+    // UAVSettings cache file to see if settings have changed
     bool createNewFile = true;
     if (!mrFileName.isNull()) {
         QFile mrFile(mrFileName);
@@ -480,9 +490,9 @@ void UAVSettingsImportExportFactory::backupUAVSettings()
 
             // compare MD5 checksums of current settings and the most recent settings
             QString mrSettingsMd5 = md5Checksum(mrSettings);
-            QString curSettingsMd5 = md5Checksum(curSettings);
+            QString currentSettingsMd5 = md5Checksum(currentSettings);
 
-            if (curSettingsMd5 == mrSettingsMd5) {
+            if (currentSettingsMd5 == mrSettingsMd5) {
                // settings have not changed, no need to save a new cache
                createNewFile = false;
             }
@@ -493,10 +503,10 @@ void UAVSettingsImportExportFactory::backupUAVSettings()
     if (createNewFile) {
         QFile newFile(newFileName);
         if (newFile.open(QIODevice::WriteOnly) &&
-                (newFile.write(curSettings.toLatin1()) != -1)) {
+                (newFile.write(currentSettings.toLatin1()) != -1)) {
             newFile.close();
         } else {
-            qDebug()<<"Unable to backup UAV settings to" << newFileName;
+            qDebug() << "Unable to backup UAV settings to" << newFileName;
         }
     }
     return;
