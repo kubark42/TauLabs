@@ -40,8 +40,11 @@ public:
 
 private:
     enum storedData { Settings, Data, Both };
+    enum which { Newest, Oldest };
     QString createXMLDocument(const enum storedData, const bool fullExport);
     QString md5Checksum(QString str);
+    QString getUAVSettingsCachePath();
+    QString findCache(QString pathName, const enum which what);
 
 public slots:
     void backupUAVSettings();

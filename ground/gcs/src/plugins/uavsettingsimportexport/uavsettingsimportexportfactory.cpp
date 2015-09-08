@@ -438,16 +438,8 @@ void UAVSettingsImportExportFactory::backupUAVSettings()
 {
     bool fullExport = true;
 
-    // Get CPUSerial (which is a byte array) as a hex string.
-    ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
-    UAVObjectUtilManager *utilMngr = pm->getObject<UAVObjectUtilManager>();
-    deviceDescriptorStruct board;
-    utilMngr->getBoardDescriptionStruct(board);
-    QString CPUSerial(utilMngr->getBoardCPUSerial().toHex());
-
     // Determine filename and directory of the UAVSettings cache
-    QString pathName = QDir::cleanPath(Utils::PathUtils().GetStoragePath() + "boardsettingscache"
-                                     + QDir::separator() + CPUSerial + QDir::separator());
+    QString pathName = getUAVSettingsCachePath();
     quint32 currentTime = QDateTime::currentDateTime().toTime_t();
     QString newFileName = QDir(pathName).filePath(QString::number(currentTime) + ".uav");
 
@@ -460,17 +452,7 @@ void UAVSettingsImportExportFactory::backupUAVSettings()
             return;
         }
     } else {
-        // Find most recent UAVSettings cache file
-        QDirIterator it(pathName, QStringList() << "*.uav", QDir::Files, QDirIterator::Subdirectories);
-        while (it.hasNext()) {
-            QString foundFileName = it.next();
-
-            // UAVSettings cache filenames begin with a timestamp. The most recent cache file is
-            // lexicographically first (assuming system time is correct).
-            if ( mrFileName.isNull() || (foundFileName > mrFileName) ) {
-                mrFileName = foundFileName;
-            }
-        }
+        mrFileName = findCache(pathName, Newest);
     }
 
     // Generate an XML string containing all the Settings UAVObjects
@@ -561,4 +543,54 @@ void UAVSettingsImportExportFactory::exportUAVData()
     msgBox.setText(tr("Data saved."));
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.exec();
+}
+
+/**
+ * @brief UAVSettingsImportExportFactory::getUAVSettingsCachePath determines base directory for
+ * UAVSetting cache files backup storage.
+ * @return returns path to the UAVSetting backup base directory
+ */
+QString UAVSettingsImportExportFactory::getUAVSettingsCachePath()
+{
+    // Get CPUSerial (which is a byte array) as a hex string.
+    ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
+    UAVObjectUtilManager *utilMngr = pm->getObject<UAVObjectUtilManager>();
+    deviceDescriptorStruct board;
+    utilMngr->getBoardDescriptionStruct(board);
+    QString CPUSerial(utilMngr->getBoardCPUSerial().toHex());
+
+    // Determine UAVSettings cache path
+    QString pathName = QDir::cleanPath(Utils::PathUtils().GetStoragePath() + "boardsettingscache"
+                                     + QDir::separator() + CPUSerial + QDir::separator());
+    return pathName;
+}
+
+/**
+ * @brief UAVSettingsImportExportFactory::findCache finds the oldest or newest cache file. In a
+ * given directory
+ * @param pathName directory where cache files are located for a specific board
+ * @param what enum that determines whether to return the 'Oldest' or 'Newest' cache file
+ * @return filename of the cache found. If no cache is found, null is returned.
+ */
+QString UAVSettingsImportExportFactory::findCache(QString pathName, const enum which what)
+{
+    QString fileName;
+
+    QDirIterator it(pathName, QStringList() << "*.uav", QDir::Files, QDirIterator::NoIteratorFlags);
+    while (it.hasNext()) {
+        QString foundFileName = it.next();
+
+        // UAVSettings cache filenames begin with a timestamp. The most recent cache file is
+        // lexicographically first (assuming system time is correct).
+        if (fileName.isNull()) {
+            fileName = foundFileName;
+        } else {
+            if (what == Newest && foundFileName > fileName) {
+                fileName = foundFileName;
+            } else if (what == Oldest && foundFileName < fileName) {
+                fileName = foundFileName;
+            }
+        }
+    }
+    return fileName;
 }
