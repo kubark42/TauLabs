@@ -28,6 +28,7 @@
 #define UAVSETTINGSIMPORTEXPORTFACTORY_H
 #include "uavsettingsimportexport_global.h"
 #include "uavobjectutil/uavobjectutilmanager.h"
+#include "uavtalk/telemetrymanager.h"
 #include "../../../../../build/ground/gcs/gcsversioninfo.h"
 class UAVSETTINGSIMPORTEXPORT_EXPORT UAVSettingsImportExportFactory : public QObject
 {
@@ -40,6 +41,10 @@ public:
 private:
     enum storedData { Settings, Data, Both };
     QString createXMLDocument(const enum storedData, const bool fullExport);
+    QString md5Checksum(QString str);
+
+public slots:
+    void backupUAVSettings();
 
 private slots:
     void importUAVSettings();
