@@ -442,8 +442,9 @@ void UAVSettingsImportExportFactory::backupUAVSettings()
 
     // Determine filename and directory of the UAVSettings cache
     QString pathName = getUAVSettingsCachePath();
-    quint32 currentTime = QDateTime::currentDateTime().toTime_t();
-    QString newFileName = QDir(pathName).filePath(QString::number(currentTime) + ".uav");
+    QString timestamp(QDate::currentDate().toString("yyyy-MM-dd") + "_"
+                    + QTime::currentTime().toString("HH-mm-ss"));
+    QString newFileName = QDir(pathName).filePath(timestamp + ".uav");
 
     // If the UAVSettings cache directory doesn't exist, create it. Otherwise determine the most recent cache file.
     QString mrFileName;  // most recent cache file
