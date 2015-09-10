@@ -30,8 +30,6 @@
 #include "uavobjectutil/uavobjectutilmanager.h"
 #include "uavtalk/telemetrymanager.h"
 #include "../../../../../build/ground/gcs/gcsversioninfo.h"
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
 
 class UAVSETTINGSIMPORTEXPORT_EXPORT UAVSettingsImportExportFactory : public QObject
 {
@@ -45,7 +43,7 @@ private:
     enum storedData { Settings, Data, Both };
     enum which { Newest, Oldest };
     bool HTTPUploadSuccess;
-    QNetworkAccessManager *accm;
+    class QNetworkAccessManager *networkAccessManager;
     QString createXMLDocument(const enum storedData, const bool fullExport);
     QString md5Checksum(QString str);
     QString getUAVSettingsCachePath();
@@ -62,7 +60,7 @@ private slots:
     void importUAVSettings();
     void exportUAVSettings();
     void exportUAVData();
-    void POSTReplyFinished(QNetworkReply *reply);
+    void POSTReplyFinished(class QNetworkReply *reply);
 
 signals:
     void importAboutToBegin();

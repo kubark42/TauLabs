@@ -55,6 +55,10 @@
 // for UAVObject settings backup
 #include "utils/pathutils.h"
 
+// for UAVObject settings upload
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+
 UAVSettingsImportExportFactory::~UAVSettingsImportExportFactory()
 {
     // Do nothing
@@ -93,8 +97,8 @@ UAVSettingsImportExportFactory::UAVSettingsImportExportFactory(QObject *parent):
     ac->addAction(cmd, Core::Constants::G_HELP_HELP);
     connect(cmd->action(), SIGNAL(triggered(bool)), this, SLOT(exportUAVData()));
 
-    accm = new QNetworkAccessManager(this);
-    QObject::connect(accm, SIGNAL(finished(QNetworkReply*)), this, SLOT(POSTReplyFinished(QNetworkReply*)));
+    networkAccessManager = new QNetworkAccessManager(this);
+    QObject::connect(networkAccessManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(POSTReplyFinished(QNetworkReply*)));
 }
 
 // Slot called by the menu manager on user action
@@ -718,7 +722,7 @@ bool UAVSettingsImportExportFactory::POSTCacheFile(QString fileName, QString CPU
     request.setRawHeader("Content-Length", QString::number(data.size()).toLatin1 ());
 
     // Send POST request.
-    accm->post(request,data);
+    networkAccessManager->post(request,data);
 
     // Wait for POST operation to finish.
     QEventLoop loop;
