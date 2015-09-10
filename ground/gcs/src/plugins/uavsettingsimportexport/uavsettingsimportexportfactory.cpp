@@ -93,6 +93,8 @@ UAVSettingsImportExportFactory::UAVSettingsImportExportFactory(QObject *parent):
     ac->addAction(cmd, Core::Constants::G_HELP_HELP);
     connect(cmd->action(), SIGNAL(triggered(bool)), this, SLOT(exportUAVData()));
 
+    accm = new QNetworkAccessManager(this);
+    QObject::connect(accm, SIGNAL(finished(QNetworkReply*)), this, SLOT(POSTReplyFinished(QNetworkReply*)));
 }
 
 // Slot called by the menu manager on user action
@@ -491,6 +493,10 @@ void UAVSettingsImportExportFactory::backupUAVSettings()
             qDebug() << "Unable to backup UAV settings to" << newFileName;
         }
     }
+
+    // Upload cache files to server.
+    uploadUAVSettings();
+
     return;
 }
 
@@ -593,4 +599,147 @@ QString UAVSettingsImportExportFactory::findCache(QString pathName, const enum w
         }
     }
     return fileName;
+}
+
+/**
+ * @brief UAVSettingsImportExportFactory::uploadUAVSettings uploads all locally
+ * stored UAVSettings cache files to server.
+ *
+ * TODO: this methond should be implemented as a slot that connects to some sort of a
+ * 'Network Connection Obtained' signal.
+ */
+void UAVSettingsImportExportFactory::uploadUAVSettings() {
+
+    // Determine where UAVSettings cache files are stored.
+    QString cachePathName = QDir::cleanPath(Utils::PathUtils().GetStoragePath() + "boardsettingscache"
+                                           + QDir::separator());
+    QDir cacheDirectory(cachePathName);
+
+    if (!cacheDirectory.exists()) {
+        // Nothing to upload.
+        return;
+    }
+
+    // Iterate over each CPU serial directory.
+    QDirIterator directoryIterator(cachePathName, QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::NoIteratorFlags);
+    while (directoryIterator.hasNext()) {
+        QString CPUSerialDirectoryName = directoryIterator.next();
+        QDir CPUSerialDirectory(CPUSerialDirectoryName);              // Directory name is the board CPU serial.
+        QString directoryName(CPUSerialDirectory.dirName());
+
+        // Iterate over all caches in a given CPU serial directory from the oldest to the newest.
+        QString cacheFileName = findCache(CPUSerialDirectoryName, Oldest);
+        while (!cacheFileName.isNull()) {
+
+            // Upload file to server via POST.
+            bool status = POSTCacheFile(cacheFileName, directoryName);
+            if (!status) {
+                // Either an error has occurred or the user is not on the proper network. Don't upload cache files.
+                return;
+            }
+
+            // Cache is safely backed up on server. Delete local copy.
+            QFile::remove(cacheFileName);
+
+            // Find next cache file.
+            cacheFileName = findCache(CPUSerialDirectoryName, Oldest);
+        }
+
+        // Directory should not contain any more cache files. If it is empty delete it.
+        if (isDirectoryEmpty(CPUSerialDirectoryName)) {
+            CPUSerialDirectory.rmdir(CPUSerialDirectoryName);
+        }
+    }
+
+    // Directory should not contain any more CPUSerial directories. Delete if empty.
+    if (isDirectoryEmpty(cachePathName)) {
+        cacheDirectory.rmdir(cachePathName);
+    }
+
+    return;
+}
+
+/**
+ * @brief UAVSettingsImportExportFactory::isDirectoryEmpty determines whether directory is empty
+ * @param dirName is a string containing the path to the directory
+ * @return true if dirName is empty, otherwise return false
+ */
+bool UAVSettingsImportExportFactory::isDirectoryEmpty(QString directoryName)
+{
+    QDir directory(directoryName);
+    QFileInfoList files = directory.entryInfoList(QDir::NoDotAndDotDot);
+
+    bool isEmpty = true;
+    foreach (QFileInfo item, files) {
+        if(item.exists()) {
+            isEmpty = false;
+            break;
+        }
+    }
+
+    return isEmpty;
+}
+
+/**
+ * @brief UAVSettingsImportExportFactory::POSTCacheFile uploads cache file to server via POST
+ * @param fileName file to be uploaded
+ * @param CPUSerial is the CPUserial that the
+ * @return
+ */
+bool UAVSettingsImportExportFactory::POSTCacheFile(QString fileName, QString CPUSerial)
+{
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        qDebug() << "error opening cache for reading: " << fileName;
+        return false;
+    }
+    QByteArray fileContent(file.readAll());
+    file.close();
+
+    // TODO: URL should not be hardcoded.
+    QNetworkRequest request(QUrl("http://ci-osx10-lvl1.local:8000/lvl1_UAVSettings/"));
+    QByteArray boundary = "---------------------------7da24f2e50046"; // Arbitrarily chosen boundary.
+
+    // Construct QByteArray containing the cache filename in the format: "<CPUSerial>_<timestamp>.uav"
+    QFileInfo fileInfo(fileName);
+    QString fileNameQString(CPUSerial + "_" + fileInfo.fileName());
+    QByteArray fileNameArray(fileNameQString.toLatin1());
+
+    // Construct POST request.
+    QByteArray data = boundary + "\r\n";
+    data += "Content-Disposition: form-data; name=\"file\"; ";
+    data += "filename=\"" + fileNameArray + "\"\r\n";
+    data += "Content-Type: text\r\n\r\n" + fileContent + "\r\n";
+    data += boundary + "--\r\n";
+
+    request.setRawHeader("Content-Type", "multipart/form-data; boundary=" + boundary);
+    request.setRawHeader("Content-Length", QString::number(data.size()).toLatin1 ());
+
+    // Send POST request.
+    accm->post(request,data);
+
+    // Wait for POST operation to finish.
+    QEventLoop loop;
+    loop.connect(this, SIGNAL(HTTPUploadEnded()), SLOT(quit()));
+    loop.exec();
+
+    return HTTPUploadSuccess;
+}
+
+/**
+ * @brief UAVSettingsImportExportFactory::POSTReplyFinished signals the end of a cache file
+ * upload and determines whether it was successful.
+ * @param reply contains the response from the server
+ */
+void UAVSettingsImportExportFactory::POSTReplyFinished(QNetworkReply *reply)
+{
+    reply->open(QIODevice::ReadOnly);
+    //QByteArray str=(reply->readAll());
+    //QString response = QString::fromUtf8(str.data(), str.size());
+
+    HTTPUploadSuccess = (reply->error() == QNetworkReply::NoError) ? true : false;
+
+    // Signal end of POST operation.
+    emit HTTPUploadEnded();
 }
