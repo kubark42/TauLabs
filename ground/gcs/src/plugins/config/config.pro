@@ -4,6 +4,7 @@ DEFINES += CONFIG_LIBRARY
 DEFINES += QWT_DLL
 
 QT += svg
+QT += network
 
 include(config_dependencies.pri)
 LIBS *= -l$$qtLibraryName(Qwt)

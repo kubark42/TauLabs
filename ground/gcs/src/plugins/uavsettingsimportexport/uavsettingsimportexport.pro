@@ -3,6 +3,7 @@ TEMPLATE = lib
 QT += xml
 QT += widgets
 QT += xmlpatterns
+QT += network
 TARGET = UAVSettingsImportExport
 DEFINES += UAVSETTINGSIMPORTEXPORT_LIBRARY
 include(../../taulabsgcsplugin.pri)

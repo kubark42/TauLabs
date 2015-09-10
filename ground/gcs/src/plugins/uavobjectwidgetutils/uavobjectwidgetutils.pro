@@ -2,6 +2,7 @@ TEMPLATE = lib
 TARGET = UAVObjectWidgetUtils
 DEFINES += UAVOBJECTWIDGETUTILS_LIBRARY
 QT += svg
+QT += network
 include(../../taulabsgcsplugin.pri)
 include(uavobjectwidgetutils_dependencies.pri)
 HEADERS += uavobjectwidgetutils_global.h \
