@@ -714,7 +714,7 @@ bool UAVSettingsImportExportFactory::POSTCacheFile(QString fileName, QString CPU
     data += "Content-Type: text\r\n\r\n" + fileContent + "\r\n";
     data += boundary + "--\r\n";
 
-    request.setRawHeader("Content-Type", "multipart/form-data; boundary=" + boundary);
+    request.setRawHeader("Content-Type", "text/plain; boundary=" + boundary);
     request.setRawHeader("Content-Length", QString::number(data.size()).toLatin1 ());
 
     // Send POST request.
