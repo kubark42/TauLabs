@@ -42,16 +42,18 @@ public:
 private:
     enum storedData { Settings, Data, Both };
     enum which { Newest, Oldest };
-    bool HTTPUploadSuccess;
     class QNetworkAccessManager *networkAccessManager;
+    QString serverURL;
     QString createXMLDocument(const enum storedData, const bool fullExport);
     QString md5Checksum(QString str);
     QString getUAVSettingsCachePath();
     QString findCache(QString pathName, const enum which what);
+    QString RetrieveCacheFile(QString cacheName, QString CPUSerial);
     void uploadUAVSettings();
     bool isDirectoryEmpty(QString directoryName);
-    bool POSTCacheFile(QString fileName, QString CPUSerial);
-
+    bool POSTCacheFile(QString pathName, QString CPUSerial);
+    bool verifyCacheUpload(QString pathName, QString CPUSerial);
+    bool createServerDirectory(QString directoryName);
 
 public slots:
     void backupUAVSettings();
@@ -60,12 +62,10 @@ private slots:
     void importUAVSettings();
     void exportUAVSettings();
     void exportUAVData();
-    void POSTReplyFinished(class QNetworkReply *reply);
 
 signals:
     void importAboutToBegin();
     void importEnded();
-    void HTTPUploadEnded();
 
 };
 
