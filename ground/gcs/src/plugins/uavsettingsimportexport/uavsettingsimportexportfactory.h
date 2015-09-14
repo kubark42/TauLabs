@@ -48,7 +48,8 @@ private:
     QString md5Checksum(QString str);
     QString getUAVSettingsCachePath();
     QString findCache(QString pathName, const enum which what);
-    QString RetrieveCacheFile(QString cacheName, QString CPUSerial);
+    QString retrieveCacheFile(QString cacheName, QString CPUSerial);
+    QString retrieveCacheFile(QString CPUSerial);
     void uploadUAVSettings();
     bool isDirectoryEmpty(QString directoryName);
     bool POSTCacheFile(QString pathName, QString CPUSerial);
