@@ -79,4 +79,5 @@ void UAVSettingsImportExportPlugin::extensionsInitialized()
     ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
     telMngr = pm->getObject<TelemetryManager>();
     connect(telMngr, SIGNAL(connected()), mf, SLOT(backupUAVSettings()));
+    mf->uploadUAVSettings();
 }

@@ -99,7 +99,7 @@ UAVSettingsImportExportFactory::UAVSettingsImportExportFactory(QObject *parent):
 
     networkAccessManager = new QNetworkAccessManager(this);
 
-    // Base URL to root directory of UAVSettings backups on remote server.
+    // URL to directory of UAVSettings backups on remote server.
     serverURL = "http://ci-osx10-lvl1.local:8000/lvl1_UAVSettings/";
 }
 
@@ -461,7 +461,7 @@ void UAVSettingsImportExportFactory::backupUAVSettings()
             return;
         }
     } else {
-        mrFileName = findCache(pathName, Newest);
+        mrFileName = findCacheFilename(pathName, CACHE_NEWEST);
     }
 
     // Generate an XML string containing all the Settings UAVObjects
@@ -579,16 +579,17 @@ QString UAVSettingsImportExportFactory::getUAVSettingsCachePath()
 }
 
 /**
- * @brief UAVSettingsImportExportFactory::findCache finds the oldest or newest cache file. In a
- * given directory
+ * @brief UAVSettingsImportExportFactory::findCacheFilename finds the oldest or newest cache file
+ * in a given directory.
  * @param pathName directory where cache files are located for a specific board
  * @param what enum that determines whether to return the 'Oldest' or 'Newest' cache file
  * @return filename of the cache found. If no cache is found, null is returned.
  */
-QString UAVSettingsImportExportFactory::findCache(QString pathName, const enum which what)
+QString UAVSettingsImportExportFactory::findCacheFilename(QString pathName, const enum whichCache which)
 {
     QString fileName;
 
+    // Iterate over UAV cache files.
     QDirIterator it(pathName, QStringList() << "*.uav", QDir::Files, QDirIterator::NoIteratorFlags);
     while (it.hasNext()) {
         QString foundFileName = it.next();
@@ -598,9 +599,9 @@ QString UAVSettingsImportExportFactory::findCache(QString pathName, const enum w
         if (fileName.isNull()) {
             fileName = foundFileName;
         } else {
-            if (what == Newest && foundFileName > fileName) {
+            if (which == CACHE_NEWEST && foundFileName > fileName) {
                 fileName = foundFileName;
-            } else if (what == Oldest && foundFileName < fileName) {
+            } else if (which == CACHE_OLDEST && foundFileName < fileName) {
                 fileName = foundFileName;
             }
         }
@@ -612,7 +613,7 @@ QString UAVSettingsImportExportFactory::findCache(QString pathName, const enum w
  * @brief UAVSettingsImportExportFactory::uploadUAVSettings uploads all locally
  * stored UAVSettings cache files to server.
  *
- * TODO: this method should be implemented as a slot that connects to some sort of a
+ * TODO [SW 2015-09-15]: this method should be implemented as a slot that connects to some sort of a
  * 'Network Connection Obtained' signal.
  */
 void UAVSettingsImportExportFactory::uploadUAVSettings() {
@@ -631,7 +632,7 @@ void UAVSettingsImportExportFactory::uploadUAVSettings() {
     QDirIterator directoryIterator(cachePathName, QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::NoIteratorFlags);
     while (directoryIterator.hasNext()) {
 
-        // Determine name of directory, which also the CPU Serial
+        // Determine name of directory. The directory name is the CPU serial.
         QString CPUSerialDirectoryName = directoryIterator.next();
         QDir CPUSerialDirectory(CPUSerialDirectoryName);
         QString directoryName(CPUSerialDirectory.dirName());
@@ -642,17 +643,17 @@ void UAVSettingsImportExportFactory::uploadUAVSettings() {
         }
 
         // Iterate over all caches in a given CPU serial directory from oldest to newest.
-        QString cacheFileName = findCache(CPUSerialDirectoryName, Oldest);
-        while (!cacheFileName.isNull()) {
+        bool continueIterating = true;
+        QString cacheFileName = findCacheFilename(CPUSerialDirectoryName, CACHE_OLDEST);
+        while (continueIterating) {
+            bool mustUploadCache;
 
-            bool uploadCache;
-
-            // Determine contents of the most recent remote cache on server.
-            QString mrRemoteCacheContent(retrieveCacheFile(directoryName));
+            // Get contents of the most recent remote cache on server.
+            QString mrRemoteCacheContent = retrieveCacheFile(directoryName);
 
             // Compare contents of local cache to the most recent remote cache on server.
             if (mrRemoteCacheContent.isNull()) {
-                uploadCache = true;
+                mustUploadCache = true;
             } else {
 
                 // Get MD5 checksum of remote cache.
@@ -660,22 +661,19 @@ void UAVSettingsImportExportFactory::uploadUAVSettings() {
 
                 // Get MD5 checksum of local cache.
                 QFile file(cacheFileName);
-                if (!file.open(QIODevice::ReadOnly))
-                {
+                if (!file.open(QIODevice::ReadOnly)) {
                     return;
                 }
-                QByteArray localCacheContentArray(file.readAll());
-                QString localCacheContent = QString::fromUtf8(localCacheContentArray.data(),
-                                                              localCacheContentArray.size());
+                QString localCacheContent(file.readAll());
                 QString mrLocalCacheMd5 = md5Checksum(localCacheContent);
                 file.close();
 
                 // If checksums match, the local cache is redundant. Don't bother uploading.
-                uploadCache = (mrLocalCacheMd5 == mrRemoteCacheMd5) ? false : true;
+                mustUploadCache = (mrLocalCacheMd5 == mrRemoteCacheMd5) ? false : true;
             }
 
             // Upload cache to server.
-            if (uploadCache) {
+            if (mustUploadCache) {
 
                 // Upload cache to server via POST.
                 bool status = POSTCacheFile(cacheFileName, directoryName);
@@ -690,24 +688,17 @@ void UAVSettingsImportExportFactory::uploadUAVSettings() {
                  }
             }
 
-            // Cache is either redundant or safely backed up on server. Delete local copy.
-            QFile::remove(cacheFileName);
+            // Cache is either redundant or safely backed up on server. Delete local copy save the most recent.
+            if (cacheFileName != findCacheFilename(CPUSerialDirectoryName, CACHE_NEWEST)) {
+                QFile::remove(cacheFileName);
 
-            // Find next cache.
-            cacheFileName = findCache(CPUSerialDirectoryName, Oldest);
-        }
-
-        // Directory should not contain any more cache files. Delete if empty.
-        if (isDirectoryEmpty(CPUSerialDirectoryName)) {
-            CPUSerialDirectory.rmdir(CPUSerialDirectoryName);
+                // Find next cache.
+                cacheFileName = findCacheFilename(CPUSerialDirectoryName, CACHE_OLDEST);
+            } else {
+                continueIterating = false;
+            }
         }
     }
-
-    // Directory should not contain any more CPUSerial directories. Delete if empty.
-    if (isDirectoryEmpty(cachePathName)) {
-        cacheDirectory.rmdir(cachePathName);
-    }
-
     return;
 }
 
@@ -745,8 +736,7 @@ bool UAVSettingsImportExportFactory::POSTCacheFile(QString pathName, QString CPU
 
     // Read contents of cache file.
     QFile file(pathName);
-    if (!file.open(QIODevice::ReadOnly))
-    {
+    if (!file.open(QIODevice::ReadOnly)) {
         return false;
     }
     QByteArray fileContent(file.readAll());
@@ -771,7 +761,7 @@ bool UAVSettingsImportExportFactory::POSTCacheFile(QString pathName, QString CPU
 
     // Send POST request.
     QNetworkReply *reply = networkAccessManager->post(request,data);
-    eventLoop.exec(); // Non-blocking wait until POST operation has finished
+    eventLoop.exec(); // Wait until POST operation has finished
 
     // Determine if request was successful.
     reply->open(QIODevice::ReadOnly);
@@ -795,7 +785,7 @@ QString UAVSettingsImportExportFactory::retrieveCacheFile(QString cacheName, QSt
     // Send GET request to retrieve file.
     QNetworkRequest request = QNetworkRequest(QUrl(serverURL + CPUSerial.toLatin1() + "/" + cacheName.toLatin1() + "/"));
     QNetworkReply *reply = networkAccessManager->get(request);
-    eventLoop.exec(); // Non-blocking wait until GET operation has finished.
+    eventLoop.exec(); // Wait until GET operation has finished.
 
     // Extract file contents from server response.
     QString response;
@@ -823,9 +813,10 @@ QString UAVSettingsImportExportFactory::retrieveCacheFile(QString CPUSerial)
     // Send GET request to retrieve the newest file.
     QNetworkRequest request = QNetworkRequest(QUrl(serverURL + CPUSerial.toLatin1() + "/" + "?newest=true/"));
     QNetworkReply *reply = networkAccessManager->get(request);
-    eventLoop.exec(); // Non-blocking wait until GET operation has finished.
+    eventLoop.exec(); // Wait until GET operation has finished.
 
-    // Extract file contents from server response.
+    // Extract file contents from server response. If the server cannot retrieve the file it will
+    // respond with a 404 error status.
     QString response;
     if (reply->error() == QNetworkReply::NoError) {
        QByteArray str=(reply->readAll());
@@ -850,7 +841,7 @@ bool UAVSettingsImportExportFactory::createServerDirectory(QString directoryName
     // Send the GET request to create directory.
     QNetworkRequest request = QNetworkRequest(QUrl(serverURL + directoryName.toLatin1() + "/" + "?create=true"+ "/"));
     QNetworkReply *reply = networkAccessManager->get(request);
-    eventLoop.exec(); // Non-blocking wait until GET operation has finished.
+    eventLoop.exec(); // Wait until GET operation has finished.
 
     bool success = (reply->error() == QNetworkReply::NoError) ? true : false;
     delete reply;
@@ -882,10 +873,14 @@ bool UAVSettingsImportExportFactory::verifyCacheUpload(QString pathName, QString
     QString cacheBaseName(fileInfo.fileName());
     QString remoteData = retrieveCacheFile(cacheBaseName, CPUSerial);
 
-    // Compute and compare checksums.
-    QString remoteDataMd5 = md5Checksum(remoteData);
-    QString localDataMd5  = md5Checksum(localData);
-
-    bool success = (remoteDataMd5 == localDataMd5) ? true : false;
+    bool success;
+    if (remoteData.isNull()) {
+        success = false;
+    } else {
+        // Compute and compare checksums.
+        QString remoteDataMd5 = md5Checksum(remoteData);
+        QString localDataMd5  = md5Checksum(localData);
+        success = (remoteDataMd5 == localDataMd5) ? true : false;
+    }
     return success;
 }

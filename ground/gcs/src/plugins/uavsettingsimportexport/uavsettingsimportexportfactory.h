@@ -38,19 +38,19 @@ class UAVSETTINGSIMPORTEXPORT_EXPORT UAVSettingsImportExportFactory : public QOb
 public:
     UAVSettingsImportExportFactory(QObject *parent = 0);
     ~UAVSettingsImportExportFactory();
+    void uploadUAVSettings();
 
 private:
     enum storedData { Settings, Data, Both };
-    enum which { Newest, Oldest };
+    enum whichCache { CACHE_NEWEST, CACHE_OLDEST };
     class QNetworkAccessManager *networkAccessManager;
     QString serverURL;
     QString createXMLDocument(const enum storedData, const bool fullExport);
     QString md5Checksum(QString str);
     QString getUAVSettingsCachePath();
-    QString findCache(QString pathName, const enum which what);
+    QString findCacheFilename(QString pathName, const enum whichCache which);
     QString retrieveCacheFile(QString cacheName, QString CPUSerial);
     QString retrieveCacheFile(QString CPUSerial);
-    void uploadUAVSettings();
     bool isDirectoryEmpty(QString directoryName);
     bool POSTCacheFile(QString pathName, QString CPUSerial);
     bool verifyCacheUpload(QString pathName, QString CPUSerial);
@@ -67,7 +67,6 @@ private slots:
 signals:
     void importAboutToBegin();
     void importEnded();
-
 };
 
 #endif // UAVSETTINGSIMPORTEXPORTFACTORY_H
