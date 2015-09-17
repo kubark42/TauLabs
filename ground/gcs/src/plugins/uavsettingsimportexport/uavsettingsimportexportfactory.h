@@ -30,6 +30,7 @@
 #include "uavobjectutil/uavobjectutilmanager.h"
 #include "uavtalk/telemetrymanager.h"
 #include "../../../../../build/ground/gcs/gcsversioninfo.h"
+
 class UAVSETTINGSIMPORTEXPORT_EXPORT UAVSettingsImportExportFactory : public QObject
 {
     Q_OBJECT
@@ -37,11 +38,23 @@ class UAVSETTINGSIMPORTEXPORT_EXPORT UAVSettingsImportExportFactory : public QOb
 public:
     UAVSettingsImportExportFactory(QObject *parent = 0);
     ~UAVSettingsImportExportFactory();
+    void uploadUAVSettings();
 
 private:
     enum storedData { Settings, Data, Both };
+    enum whichCache { CACHE_NEWEST, CACHE_OLDEST };
+    class QNetworkAccessManager *networkAccessManager;
+    QString serverURL;
     QString createXMLDocument(const enum storedData, const bool fullExport);
     QString md5Checksum(QString str);
+    QString getUAVSettingsCachePath();
+    QString findCacheFilename(QString pathName, const enum whichCache which);
+    QString retrieveCacheFile(QString cacheName, QString CPUSerial);
+    QString retrieveCacheFile(QString CPUSerial);
+    bool isDirectoryEmpty(QString directoryName);
+    bool POSTCacheFile(QString pathName, QString CPUSerial);
+    bool verifyCacheUpload(QString pathName, QString CPUSerial);
+    bool createServerDirectory(QString directoryName);
 
 public slots:
     void backupUAVSettings();
@@ -54,7 +67,6 @@ private slots:
 signals:
     void importAboutToBegin();
     void importEnded();
-
 };
 
 #endif // UAVSETTINGSIMPORTEXPORTFACTORY_H
