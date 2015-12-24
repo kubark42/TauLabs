@@ -1,11 +1,11 @@
 ###############################################################################
 # @file       Makefile
-# @author     Tau Labs, http://taulabs.org, Copyright (C) 2012-2015
+# @author     Kenn Sebesta, Copyright (C) 2015
 # @addtogroup 
 # @{
 # @addtogroup 
 # @{
-# @brief Makefile to build UAVObject code for Sparky2 board.
+# @brief Makefile to build UAVObject code for Snapdragon Flight.
 ###############################################################################
 #
 # This program is free software; you can redistribute it and/or modify
@@ -27,19 +27,17 @@
 
 UAVOBJSRCFILENAMES =
 UAVOBJSRCFILENAMES += acceldesired
+UAVOBJSRCFILENAMES += altitudeholdstate
 UAVOBJSRCFILENAMES += flightstats
 UAVOBJSRCFILENAMES += flightstatssettings
 UAVOBJSRCFILENAMES += geofencesettings
 UAVOBJSRCFILENAMES += groundpathfollowersettings
 UAVOBJSRCFILENAMES += loggingsettings
 UAVOBJSRCFILENAMES += loggingstats
-UAVOBJSRCFILENAMES += rfm22breceiver
-UAVOBJSRCFILENAMES += rfm22bstatus
-UAVOBJSRCFILENAMES += openlrs
-UAVOBJSRCFILENAMES += openlrsstatus
-UAVOBJSRCFILENAMES += hwsparky2
-UAVOBJSRCFILENAMES += altitudeholdstate
+UAVOBJSRCFILENAMES += hwsnapdragonflight
 UAVOBJSRCFILENAMES += hottsettings
+UAVOBJSRCFILENAMES += opticalflowsettings
+UAVOBJSRCFILENAMES += rangefinderdistance
 UAVOBJSRCFILENAMES += picocsettings
 UAVOBJSRCFILENAMES += picocstatus
 
