@@ -1,11 +1,12 @@
 ###############################################################################
 # @file       Makefile
 # @author     Tau Labs, http://taulabs.org, Copyright (C) 2012-2015
-# @addtogroup 
+# @author     Kenn Sebesta, Copyright (C) 2015
+# @addtogroup
 # @{
 # @addtogroup 
 # @{
-# @brief Makefile to build firmware for the Sparky2 board.
+# @brief Makefile to build firmware for the Snapdragon Flight.
 ###############################################################################
 #
 # This program is free software; you can redistribute it and/or modify
@@ -54,15 +55,10 @@ OPTMODULES += TxPID
 OPTMODULES += Battery
 OPTMODULES += ComUsbBridge
 OPTMODULES += VibrationAnalysis
-OPTMODULES += UAVOMavlinkBridge
-OPTMODULES += UAVOMSPBridge
-OPTMODULES += UAVOLighttelemetryBridge
-OPTMODULES += UAVORelay
 OPTMODULES += Airspeed/revolution
-OPTMODULES += UAVOHoTTBridge
-OPTMODULES += UAVOFrSKYSensorHubBridge
-OPTMODULES += UAVOFrSKYSPortBridge
-OPTMODULES += PicoC
+OPTMODULES += UAVOMavlinkBridge
+#OPTMODULES += PicoC
+OPTMODULES += Geofence
 OPTMODULES += Logging
 OPTMODULES += FlightStats
 
@@ -132,34 +128,17 @@ SRC += $(MATHLIB)/misc_math.c
 SRC += $(MATHLIB)/atmospheric_math.c
 SRC += $(MATHLIB)/pid.c
 
-## For RFM22b
-SRC += $(RSCODE)/berlekamp.c
-SRC += $(RSCODE)/crcgen.c
-SRC += $(RSCODE)/galois.c
-SRC += $(RSCODE)/rs.c
-
 ## PIOS Hardware (STM32F4xx)
 include $(PIOS)/STM32F4xx/library_chibios.mk
 
 ## PIOS Hardware (Common)
 SRC += $(PIOSCOMMON)/pios_delay.c
 SRC += $(PIOSCOMMON)/pios_mpu9250_spi.c
-SRC += $(PIOSCOMMON)/pios_bma180.c
-SRC += $(PIOSCOMMON)/pios_etasv3.c
-SRC += $(PIOSCOMMON)/pios_mpxv5004.c
-SRC += $(PIOSCOMMON)/pios_mpxv7002.c
+SRC += $(PIOSCOMMON)/pios_ms5611_spi.c
 SRC += $(PIOSCOMMON)/pios_gcsrcvr.c
-SRC += $(PIOSCOMMON)/pios_l3gd20.c
-SRC += $(PIOSCOMMON)/pios_hmc5883.c
-SRC += $(PIOSCOMMON)/pios_ms5611.c
 SRC += $(PIOSCOMMON)/pios_crc.c
 SRC += $(PIOSCOMMON)/pios_com.c
 SRC += $(PIOSCOMMON)/pios_dsm.c
-SRC += $(PIOSCOMMON)/pios_openlrs.c
-SRC += $(PIOSCOMMON)/pios_openlrs_rcvr.c
-SRC += $(PIOSCOMMON)/pios_rfm22b.c
-SRC += $(PIOSCOMMON)/pios_rfm22b_com.c
-SRC += $(PIOSCOMMON)/pios_rfm22b_rcvr.c
 SRC += $(PIOSCOMMON)/pios_rcvr.c
 SRC += $(PIOSCOMMON)/pios_hsum.c
 SRC += $(PIOSCOMMON)/pios_sbus.c
