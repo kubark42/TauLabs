@@ -1,14 +1,14 @@
 /**
  ******************************************************************************
  *
- * @file       qualcommplugin.h
+ * @file       cyphyplugin.h
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2013
  *
  * @addtogroup GCSPlugins GCS Plugins
  * @{
- * @addtogroup Boards_Qualcomm Qualcomm boards support plugin
+ * @addtogroup Boards_CyPhy CyPhy Works boards support Plugin
  * @{
- * @brief Plugin to support boards by Qualcomm
+ * @brief Plugin to support boards by CyPhy Works
  *****************************************************************************/
 /*
  * This program is free software; you can redistribute it and/or modify
@@ -25,40 +25,24 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
+#ifndef CYPHYPLUGIN_H
+#define CYPHYPLUGIN_H
 
-#include "qualcommplugin.h"
-#include <QtPlugin>
-#include "snapdragonflight.h"
+#include <extensionsystem/iplugin.h>
 
-
-QualcommPlugin::QualcommPlugin()
+class CyPhyPlugin : public ExtensionSystem::IPlugin
 {
-   // Do nothing
-}
+    Q_OBJECT
+    Q_PLUGIN_METADATA(IID "TauLabs.plugins.CyPhy" FILE "CyPhy.json")
+    
+public:
+   CyPhyPlugin();
+   ~CyPhyPlugin();
 
-QualcommPlugin::~QualcommPlugin()
-{
-   // Do nothing
-}
+   void extensionsInitialized();
+   bool initialize(const QStringList & arguments, QString * errorString);
+   void shutdown();
 
-bool QualcommPlugin::initialize(const QStringList& args, QString *errMsg)
-{
-   Q_UNUSED(args);
-   Q_UNUSED(errMsg);
-   return true;
-}
+};
 
-void QualcommPlugin::extensionsInitialized()
-{
-    /**
-     * Create the board objects here.
-     *
-     */
-    SnapdragonFlight* snapdragonflight = new SnapdragonFlight();
-    addAutoReleasedObject(snapdragonflight);
-}
-
-void QualcommPlugin::shutdown()
-{
-}
-
+#endif // CYPHYPLUGIN_H

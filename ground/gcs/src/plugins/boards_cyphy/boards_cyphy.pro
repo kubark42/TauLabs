@@ -1,18 +1,16 @@
 TEMPLATE = lib
-TARGET = Qualcomm
+TARGET = CyPhy
 include(../../taulabsgcsplugin.pri)
 include(../../plugins/uavobjects/uavobjects.pri)
 include(../../plugins/coreplugin/coreplugin.pri)
 
-OTHER_FILES += Qualcomm.pluginspec
+OTHER_FILES += CyPhy.pluginspec
 
 HEADERS += \
-    qualcommplugin.h \
-    snapdragonflight.h \
+    cyphyplugin.h
 
 SOURCES += \
-    qualcommplugin.cpp \
-    snapdragonflight.cpp \
+    cyphyplugin.cpp
 
 RESOURCES += \
-    qualcomm.qrc
+    cyphy.qrc

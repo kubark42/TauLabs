@@ -1,14 +1,14 @@
 /**
  ******************************************************************************
  *
- * @file       qualcommplugin.h
- * @author     Tau Labs, http://taulabs.org, Copyright (C) 2013
+ * @file       snapdragonflight.h
+ * @author     Tau Labs, http://taulabs.org, Copyright (C) 2015
  *
  * @addtogroup GCSPlugins GCS Plugins
  * @{
- * @addtogroup Boards_Qualcomm Qualcomm boards support plugin
+ * @addtogroup Boards_CyPhy CyPhy Works boards support Plugin
  * @{
- * @brief Plugin to support boards by Qualcomm
+ * @brief Plugin to support boards by CyPhy Works
  *****************************************************************************/
 /*
  * This program is free software; you can redistribute it and/or modify
@@ -26,39 +26,26 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#include "qualcommplugin.h"
-#include <QtPlugin>
-#include "snapdragonflight.h"
+#ifndef SNAPDRAGONFLIGHT_H
+#define SNAPDRAGONFLIGHT_H
 
 
-QualcommPlugin::QualcommPlugin()
+#include <coreplugin/iboardtype.h>
+
+class IBoardType;
+
+class SnapdragonFlight : public Core::IBoardType
 {
-   // Do nothing
-}
+public:
+    SnapdragonFlight();
+    virtual ~SnapdragonFlight();
 
-QualcommPlugin::~QualcommPlugin()
-{
-   // Do nothing
-}
-
-bool QualcommPlugin::initialize(const QStringList& args, QString *errMsg)
-{
-   Q_UNUSED(args);
-   Q_UNUSED(errMsg);
-   return true;
-}
-
-void QualcommPlugin::extensionsInitialized()
-{
-    /**
-     * Create the board objects here.
-     *
-     */
-    SnapdragonFlight* snapdragonflight = new SnapdragonFlight();
-    addAutoReleasedObject(snapdragonflight);
-}
-
-void QualcommPlugin::shutdown()
-{
-}
-
+    virtual QString shortName();
+    virtual QString boardDescription();
+    virtual bool queryCapabilities(BoardCapabilities capability);
+    virtual QStringList getSupportedProtocols();
+    virtual QPixmap getBoardPicture();
+    virtual QString getHwUAVO();
+    virtual int queryMaxGyroRate();
+};
+#endif // SNAPDRAGONFLIGHT_H

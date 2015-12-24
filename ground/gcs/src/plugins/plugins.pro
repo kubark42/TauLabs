@@ -343,3 +343,9 @@ plugin_boards_aeroquad.subdir = boards_aeroquad
 plugin_boards_aeroquad.depends = plugin_coreplugin
 plugin_boards_aeroquad.depends = plugin_uavobjects
 SUBDIRS += plugin_boards_aeroquad
+
+# Qualcomm
+plugin_boards_qualcomm.subdir = boards_qualcomm
+plugin_boards_qualcomm.depends = plugin_coreplugin
+plugin_boards_qualcomm.depends = plugin_uavobjects
+SUBDIRS += plugin_boards_qualcomm

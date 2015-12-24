@@ -1,4 +1,5 @@
 <RCC>
     <qresource prefix="/qualcomm">
+        <file>images/snapdragonflight.png</file>
     </qresource>
 </RCC>
