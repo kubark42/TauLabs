@@ -2,12 +2,13 @@
  ******************************************************************************
  * @addtogroup TauLabsBootloader Tau Labs Bootloaders
  * @{
- * @addtogroup Sparky2BL Sparky2 bootloader
+ * @addtogroup SnapdragonFlightBL Snapdragon Flight bootloader
  * @{
  *
  * @file       pios_board.c
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2012-2015
+ * @author     CyPhy Works, Copyright (C) 2015
  * @brief      Board specific initialization for the bootloader
  * @see        The GNU Public License (GPL) Version 3
  *
@@ -46,40 +47,30 @@ void PIOS_Board_Init()
 {
 	/* Delay system */
 	PIOS_DELAY_Init();
-	
-	const struct pios_board_info * bdinfo = &pios_board_info_blob;
-
-	// Make sure all the PWM outputs are low
-	const struct pios_tim_channel * channels = pios_servo_cfg.channels;
-	uint8_t num_channels = pios_servo_cfg.num_channels;
-	for (int i = 0; i < num_channels; i++) {
-		GPIO_Init(channels[i].pin.gpio, (GPIO_InitTypeDef*) &channels[i].pin.init);
-	}
 
 #if defined(PIOS_INCLUDE_LED)
-	const struct pios_led_cfg * led_cfg = PIOS_BOARD_HW_DEFS_GetLedCfg(bdinfo->board_rev);
-	PIOS_Assert(led_cfg);
-	PIOS_LED_Init(led_cfg);
+	PIOS_LED_Init(&pios_led_cfg);
 #endif	/* PIOS_INCLUDE_LED */
 
+	PWR_BackupAccessCmd(ENABLE);
+	RCC_LSEConfig(RCC_LSE_OFF);
 
-#if defined(PIOS_INCLUDE_SPI)
-	/* Set up the SPI interface to the flash and rfm22b */
-	if (PIOS_SPI_Init(&pios_spi_telem_flash_id, &pios_spi_telem_flash_cfg)) {
-		PIOS_DEBUG_Assert(0);
-	}
-#endif	/* PIOS_INCLUDE_SPI */
+	PIOS_LED_On(PIOS_LED_HEARTBEAT);
+	PIOS_LED_On(PIOS_LED_ALARM);
 
 #if defined(PIOS_INCLUDE_FLASH)
 	/* Inititialize all flash drivers */
-	PIOS_Flash_Jedec_Init(&pios_external_flash_id, pios_spi_telem_flash_id, 1, &flash_m25p_cfg);
 	PIOS_Flash_Internal_Init(&pios_internal_flash_id, &flash_internal_cfg);
+#if defined(PIOS_INCLUDE_SPI) && defined(PIOS_INCLUDE_FLASH_JEDEC)
+	/* Set up the SPI interface to the flash */
+	if (PIOS_SPI_Init(&pios_spi3_id, &pios_spi3_cfg)) {
+		PIOS_DEBUG_Assert(0);
+	}
 
+	PIOS_Flash_Jedec_Init(&pios_external_flash_id, pios_spi3_id, 0, &flash_mx25_cfg);
+#endif	/* PIOS_INCLUDE_SPI  PIOS_INCLUDE_FLASH_JEDEC*/
 	/* Register the partition table */
-	const struct pios_flash_partition * flash_partition_table;
-	uint32_t num_partitions;
-	flash_partition_table = PIOS_BOARD_HW_DEFS_GetPartitionTable(bdinfo->board_rev, &num_partitions);
-	PIOS_FLASH_register_partition_table(flash_partition_table, num_partitions);
+	PIOS_FLASH_register_partition_table(pios_flash_partition_table, NELEMENTS(pios_flash_partition_table));
 #endif	/* PIOS_INCLUDE_FLASH */
 
 #if defined(PIOS_INCLUDE_USB)
@@ -90,7 +81,7 @@ void PIOS_Board_Init()
 	PIOS_USB_DESC_HID_ONLY_Init();
 
 	uintptr_t pios_usb_id;
-	PIOS_USB_Init(&pios_usb_id, PIOS_BOARD_HW_DEFS_GetUsbCfg(bdinfo->board_rev));
+	PIOS_USB_Init(&pios_usb_id, &pios_usb_main_cfg);
 
 #if defined(PIOS_INCLUDE_USB_HID) && defined(PIOS_INCLUDE_COM_MSG)
 	uintptr_t pios_usb_hid_id;

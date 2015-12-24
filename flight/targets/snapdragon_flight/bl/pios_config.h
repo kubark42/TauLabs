@@ -2,13 +2,14 @@
  ******************************************************************************
  * @addtogroup TauLabsBootloader Tau Labs Bootloaders
  * @{
- * @addtogroup Sparky2BL Sparky2 bootloader
+ * @addtogroup SnapdragonFlightBL Snapdragon Flight bootloader
  * @{
  *
  * @file       pios_config.h 
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2012-2015
- * @brief      This file contains the DFU commands handling code
+ * @author     CyPhy Works, Copyright (C) 2015
+ * @brief      Board specific bootloader configuration file for PiOS
  * @see        The GNU Public License (GPL) Version 3
  *
  *****************************************************************************/
