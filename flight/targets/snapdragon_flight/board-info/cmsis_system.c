@@ -56,11 +56,11 @@
   *-----------------------------------------------------------------------------
   *        APB2 Prescaler                         | 2
   *-----------------------------------------------------------------------------
-  *        HSE Frequency(Hz)                      | 8000000
+  *        HSE Frequency(Hz)                      | 16000000
   *-----------------------------------------------------------------------------
-  *        PLL_M                                  | 10
+  *        PLL_M                                  | 16
   *-----------------------------------------------------------------------------
-  *        PLL_N                                  | 420
+  *        PLL_N                                  | 336
   *-----------------------------------------------------------------------------
   *        PLL_P                                  | 2
   *-----------------------------------------------------------------------------
@@ -146,8 +146,8 @@
 
 /************************* PLL Parameters *************************************/
 /* PLL_VCO = (HSE_VALUE or HSI_VALUE / PLL_M) * PLL_N */
-#define PLL_M      10
-#define PLL_N      420
+#define PLL_M      16
+#define PLL_N      336
 
 /* SYSCLK = PLL_VCO / PLL_P */
 #define PLL_P      2
@@ -345,7 +345,7 @@ static void SetSysClock(void)
 /*            PLL (clocked by HSE) used as System clock source                */
 /******************************************************************************/
   __IO uint32_t StartUpCounter = 0, HSEStatus = 0;
-  
+
   /* Enable HSE */
   RCC->CR |= ((uint32_t)RCC_CR_HSEON);
  
@@ -381,8 +381,7 @@ static void SetSysClock(void)
     RCC->CFGR |= RCC_CFGR_PPRE1_DIV4;
 
     /* Configure the main PLL */
-    RCC->PLLCFGR = PLL_M | (PLL_N << 6) | (((PLL_P >> 1) -1) << 16) |
-                   (RCC_PLLCFGR_PLLSRC_HSE) | (PLL_Q << 24);
+    RCC->PLLCFGR = PLL_M | (PLL_N << 6) | (((PLL_P >> 1) -1) << 16) | (RCC_PLLCFGR_PLLSRC_HSE) | (PLL_Q << 24);
 
     /* Enable the main PLL */
     RCC->CR |= RCC_CR_PLLON;
@@ -408,8 +407,10 @@ static void SetSysClock(void)
   { /* If HSE fails to start-up, the application will have wrong clock
          configuration. User can add here some code to deal with this error */
 
-	  /* better to hang here than to start with a wrong clock */
-	  while (1);
+    /* Go to infinite loop */
+    while (1)
+    {
+    }
   }
 
 }
