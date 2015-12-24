@@ -2,11 +2,12 @@
  ******************************************************************************
  * @addtogroup TauLabsTargets Tau Labs Targets
  * @{
- * @addtogroup Sparky2 Tau Labs Sparky2 support files
+ * @addtogroup SnapdragonFlight Snapdragon Flight support files
  * @{
  *
  * @file       pios_usb_board_data.c 
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2012-2014
+ * @author     Kenn Sebesta, Copyright (C) 2015
  * @brief      Board specific USB specifications
  * @see        The GNU Public License (GPL) Version 3
  * 
@@ -26,25 +27,30 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-
 #include "pios_usb_board_data.h" /* struct usb_*, USB_* */
 #include "pios_sys.h"		 /* PIOS_SYS_SerialNumberGet */
 #include "pios_usbhook.h"	 /* PIOS_USBHOOK_* */
 #include "pios_usb_util.h"	 /* PIOS_USB_UTIL_AsciiToUtf8 */
 
-static const uint8_t usb_product_id[22] = {
+static const uint8_t usb_product_id[2+16*2] = {
 	sizeof(usb_product_id),
 	USB_DESC_TYPE_STRING,
 	'S', 0,
-	'p', 0,
+	'n', 0,
 	'a', 0,
+	'p', 0,
+	'd', 0,
 	'r', 0,
-	'k', 0,
-	'y', 0,
-	' ', 0,
-	'2', 0,
-	'.', 0,
-	'0', 0,
+	'a', 0,
+	'g', 0,
+	'o', 0,
+	'n', 0,
+	'f', 0,
+	'l', 0,
+	'i', 0,
+	'g', 0,
+	'h', 0,
+	't', 0,
 };
 
 static uint8_t usb_serial_number[2 + PIOS_SYS_SERIAL_NUM_ASCII_LEN*2 + (sizeof(PIOS_USB_BOARD_SN_SUFFIX)-1)*2] = {
@@ -58,17 +64,17 @@ static const struct usb_string_langid usb_lang_id = {
 	.bLangID = htousbs(USB_LANGID_ENGLISH_US),
 };
 
-static const uint8_t usb_vendor_id[18] = {
+static const uint8_t usb_vendor_id[2+8*2] = {
 	sizeof(usb_vendor_id),
 	USB_DESC_TYPE_STRING,
-	'T', 0,
-	'a', 0,
+	'Q', 0,
 	'u', 0,
-	' ', 0,
-	'L', 0,
 	'a', 0,
-	'b', 0,
-	's', 0,
+	'l', 0,
+	'c', 0,
+	'o', 0,
+	'm', 0,
+	'm', 0,
 };
 
 int32_t PIOS_USB_BOARD_DATA_Init(void)
