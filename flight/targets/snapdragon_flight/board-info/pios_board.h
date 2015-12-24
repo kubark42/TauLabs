@@ -2,11 +2,12 @@
  ******************************************************************************
  * @addtogroup TauLabsTargets Tau Labs Targets
  * @{
- * @addtogroup Sparky2 Tau Labs Sparky2 support files
+ * @addtogroup lvl1sb LVL1 Sensor Board support files
  * @{
  *
- * @file       pios_board.h 
+ * @file       pios_board.h
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2012-2015
+ * @author     Kenn Sebesta, Copyright (C) 2015
  * @brief      Board specific defines
  * @see        The GNU Public License (GPL) Version 3
  * 
@@ -27,10 +28,9 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-// Define board variants
-#define SPARKY2_V2_0                  0x01
-#define BRUSHEDSPARKY_V0_1            0x21
-#define BRUSHEDSPARKY_V0_2            0x22
+
+#ifndef PIOS_BOARD_H
+#define PIOS_BOARD_H
 
 #include <stdbool.h>
 
@@ -70,34 +70,41 @@ TIM8  |           |           |           |
 //------------------------
 // BOOTLOADER_SETTINGS
 //------------------------
-#define BOARD_READABLE	true
-#define BOARD_WRITABLE	true
-#define MAX_DEL_RETRYS	3
+#define BOARD_READABLE              true
+#define BOARD_WRITABLE              true
+#define MAX_DEL_RETRYS              3
 
 
 //------------------------
 // PIOS_LED
 //------------------------
-#define PIOS_LED_HEARTBEAT	0
-#define PIOS_LED_ALARM		1
-#define PIOS_LED_LINK 		2
+#define PIOS_LED_GREEN              0
+#define PIOS_LED_ORANGE             1
+#define PIOS_LED_RED                2
+
+#define PIOS_LED_HEARTBEAT          PIOS_LED_GREEN
+#define PIOS_LED_ALARM              PIOS_LED_RED
 
 //------------------------
 // PIOS_WDG
 //------------------------
-#define PIOS_WATCHDOG_TIMEOUT    250
-#define PIOS_WDG_REGISTER        RTC_BKP_DR4
+#define PIOS_WATCHDOG_TIMEOUT       250
+#define PIOS_WDG_REGISTER           RTC_BKP_DR4
 
 //------------------------
 // PIOS_I2C
 // See also pios_board.c
 //------------------------
-#define PIOS_I2C_MAX_DEVS			3
-extern uint32_t pios_i2c_mag_pressure_adapter_id;
-#define PIOS_I2C_MAIN_ADAPTER			(pios_i2c_mag_pressure_adapter_id)
-extern uint32_t pios_i2c_flexiport_adapter_id;
-#define PIOS_I2C_FLEXI_ADAPTER			(pios_i2c_flexiport_adapter_id)
-#define PIOS_I2C_ETASV3_ADAPTER			(PIOS_I2C_FLEXI_ADAPTER)
+#define PIOS_I2C_MAX_DEVS           3
+extern uint32_t pios_i2c_internal_adapter_id;
+extern uint32_t pios_i2c_usart1_adapter_id;
+extern uint32_t pios_i2c_usart3_adapter_id;
+#define PIOS_I2C_ETASV3_ADAPTER     (pios_i2c_usart1_adapter_id) //this is dirty and should be removed in favor a cleaner sensor api
+#define PIOS_I2C_ADAPTER_0          (pios_i2c_internal_adapter_id)
+#define PIOS_I2C_ADAPTER_1          (pios_i2c_usart1_adapter_id)
+#define PIOS_I2C_ADAPTER_2          (pios_i2c_usart3_adapter_id)
+
+
 
 //-------------------------
 // PIOS_COM
@@ -115,8 +122,8 @@ extern uintptr_t pios_com_frsky_sensor_hub_id;
 extern uintptr_t pios_com_lighttelemetry_id;
 extern uintptr_t pios_com_picoc_id;
 extern uintptr_t pios_com_debug_id;
-extern uintptr_t pios_com_frsky_sport_id;
 extern uintptr_t pios_com_spiflash_logging_id;
+extern uintptr_t pios_com_frsky_sport_id;
 
 #define PIOS_COM_GPS                    (pios_com_gps_id)
 #define PIOS_COM_TELEM_USB              (pios_com_telem_usb_id)
@@ -136,40 +143,26 @@ extern uintptr_t pios_com_spiflash_logging_id;
 #define DEBUG_LEVEL 0
 #define DEBUG_PRINTF(level, ...) {if(level <= DEBUG_LEVEL && pios_com_debug_id > 0) { PIOS_COM_SendFormattedStringNonBlocking(pios_com_debug_id, __VA_ARGS__); }}
 
-#if defined(PIOS_INCLUDE_RFM22B)
-extern uint32_t pios_rfm22b_id;
-extern uint32_t pios_spi_telem_flash_id;
-#define PIOS_RFM22_SPI_PORT             (pios_spi_telem_flash_id)
-#endif /* PIOS_INCLUDE_RFM22B */
 
-//-------------------------
-// Packet Handler
-//-------------------------
-#define RS_ECC_NPARITY 4
-#define PIOS_PH_MAX_PACKET 255
-#define PIOS_PH_WIN_SIZE 3
-#define PIOS_PH_MAX_CONNECTIONS 1
-extern uint32_t pios_packet_handler;
-#define PIOS_PACKET_HANDLER (pios_packet_handler)
 
 //------------------------
-// TELEMETRY 
+// TELEMETRY
 //------------------------
-#define TELEM_QUEUE_SIZE         80
-#define PIOS_TELEM_STACK_SIZE    624			
+#define TELEM_QUEUE_SIZE            80
+#define PIOS_TELEM_STACK_SIZE       624
 
-#define PIOS_SYSCLK										168000000
+#define PIOS_SYSCLK                 168000000
 //	Peripherals that belongs to APB1 are:
-//	DAC			|PWR				|CAN1,2
-//	I2C1,2,3		|UART4,5			|USART3,2
-//	I2S3Ext		|SPI3/I2S3		|SPI2/I2S2
-//	I2S2Ext		|IWDG				|WWDG
+//	DAC         |PWR          |CAN1,2
+//	I2C1,2,3    |UART4,5      |USART3,2
+//	I2S3Ext     |SPI3/I2S3    |SPI2/I2S2
+//	I2S2Ext     |IWDG         |WWDG
 //	RTC/BKP reg	
 // TIM2,3,4,5,6,7,12,13,14
 
 // Calculated as SYSCLK / APBPresc * (APBPre == 1 ? 1 : 2)   
 // Default APB1 Prescaler = 4 
-#define PIOS_PERIPHERAL_APB1_CLOCK					(PIOS_SYSCLK / 2)
+#define PIOS_PERIPHERAL_APB1_CLOCK  (PIOS_SYSCLK / 2)
 
 //	Peripherals belonging to APB2
 //	SDIO			|EXTI				|SYSCFG			|SPI1
@@ -179,16 +172,17 @@ extern uint32_t pios_packet_handler;
 //
 // Default APB2 Prescaler = 2
 //
-#define PIOS_PERIPHERAL_APB2_CLOCK					PIOS_SYSCLK
+#define PIOS_PERIPHERAL_APB2_CLOCK  PIOS_SYSCLK
 
 
 //-------------------------
 // Interrupt Priorities
 //-------------------------
-#define PIOS_IRQ_PRIO_LOW                       12              // lower than RTOS
-#define PIOS_IRQ_PRIO_MID                       8               // higher than RTOS
-#define PIOS_IRQ_PRIO_HIGH                      5               // for SPI, ADC, I2C etc...
-#define PIOS_IRQ_PRIO_HIGHEST                   4               // for USART etc...
+#define PIOS_IRQ_PRIO_LOW            12              // lower than RTOS
+#define PIOS_IRQ_PRIO_MID            8               // higher than RTOS
+#define PIOS_IRQ_PRIO_HIGH           5               // for SPI, ADC, I2C etc...
+#define PIOS_IRQ_PRIO_HIGHEST        4               // for USART etc...
+
 
 //------------------------
 // PIOS_RCVR
@@ -213,47 +207,55 @@ extern uint32_t pios_packet_handler;
 #define PIOS_SPEKTRUM_NUM_INPUTS     12
 
 //-------------------------
+// Receiver DSM input
+//-------------------------
+#define PIOS_DSM_NUM_INPUTS          12
+
+//-------------------------
+// Receiver HSUM input
+//-------------------------
+#define PIOS_HSUM_MAX_DEVS           2
+#define PIOS_HSUM_NUM_INPUTS         32
+
+//-------------------------
 // Receiver S.Bus input
 //-------------------------
 #define PIOS_SBUS_NUM_INPUTS         (16+2)
 
 //-------------------------
-// Receiver DSM input
-//-------------------------
-#define PIOS_DSM_NUM_INPUTS			12
-
-//-------------------------
-// Receiver HSUM input
-//-------------------------
-#define PIOS_HSUM_MAX_DEVS		2
-#define PIOS_HSUM_NUM_INPUTS		32
-
-//-------------------------
 // Servo outputs
 //-------------------------
-#define PIOS_SERVO_UPDATE_HZ                    50
-#define PIOS_SERVOS_INITIAL_POSITION            0 /* dont want to start motors, have no pulse till settings loaded */
+#define PIOS_SERVO_UPDATE_HZ         50
+#define PIOS_SERVOS_INITIAL_POSITION 0 /* dont want to start motors, have no pulse till settings loaded */
 
 //--------------------------
 // Timer controller settings
 //--------------------------
-#define PIOS_TIM_MAX_DEVS			6
+#define PIOS_TIM_MAX_DEVS            8
 
 //-------------------------
 // ADC
 //-------------------------
+#define PIOS_ADC_SUB_DRIVER_MAX_INSTANCES       3
 #define PIOS_ADC_MAX_OVERSAMPLING       2
 #define VREF_PLUS                     3.3
 
 //-------------------------
 // USB
 //-------------------------
-#define PIOS_USB_ENABLED                        1 /* Should remove all references to this */
+#define PIOS_USB_ENABLED                1 /* Should remove all references to this */
 
 //-------------------------
-// ADC
+// GPIO
 //-------------------------
-#define PIOS_ADC_SUB_DRIVER_MAX_INSTANCES       3
+// [0]: Output-> Quanton Buzzer Pin, with active driver connected to GND
+// [1]: Output-> Quanton Battery Pin, take care of the voltage divider connected to this pin
+// [2]-[9]: Input-> Quanton PWN IN Pins 1-8, take care of the RcvrPort configuration in GCS and that the Pins are configured with a PullUp Resistor
+#define PIOS_GPIO_PORTS				{ GPIOA,      GPIOC,       GPIOA,       GPIOC,      GPIOC,      GPIOC,      GPIOA,       GPIOB,      GPIOA,      GPIOA }
+#define PIOS_GPIO_PINS				{ GPIO_Pin_4, GPIO_Pin_15, GPIO_Pin_10, GPIO_Pin_6, GPIO_Pin_7, GPIO_Pin_8, GPIO_Pin_15, GPIO_Pin_3, GPIO_Pin_0, GPIO_Pin_1 }
+#define PIOS_GPIO_NUM				10
+
+#endif /* PIOS_BOARD_H */
 
 /**
  * @}
