@@ -2,11 +2,12 @@
  ******************************************************************************
  * @addtogroup TauLabsTargets Tau Labs Targets
  * @{
- * @addtogroup Sparky2 Tau Labs Sparky2 support files
+ * @addtogroup SnapdragonFlight Snapdragon Flight bootloader
  * @{
  *
- * @file       pios_board.c 
+ * @file       pios_board.c
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2012-2015
+ * @author     Kenn Sebesta, Copyright (C) 2015
  * @brief      Board initialization file
  * @see        The GNU Public License (GPL) Version 3
  * 
@@ -40,42 +41,22 @@
 #include <pios_hal.h>
 #include <openpilot.h>
 #include <uavobjectsinit.h>
-#include "hwsparky2.h"
+#include "hwsnapdragonflight.h"
 #include "manualcontrolsettings.h"
 #include "modulesettings.h"
-#include <rfm22bstatus.h>
-#include <rfm22breceiver.h>
-#include <pios_rfm22b_rcvr_priv.h>
-#include <pios_openlrs_rcvr_priv.h>
 
 /**
- * Sensor configurations 
- */
-
-/**
- * Configuration for the MS5611 chip
- */
-#if defined(PIOS_INCLUDE_MS5611)
-#include "pios_ms5611_priv.h"
-static const struct pios_ms5611_cfg pios_ms5611_cfg = {
-	.oversampling = MS5611_OSR_1024,
-	.temperature_interleaving = 1,
-};
-#endif /* PIOS_INCLUDE_MS5611 */
-
-
-/**
- * Configuration for the MPU9250 chip
+ * Sensor configurations
  */
 #if defined(PIOS_INCLUDE_MPU9250_SPI)
 #include "pios_mpu9250.h"
 static const struct pios_exti_cfg pios_exti_mpu9250_cfg __exti_config = {
 	.vector = PIOS_MPU9250_IRQHandler,
-	.line = EXTI_Line5,
+	.line = EXTI_Line8,
 	.pin = {
-		.gpio = GPIOC,
+		.gpio = GPIOD,
 		.init = {
-			.GPIO_Pin = GPIO_Pin_5,
+			.GPIO_Pin = GPIO_Pin_8,
 			.GPIO_Speed = GPIO_Speed_100MHz,
 			.GPIO_Mode = GPIO_Mode_IN,
 			.GPIO_OType = GPIO_OType_OD,
@@ -92,7 +73,7 @@ static const struct pios_exti_cfg pios_exti_mpu9250_cfg __exti_config = {
 	},
 	.exti = {
 		.init = {
-			.EXTI_Line = EXTI_Line5, // matches above GPIO pin
+			.EXTI_Line = EXTI_Line8, // matches above GPIO pin
 			.EXTI_Mode = EXTI_Mode_Interrupt,
 			.EXTI_Trigger = EXTI_Trigger_Rising,
 			.EXTI_LineCmd = ENABLE,
@@ -104,41 +85,31 @@ static struct pios_mpu9250_cfg pios_mpu9250_cfg = {
 	.exti_cfg = &pios_exti_mpu9250_cfg,
 	.default_samplerate = 500,
 	.interrupt_cfg = PIOS_MPU60X0_INT_CLR_ANYRD,
-
 	.use_magnetometer = true,
 	.default_gyro_filter = PIOS_MPU9250_GYRO_LOWPASS_184_HZ,
 	.default_accel_filter = PIOS_MPU9250_ACCEL_LOWPASS_184_HZ,
-	.orientation = PIOS_MPU9250_TOP_180DEG
+	.orientation = PIOS_MPU9250_TOP_0DEG
 };
 #endif /* PIOS_INCLUDE_MPU9250_SPI */
 
 /**
- * Configuration for the external HMC5883 chip
+ * Configuration for the MS5611 chip
  */
-#if defined(PIOS_INCLUDE_HMC5883)
-#include "pios_hmc5883_priv.h"
-static const struct pios_hmc5883_cfg pios_hmc5883_external_cfg = {
-	.exti_cfg            = NULL,
-	.M_ODR               = PIOS_HMC5883_ODR_75,
-	.Meas_Conf           = PIOS_HMC5883_MEASCONF_NORMAL,
-	.Gain                = PIOS_HMC5883_GAIN_1_9,
-	.Mode                = PIOS_HMC5883_MODE_SINGLE,
-	.Default_Orientation = PIOS_HMC5883_TOP_0DEG,
+#if defined(PIOS_INCLUDE_MS5611_SPI)
+#include "pios_ms5611_priv.h"
+static const struct pios_ms5611_cfg pios_ms5611_cfg = {
+	.oversampling = MS5611_OSR_1024,
+	.temperature_interleaving = 1,
 };
-#endif /* PIOS_INCLUDE_HMC5883 */
-
-#define PIOS_COM_CAN_RX_BUF_LEN 256
-#define PIOS_COM_CAN_TX_BUF_LEN 256
+#endif /* PIOS_INCLUDE_MS5611_SPI */
 
 uintptr_t pios_com_spiflash_logging_id;
-uintptr_t pios_com_can_id;
 uintptr_t pios_internal_adc_id = 0;
 uintptr_t pios_uavo_settings_fs_id;
 uintptr_t pios_waypoints_settings_fs_id;
 
-uintptr_t pios_can_id;
-
 uintptr_t streamfs_id;
+uintptr_t external_i2c_adapter_id = 0;
 
 /**
  * Indicate a target-specific error code when a component fails to initialize
@@ -149,68 +120,6 @@ uintptr_t streamfs_id;
  */
 static void panic(int32_t code) {
 	PIOS_HAL_Panic(PIOS_LED_ALARM, code);
-}
-
-void set_vtx_channel(HwSparky2VTX_ChOptions channel)
-{
-	uint8_t chan = 0;
-	switch (channel) {
-	case HWSPARKY2_VTX_CH_1:
-		chan = 0;
-		break;
-	case HWSPARKY2_VTX_CH_2:
-		chan = 1;
-		break;
-	case HWSPARKY2_VTX_CH_3:
-		chan = 2;
-		break;
-	case HWSPARKY2_VTX_CH_4:
-		chan = 3;
-		break;
-	case HWSPARKY2_VTX_CH_5:
-		chan = 4;
-		break;
-	case HWSPARKY2_VTX_CH_6:
-		chan = 5;
-		break;
-	case HWSPARKY2_VTX_CH_7:
-		chan = 6;
-		break;
-	case HWSPARKY2_VTX_CH_8:
-		chan = 7;
-		break;
-	}
-
-	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_13;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-	if (chan & 0x01) {
-		GPIO_SetBits(GPIOB, GPIO_Pin_14);
-	} else {
-		GPIO_ResetBits(GPIOB, GPIO_Pin_14);
-	}
-
-	if (chan & 0x02) {
-		GPIO_SetBits(GPIOB, GPIO_Pin_13);
-	} else {
-		GPIO_ResetBits(GPIOB, GPIO_Pin_13);
-	}
-
-	if (chan & 0x04) {
-		GPIO_SetBits(GPIOB, GPIO_Pin_12);
-	} else {
-		GPIO_ResetBits(GPIOB, GPIO_Pin_12);
-	}
 }
 
 /**
@@ -244,49 +153,43 @@ void check_bor()
     }
 }
 
-void PIOS_Board_Init(void) {
-
+void PIOS_Board_Init(void)
+{
+	// Check brownout threshold
 	check_bor();
-
-	const struct pios_board_info * bdinfo = &pios_board_info_blob;
-
-	// Make sure all the PWM outputs are low
-	const struct pios_servo_cfg * servo_cfg = get_servo_cfg(bdinfo->board_rev);
-	const struct pios_tim_channel * channels = servo_cfg->channels;
-	uint8_t num_channels = servo_cfg->num_channels;
-	for (int i = 0; i < num_channels; i++) {
-		GPIO_Init(channels[i].pin.gpio, (GPIO_InitTypeDef*) &channels[i].pin.init);
-	}
 
 	/* Delay system */
 	PIOS_DELAY_Init();
 
+	const struct pios_board_info * bdinfo = &pios_board_info_blob;
+
 #if defined(PIOS_INCLUDE_LED)
-	const struct pios_led_cfg * led_cfg = PIOS_BOARD_HW_DEFS_GetLedCfg(bdinfo->board_rev);
-	PIOS_Assert(led_cfg);
-	PIOS_LED_Init(led_cfg);
+	PIOS_LED_Init(&pios_led_cfg);
 #endif	/* PIOS_INCLUDE_LED */
 
-	/* Set up the SPI interface to the gyro/acelerometer */
-	if (PIOS_SPI_Init(&pios_spi_gyro_id, &pios_spi_gyro_cfg)) {
+#if defined(PIOS_INCLUDE_SPI)
+	if (PIOS_SPI_Init(&pios_spi1_id, &pios_spi1_cfg)) {
 		PIOS_DEBUG_Assert(0);
 	}
 
-	/* Set up the SPI interface to the flash and rfm22b */
-	if (PIOS_SPI_Init(&pios_spi_telem_flash_id, &pios_spi_telem_flash_cfg)) {
+	if (PIOS_SPI_Init(&pios_spi2_id, &pios_spi2_cfg)) {
 		PIOS_DEBUG_Assert(0);
 	}
+
+	if (PIOS_SPI_Init(&pios_spi3_id, &pios_spi3_cfg)) {
+		PIOS_DEBUG_Assert(0);
+	}
+#endif
+
 
 #if defined(PIOS_INCLUDE_FLASH)
 	/* Inititialize all flash drivers */
 #if defined(PIOS_INCLUDE_FLASH_JEDEC)
-	if (get_external_flash(bdinfo->board_rev)) {
-		if (PIOS_Flash_Jedec_Init(&pios_external_flash_id, pios_spi_telem_flash_id, 1, &flash_m25p_cfg) != 0)
-			panic(1);
-	}
+	if (PIOS_Flash_Jedec_Init(&pios_external_flash_id, pios_spi3_id, 0, &flash_mx25_cfg) != 0)
+		panic(1);
 #endif /* PIOS_INCLUDE_FLASH_JEDEC */
-
-	PIOS_Flash_Internal_Init(&pios_internal_flash_id, &flash_internal_cfg);
+	if (PIOS_Flash_Internal_Init(&pios_internal_flash_id, &flash_internal_cfg) != 0)
+		panic(1);
 
 	/* Register the partition table */
 	const struct pios_flash_partition * flash_partition_table;
@@ -295,15 +198,12 @@ void PIOS_Board_Init(void) {
 	PIOS_FLASH_register_partition_table(flash_partition_table, num_partitions);
 
 	/* Mount all filesystems */
-	if (PIOS_FLASHFS_Logfs_Init(&pios_uavo_settings_fs_id, get_flashfs_settings_cfg(bdinfo->board_rev), FLASH_PARTITION_LABEL_SETTINGS))
+	if (PIOS_FLASHFS_Logfs_Init(&pios_uavo_settings_fs_id, &flashfs_settings_cfg, FLASH_PARTITION_LABEL_SETTINGS) != 0)
 		panic(1);
 #if defined(PIOS_INCLUDE_FLASH_JEDEC)
-	if (get_external_flash(bdinfo->board_rev)) {
-		if (PIOS_FLASHFS_Logfs_Init(&pios_waypoints_settings_fs_id, &flashfs_waypoints_cfg, FLASH_PARTITION_LABEL_WAYPOINTS) != 0)
-			panic(1);
-	}
+	if (PIOS_FLASHFS_Logfs_Init(&pios_waypoints_settings_fs_id, &flashfs_waypoints_cfg, FLASH_PARTITION_LABEL_WAYPOINTS) != 0)
+		panic(1);
 #endif /* PIOS_INCLUDE_FLASH_JEDEC */
-
 #if defined(ERASE_FLASH)
 	PIOS_FLASHFS_Format(pios_uavo_settings_fs_id);
 #endif
@@ -314,11 +214,11 @@ void PIOS_Board_Init(void) {
 	EventDispatcherInitialize();
 	UAVObjInitialize();
 
-	/* Initialize the hardware UAVOs */
-	HwSparky2Initialize();
+	HwSnapdragonFlightInitialize();
 	ModuleSettingsInitialize();
 
 #if defined(PIOS_INCLUDE_RTC)
+	/* Initialize the real-time clock and its associated tick */
 	PIOS_RTC_Init(&pios_rtc_main_cfg);
 #endif
 
@@ -331,27 +231,11 @@ void PIOS_Board_Init(void) {
 	}
 #endif
 
-	/* Initialize the alarms library. Reads RCC reset flags */
+	/* Initialize the alarms library */
 	AlarmsInitialize();
-	PIOS_RESET_Clear(); // Clear the RCC reset flags after use.
 
 	/* Initialize the task monitor library */
 	TaskMonitorInitialize();
-
-	/* Set up pulse timers */
-	PIOS_TIM_InitClock(&tim_3_cfg);
-	PIOS_TIM_InitClock(&tim_5_cfg);
-	PIOS_TIM_InitClock(&tim_8_cfg);
-	PIOS_TIM_InitClock(&tim_9_cfg);
-	PIOS_TIM_InitClock(&tim_12_cfg);
-
-	NVIC_InitTypeDef tim_8_up_irq = {
-		.NVIC_IRQChannel                   = TIM8_UP_TIM13_IRQn,
-		.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_MID,
-		.NVIC_IRQChannelSubPriority        = 0,
-		.NVIC_IRQChannelCmd                = ENABLE,
-	};
-	NVIC_Init(&tim_8_up_irq);
 
 	/* IAP System Setup */
 	PIOS_IAP_Init();
@@ -361,13 +245,10 @@ void PIOS_Board_Init(void) {
 		AlarmsClear(SYSTEMALARMS_ALARM_BOOTFAULT);
 	} else {
 		/* Too many failed boot attempts, force hw config to defaults */
-		HwSparky2SetDefaults(HwSparky2Handle(), 0);
+		HwSnapdragonFlightSetDefaults(HwSnapdragonFlightHandle(), 0);
 		ModuleSettingsSetDefaults(ModuleSettingsHandle(),0);
 		AlarmsSet(SYSTEMALARMS_ALARM_BOOTFAULT, SYSTEMALARMS_ALARM_CRITICAL);
 	}
-
-
-	//PIOS_IAP_Init();
 
 #if defined(PIOS_INCLUDE_USB)
 	/* Initialize board specific USB data */
@@ -391,17 +272,17 @@ void PIOS_Board_Init(void) {
 #endif
 
 	uintptr_t pios_usb_id;
-	PIOS_USB_Init(&pios_usb_id, PIOS_BOARD_HW_DEFS_GetUsbCfg(bdinfo->board_rev));
+	PIOS_USB_Init(&pios_usb_id, &pios_usb_main_cfg);
 
 #if defined(PIOS_INCLUDE_USB_CDC)
 
 	uint8_t hw_usb_vcpport;
 	/* Configure the USB VCP port */
-	HwSparky2USB_VCPPortGet(&hw_usb_vcpport);
+	HwSnapdragonFlightUSB_VCPPortGet(&hw_usb_vcpport);
 
 	if (!usb_cdc_present) {
 		/* Force VCP port function to disabled if we haven't advertised VCP in our USB descriptor */
-		hw_usb_vcpport = HWSPARKY2_USB_VCPPORT_DISABLED;
+		hw_usb_vcpport = HWSNAPDRAGONFLIGHT_USB_VCPPORT_DISABLED;
 	}
 
 	PIOS_HAL_ConfigureCDC(hw_usb_vcpport, pios_usb_id, &pios_usb_cdc_cfg);
@@ -411,11 +292,11 @@ void PIOS_Board_Init(void) {
 #if defined(PIOS_INCLUDE_USB_HID)
 	/* Configure the usb HID port */
 	uint8_t hw_usb_hidport;
-	HwSparky2USB_HIDPortGet(&hw_usb_hidport);
+	HwSnapdragonFlightUSB_HIDPortGet(&hw_usb_hidport);
 
 	if (!usb_hid_present) {
 		/* Force HID port function to disabled if we haven't advertised HID in our USB descriptor */
-		hw_usb_hidport = HWSPARKY2_USB_HIDPORT_DISABLED;
+		hw_usb_hidport = HWSNAPDRAGONFLIGHT_USB_HIDPORT_DISABLED;
 	}
 
 	PIOS_HAL_ConfigureHID(hw_usb_hidport, pios_usb_id, &pios_usb_hid_cfg);
@@ -427,91 +308,47 @@ void PIOS_Board_Init(void) {
 	}
 #endif	/* PIOS_INCLUDE_USB */
 
-	/* Configure IO ports */
-	HwSparky2DSMxModeOptions hw_DSMxMode;
-	HwSparky2DSMxModeGet(&hw_DSMxMode);
-	
-	/* Configure main USART port */
+	/* Configure the IO ports */
+	uint8_t hw_DSMxMode;
+	HwSnapdragonFlightDSMxModeGet(&hw_DSMxMode);
+
+	/* init sensor queue registration */
+	PIOS_SENSORS_Init();
+
+
+	/* UART2 Port */
 	uint8_t hw_mainport;
-	HwSparky2MainPortGet(&hw_mainport);
+	HwSnapdragonFlightMainPortGet(&hw_mainport);
 
-	PIOS_HAL_ConfigurePort(hw_mainport,          // port type protocol
-			&pios_usart_main_cfg,                // usart_port_cfg
-			&pios_usart_main_cfg,                // frsky usart_port_cfg
-			&pios_usart_com_driver,              // com_driver 
-			NULL,                                // i2c_id 
-			NULL,                                // i2c_cfg 
-			NULL,                                // i2c_cfg 
-			NULL,                                // pwm_cfg
-			PIOS_LED_ALARM,                      // led_id
-			&pios_usart_dsm_hsum_main_cfg,       // usart_dsm_hsum_cfg 
-			&pios_dsm_main_cfg,                  // dsm_cfg
-			hw_DSMxMode,                         // dsm_mode 
-			NULL,                                // sbus_rcvr_cfg 
-			NULL,                                // sbus_cfg 
-			false);                              // sbus_toggle
-
-	/* Configure FlexiPort */
-	uint8_t hw_flexiport;
-	HwSparky2FlexiPortGet(&hw_flexiport);
-
-	PIOS_HAL_ConfigurePort(hw_flexiport,         // port type protocol
-			&pios_usart_flexi_cfg,               // usart_port_cfg
-			&pios_usart_flexi_cfg,               // frsky usart_port_cfg
+	PIOS_HAL_ConfigurePort(hw_mainport,           // port type protocol
+			&pios_mainport_cfg,                    // usart_port_cfg
+			&pios_mainport_cfg,                    // frsky usart_port_cfg
 			&pios_usart_com_driver,              // com_driver
-			&pios_i2c_flexiport_adapter_id,      // i2c_id
-			&pios_i2c_flexiport_adapter_cfg,     // i2c_cfg 
-			NULL,                                // i2c_cfg 
+			NULL,                                // i2c_id
+			NULL,                                // i2c_cfg
+			NULL,                                // i2c_cfg
 			NULL,                                // pwm_cfg
 			PIOS_LED_ALARM,                      // led_id
-			&pios_usart_dsm_hsum_flexi_cfg,      // usart_dsm_hsum_cfg
-			&pios_dsm_flexi_cfg,                 // dsm_cfg
-			hw_DSMxMode,                         // dsm_mode 
-			NULL,                                // sbus_rcvr_cfg 
-			NULL,                                // sbus_cfg 
+			NULL,                                // usart_dsm_hsum_cfg
+			NULL,                                // dsm_cfg
+			hw_DSMxMode,                         // dsm_mode
+			NULL,                                // sbus_rcvr_cfg
+			NULL,                                // sbus_cfg
 			false);                              // sbus_toggle
 
-#if defined(PIOS_INCLUDE_RFM22B)
-	HwSparky2Data hwSparky2;
-	HwSparky2Get(&hwSparky2);
+	/* Configure the PPM receiver port */
+#if defined(PIOS_INCLUDE_PPM)
+	PIOS_TIM_InitClock(&tim_1_cfg);
 
-	const struct pios_rfm22b_cfg *rfm22b_cfg = PIOS_BOARD_HW_DEFS_GetRfm22Cfg(bdinfo->board_rev);
+	uintptr_t pios_ppm_id;
+	PIOS_PPM_Init(&pios_ppm_id, &pios_ppm_cfg);
 
-	const struct pios_openlrs_cfg *openlrs_cfg = PIOS_BOARD_HW_DEFS_GetOpenLRSCfg(bdinfo->board_rev);
-
-	PIOS_HAL_ConfigureRFM22B(hwSparky2.Radio,
-			bdinfo->board_type, bdinfo->board_rev,
-			hwSparky2.MaxRfPower, hwSparky2.MaxRfSpeed,
-			hwSparky2.RfBand,
-			openlrs_cfg, rfm22b_cfg,
-			hwSparky2.MinChannel, hwSparky2.MaxChannel,
-			hwSparky2.CoordID, 1);
-
-#endif /* PIOS_INCLUDE_RFM22B */
-
-	/* Configure the receiver port*/
-	uint8_t hw_rcvrport;
-	HwSparky2RcvrPortGet(&hw_rcvrport);
-
-	if (bdinfo->board_rev != BRUSHEDSPARKY_V0_2 && hw_DSMxMode >= HWSPARKY2_DSMXMODE_BIND3PULSES) {
-		hw_DSMxMode = HWSPARKY2_DSMXMODE_AUTODETECT; /* Do not try to bind through XOR */
+	uintptr_t pios_ppm_rcvr_id;
+	if (PIOS_RCVR_Init(&pios_ppm_rcvr_id, &pios_ppm_rcvr_driver, pios_ppm_id)) {
+		PIOS_Assert(0);
 	}
-
-	PIOS_HAL_ConfigurePort(hw_rcvrport,           // port type protocol
-			NULL,                                 // usart_port_cfg
-			NULL,                                 // frsky usart_port_cfg
-			&pios_usart_com_driver,               // com_driver
-			NULL,                                 // i2c_id
-			NULL,                                 // i2c_cfg
-			&pios_ppm_cfg,                        // ppm_cfg
-			NULL,                                 // pwm_cfg
-			PIOS_LED_ALARM,                       // led_id
-			&pios_usart_dsm_hsum_rcvr_cfg,        // usart_dsm_hsum_cfg
-			&pios_dsm_rcvr_cfg,                   // dsm_cfg
-			hw_DSMxMode,                          // dsm_mode
-			get_sbus_rcvr_cfg(bdinfo->board_rev), // sbus_rcvr_cfg
-			&pios_sbus_cfg,                       // sbus_cfg
-			get_sbus_toggle(bdinfo->board_rev));  // sbus_toggle
+	pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_PPM] = pios_ppm_rcvr_id;
+#endif /* PIOS_INCLUDE_PPM */
 
 #if defined(PIOS_INCLUDE_GCSRCVR)
 	GCSReceiverInitialize();
@@ -524,206 +361,159 @@ void PIOS_Board_Init(void) {
 	pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_GCS] = pios_gcsrcvr_rcvr_id;
 #endif	/* PIOS_INCLUDE_GCSRCVR */
 
-#ifndef PIOS_DEBUG_ENABLE_DEBUG_PINS
-	/* Set up the servo outputs */
-	PIOS_Servo_Init(&pios_servo_cfg);
-#else
-	PIOS_DEBUG_Init(&pios_tim_servo_all_channels, NELEMENTS(pios_tim_servo_all_channels));
-#endif
-	
-	if (PIOS_I2C_Init(&pios_i2c_mag_pressure_adapter_id, &pios_i2c_mag_pressure_adapter_cfg)) {
+	/* Configure the I2C1 bus */
+	if (PIOS_I2C_Init(&pios_i2c1_adapter_id, &pios_i2c1_adapter_cfg)) {
 		PIOS_DEBUG_Assert(0);
 	}
 
-#if defined(PIOS_INCLUDE_CAN)
-	if(get_use_can(bdinfo->board_rev)) {
-		if (PIOS_CAN_Init(&pios_can_id, &pios_can_cfg) != 0)
-			panic(6);
 
-		uint8_t * rx_buffer = (uint8_t *) PIOS_malloc(PIOS_COM_CAN_RX_BUF_LEN);
-		uint8_t * tx_buffer = (uint8_t *) PIOS_malloc(PIOS_COM_CAN_TX_BUF_LEN);
-		PIOS_Assert(rx_buffer);
-		PIOS_Assert(tx_buffer);
-		if (PIOS_COM_Init(&pios_com_can_id, &pios_can_com_driver, pios_can_id,
-		                  rx_buffer, PIOS_COM_CAN_RX_BUF_LEN,
-		                  tx_buffer, PIOS_COM_CAN_TX_BUF_LEN))
-			panic(6);
-
-		/* pios_com_bridge_id = pios_com_can_id; */
-	}
+	/* Configure the PWM outputs */
+#ifdef PIOS_INCLUDE_SERVO
+	PIOS_Servo_Init(&pios_pwm_out_cfg);
 #endif
-
-	PIOS_DELAY_WaitmS(50);
-
-	PIOS_SENSORS_Init();
-
-#if defined(PIOS_INCLUDE_ADC)
-	uint32_t internal_adc_id;
-	PIOS_INTERNAL_ADC_Init(&internal_adc_id, &pios_adc_cfg);
-	PIOS_ADC_Init(&pios_internal_adc_id, &pios_internal_adc_driver, internal_adc_id);
- 
-        // configure the pullup for PA8 (inhibit pullups from current/sonar shared pin)
-        GPIO_Init(pios_current_sonar_pin.gpio, &pios_current_sonar_pin.init);
-#endif
-
-#if defined(PIOS_INCLUDE_MS5611)
-	if (PIOS_MS5611_Init(&pios_ms5611_cfg, pios_i2c_mag_pressure_adapter_id) != 0)
-		panic(4);
-	if (PIOS_MS5611_Test() != 0)
-		panic(4);
-#endif
-
-	uint8_t Magnetometer;
-	HwSparky2MagnetometerGet(&Magnetometer);
-
-	if (Magnetometer != HWSPARKY2_MAGNETOMETER_INTERNAL)
-		pios_mpu9250_cfg.use_magnetometer = false;
-
-
-#if defined(PIOS_INCLUDE_MPU9250_SPI)
-	if (PIOS_MPU9250_SPI_Init(pios_spi_gyro_id, 0, &pios_mpu9250_cfg) != 0)
-		panic(2);
-
-	// To be safe map from UAVO enum to driver enum
-	uint8_t hw_gyro_range;
-	HwSparky2GyroRangeGet(&hw_gyro_range);
-	switch(hw_gyro_range) {
-		case HWSPARKY2_GYRORANGE_250:
-			PIOS_MPU9250_SetGyroRange(PIOS_MPU60X0_SCALE_250_DEG);
-			break;
-		case HWSPARKY2_GYRORANGE_500:
-			PIOS_MPU9250_SetGyroRange(PIOS_MPU60X0_SCALE_500_DEG);
-			break;
-		case HWSPARKY2_GYRORANGE_1000:
-			PIOS_MPU9250_SetGyroRange(PIOS_MPU60X0_SCALE_1000_DEG);
-			break;
-		case HWSPARKY2_GYRORANGE_2000:
-			PIOS_MPU9250_SetGyroRange(PIOS_MPU60X0_SCALE_2000_DEG);
-			break;
-	}
-
-	uint8_t hw_accel_range;
-	HwSparky2AccelRangeGet(&hw_accel_range);
-	switch(hw_accel_range) {
-		case HWSPARKY2_ACCELRANGE_2G:
-			PIOS_MPU9250_SetAccelRange(PIOS_MPU60X0_ACCEL_2G);
-			break;
-		case HWSPARKY2_ACCELRANGE_4G:
-			PIOS_MPU9250_SetAccelRange(PIOS_MPU60X0_ACCEL_4G);
-			break;
-		case HWSPARKY2_ACCELRANGE_8G:
-			PIOS_MPU9250_SetAccelRange(PIOS_MPU60X0_ACCEL_8G);
-			break;
-		case HWSPARKY2_ACCELRANGE_16G:
-			PIOS_MPU9250_SetAccelRange(PIOS_MPU60X0_ACCEL_16G);
-			break;
-	}
-
-	// the filter has to be set before rate else divisor calculation will fail
-	uint8_t hw_mpu9250_dlpf;
-	HwSparky2MPU9250GyroLPFGet(&hw_mpu9250_dlpf);
-	enum pios_mpu9250_gyro_filter mpu9250_gyro_lpf = \
-	    (hw_mpu9250_dlpf == HWSPARKY2_MPU9250GYROLPF_184) ? PIOS_MPU9250_GYRO_LOWPASS_184_HZ : \
-	    (hw_mpu9250_dlpf == HWSPARKY2_MPU9250GYROLPF_92) ? PIOS_MPU9250_GYRO_LOWPASS_92_HZ : \
-	    (hw_mpu9250_dlpf == HWSPARKY2_MPU9250GYROLPF_41) ? PIOS_MPU9250_GYRO_LOWPASS_41_HZ : \
-	    (hw_mpu9250_dlpf == HWSPARKY2_MPU9250GYROLPF_20) ? PIOS_MPU9250_GYRO_LOWPASS_20_HZ : \
-	    (hw_mpu9250_dlpf == HWSPARKY2_MPU9250GYROLPF_10) ? PIOS_MPU9250_GYRO_LOWPASS_10_HZ : \
-	    (hw_mpu9250_dlpf == HWSPARKY2_MPU9250GYROLPF_5) ? PIOS_MPU9250_GYRO_LOWPASS_5_HZ : \
-	    pios_mpu9250_cfg.default_gyro_filter;
-	PIOS_MPU9250_SetGyroLPF(mpu9250_gyro_lpf);
-
-	HwSparky2MPU9250AccelLPFGet(&hw_mpu9250_dlpf);
-	enum pios_mpu9250_accel_filter mpu9250_accel_lpf = \
-	    (hw_mpu9250_dlpf == HWSPARKY2_MPU9250ACCELLPF_460) ? PIOS_MPU9250_ACCEL_LOWPASS_460_HZ : \
-	    (hw_mpu9250_dlpf == HWSPARKY2_MPU9250ACCELLPF_184) ? PIOS_MPU9250_ACCEL_LOWPASS_184_HZ : \
-	    (hw_mpu9250_dlpf == HWSPARKY2_MPU9250ACCELLPF_92) ? PIOS_MPU9250_ACCEL_LOWPASS_92_HZ : \
-	    (hw_mpu9250_dlpf == HWSPARKY2_MPU9250ACCELLPF_41) ? PIOS_MPU9250_ACCEL_LOWPASS_41_HZ : \
-	    (hw_mpu9250_dlpf == HWSPARKY2_MPU9250ACCELLPF_20) ? PIOS_MPU9250_ACCEL_LOWPASS_20_HZ : \
-	    (hw_mpu9250_dlpf == HWSPARKY2_MPU9250ACCELLPF_10) ? PIOS_MPU9250_ACCEL_LOWPASS_10_HZ : \
-	    (hw_mpu9250_dlpf == HWSPARKY2_MPU9250ACCELLPF_5) ? PIOS_MPU9250_ACCEL_LOWPASS_5_HZ : \
-	    pios_mpu9250_cfg.default_accel_filter;
-	PIOS_MPU9250_SetAccelLPF(mpu9250_accel_lpf);
-
-	uint8_t hw_mpu9250_samplerate;
-	HwSparky2MPU9250RateGet(&hw_mpu9250_samplerate);
-	uint16_t mpu9250_samplerate = \
-	    (hw_mpu9250_samplerate == HWSPARKY2_MPU9250RATE_200) ? 200 : \
-	    (hw_mpu9250_samplerate == HWSPARKY2_MPU9250RATE_250) ? 250 : \
-	    (hw_mpu9250_samplerate == HWSPARKY2_MPU9250RATE_333) ? 333 : \
-	    (hw_mpu9250_samplerate == HWSPARKY2_MPU9250RATE_500) ? 500 : \
-	    (hw_mpu9250_samplerate == HWSPARKY2_MPU9250RATE_1000) ? 1000 : \
-	    pios_mpu9250_cfg.default_samplerate;
-	PIOS_MPU9250_SetSampleRate(mpu9250_samplerate);
-#endif /* PIOS_INCLUDE_MPU9250_SPI */
 
 
 	PIOS_WDG_Clear();
+	PIOS_DELAY_WaitmS(200);
+	PIOS_WDG_Clear();
 
+#if defined(PIOS_INCLUDE_GPIO)
+	PIOS_GPIO_Init();
+#endif
+
+	/* Configure Barometer */
+#if defined(PIOS_INCLUDE_MS5611_SPI)
+		if (PIOS_MS5611_SPI_Init(pios_spi2_id, 0, &pios_ms5611_cfg) != 0){
+			panic(5);
+		}
+#endif /* PIOS_INCLUDE_MS5611_SPI */
+
+	/* Configure Magnetometer */
+	uint8_t hw_mag;
+	HwSnapdragonFlightMagnetometerGet(&hw_mag);
+	switch (hw_mag) {
+		case HWSNAPDRAGONFLIGHT_MAGNETOMETER_EXTERNALAUXI2C:
 #if defined(PIOS_INCLUDE_HMC5883)
-	{
-		uint8_t Magnetometer;
-		HwSparky2MagnetometerGet(&Magnetometer);
-
-		if (Magnetometer == HWSPARKY2_MAGNETOMETER_EXTERNALI2CFLEXIPORT)
-		{
-			if (PIOS_HMC5883_Init(pios_i2c_flexiport_adapter_id, &pios_hmc5883_external_cfg) != 0)
+			if (PIOS_HMC5883_Init(pios_i2c1_adapter_id, &pios_hmc5883_cfg) != 0){
 				panic(6);
-			if (PIOS_HMC5883_Test() != 0)
+			}
+			if (PIOS_HMC5883_Test() != 0){
 				panic(6);
-		} else if (Magnetometer == HWSPARKY2_MAGNETOMETER_EXTERNALAUXI2C) {
-			if (PIOS_HMC5883_Init(pios_i2c_mag_pressure_adapter_id, &pios_hmc5883_external_cfg) != 0)
-				panic(6);
-			if (PIOS_HMC5883_Test() != 0)
-				panic(6);
-		}
-
-		if (Magnetometer != HWSPARKY2_MAGNETOMETER_INTERNAL) {
-			// setup sensor orientation
-			uint8_t ExtMagOrientation;
-			HwSparky2ExtMagOrientationGet(&ExtMagOrientation);
-			enum pios_hmc5883_orientation hmc5883_orientation = \
-				(ExtMagOrientation == HWSPARKY2_EXTMAGORIENTATION_TOP0DEGCW)      ? PIOS_HMC5883_TOP_0DEG      : \
-				(ExtMagOrientation == HWSPARKY2_EXTMAGORIENTATION_TOP90DEGCW)     ? PIOS_HMC5883_TOP_90DEG     : \
-				(ExtMagOrientation == HWSPARKY2_EXTMAGORIENTATION_TOP180DEGCW)    ? PIOS_HMC5883_TOP_180DEG    : \
-				(ExtMagOrientation == HWSPARKY2_EXTMAGORIENTATION_TOP270DEGCW)    ? PIOS_HMC5883_TOP_270DEG    : \
-				(ExtMagOrientation == HWSPARKY2_EXTMAGORIENTATION_BOTTOM0DEGCW)   ? PIOS_HMC5883_BOTTOM_0DEG   : \
-				(ExtMagOrientation == HWSPARKY2_EXTMAGORIENTATION_BOTTOM90DEGCW)  ? PIOS_HMC5883_BOTTOM_90DEG  : \
-				(ExtMagOrientation == HWSPARKY2_EXTMAGORIENTATION_BOTTOM180DEGCW) ? PIOS_HMC5883_BOTTOM_180DEG : \
-				(ExtMagOrientation == HWSPARKY2_EXTMAGORIENTATION_BOTTOM270DEGCW) ? PIOS_HMC5883_BOTTOM_270DEG : \
-				pios_hmc5883_external_cfg.Default_Orientation;
-			PIOS_HMC5883_SetOrientation(hmc5883_orientation);
-		}
-	}
+			}
 #endif /* PIOS_INCLUDE_HMC5883 */
-
-#if defined(PIOS_INCLUDE_FLASH) && defined(PIOS_INCLUDE_FLASH_JEDEC)
-	if (get_external_flash(bdinfo->board_rev)) {
-		if ( PIOS_STREAMFS_Init(&streamfs_id, &streamfs_settings, FLASH_PARTITION_LABEL_LOG) != 0)
-			panic(8);
-			
-		const uint32_t LOG_BUF_LEN = 256;
-		uint8_t *log_rx_buffer = PIOS_malloc(LOG_BUF_LEN);
-		uint8_t *log_tx_buffer = PIOS_malloc(LOG_BUF_LEN);
-		if (PIOS_COM_Init(&pios_com_spiflash_logging_id, &pios_streamfs_com_driver, streamfs_id,
-			log_rx_buffer, LOG_BUF_LEN, log_tx_buffer, LOG_BUF_LEN) != 0)
-			panic(9);
+			break;
+		case HWSNAPDRAGONFLIGHT_MAGNETOMETER_INTERNAL:
+#if defined(PIOS_INCLUDE_MPU9250_SPI)
+			pios_mpu9250_cfg.use_magnetometer = true;
+#endif /* PIOS_INCLUDE_MPU9250_SPI */
 	}
-#endif	/* PIOS_INCLUDE_FLASH */
 
-	switch (bdinfo->board_rev) {
-	case BRUSHEDSPARKY_V0_2:
+	/* Configure IMU */
+	uint8_t hw_imu = 0;
+//	HwSnapdragonFlightIMUGet(&hw_imu);
+	switch (hw_imu) {
+		case /*HWSNAPDRAGONFLIGHT_IMU_MPU9250*/0:
 		{
-			HwSparky2VTX_ChOptions channel;
-			HwSparky2VTX_ChGet(&channel);
-			set_vtx_channel(channel);
+#if defined(PIOS_INCLUDE_MPU9250_SPI)
+			if (PIOS_MPU9250_SPI_Init(pios_spi1_id, 0, &pios_mpu9250_cfg) != 0)
+				panic(2);
+
+			// To be safe map from UAVO enum to driver enum
+			uint8_t hw_gyro_range;
+			HwSnapdragonFlightGyroRangeGet(&hw_gyro_range);
+			switch(hw_gyro_range) {
+				case HWSNAPDRAGONFLIGHT_GYRORANGE_250:
+					PIOS_MPU9250_SetGyroRange(PIOS_MPU60X0_SCALE_250_DEG);
+					break;
+				case HWSNAPDRAGONFLIGHT_GYRORANGE_500:
+					PIOS_MPU9250_SetGyroRange(PIOS_MPU60X0_SCALE_500_DEG);
+					break;
+				case HWSNAPDRAGONFLIGHT_GYRORANGE_1000:
+					PIOS_MPU9250_SetGyroRange(PIOS_MPU60X0_SCALE_1000_DEG);
+					break;
+				case HWSNAPDRAGONFLIGHT_GYRORANGE_2000:
+					PIOS_MPU9250_SetGyroRange(PIOS_MPU60X0_SCALE_2000_DEG);
+					break;
+			}
+
+			uint8_t hw_accel_range;
+			HwSnapdragonFlightAccelRangeGet(&hw_accel_range);
+			switch(hw_accel_range) {
+				case HWSNAPDRAGONFLIGHT_ACCELRANGE_2G:
+					PIOS_MPU9250_SetAccelRange(PIOS_MPU60X0_ACCEL_2G);
+					break;
+				case HWSNAPDRAGONFLIGHT_ACCELRANGE_4G:
+					PIOS_MPU9250_SetAccelRange(PIOS_MPU60X0_ACCEL_4G);
+					break;
+				case HWSNAPDRAGONFLIGHT_ACCELRANGE_8G:
+					PIOS_MPU9250_SetAccelRange(PIOS_MPU60X0_ACCEL_8G);
+					break;
+				case HWSNAPDRAGONFLIGHT_ACCELRANGE_16G:
+					PIOS_MPU9250_SetAccelRange(PIOS_MPU60X0_ACCEL_16G);
+					break;
+			}
+
+			// the filter has to be set before rate else divisor calculation will fail
+			uint8_t hw_mpu9250_dlpf;
+			HwSnapdragonFlightMPU9250GyroLPFGet(&hw_mpu9250_dlpf);
+			enum pios_mpu9250_gyro_filter mpu9250_gyro_lpf = \
+				(hw_mpu9250_dlpf == HWSNAPDRAGONFLIGHT_MPU9250GYROLPF_250) ? PIOS_MPU9250_GYRO_LOWPASS_250_HZ : \
+				(hw_mpu9250_dlpf == HWSNAPDRAGONFLIGHT_MPU9250GYROLPF_184) ? PIOS_MPU9250_GYRO_LOWPASS_184_HZ : \
+				(hw_mpu9250_dlpf == HWSNAPDRAGONFLIGHT_MPU9250GYROLPF_92) ? PIOS_MPU9250_GYRO_LOWPASS_92_HZ : \
+				(hw_mpu9250_dlpf == HWSNAPDRAGONFLIGHT_MPU9250GYROLPF_41) ? PIOS_MPU9250_GYRO_LOWPASS_41_HZ : \
+				(hw_mpu9250_dlpf == HWSNAPDRAGONFLIGHT_MPU9250GYROLPF_20) ? PIOS_MPU9250_GYRO_LOWPASS_20_HZ : \
+				(hw_mpu9250_dlpf == HWSNAPDRAGONFLIGHT_MPU9250GYROLPF_10) ? PIOS_MPU9250_GYRO_LOWPASS_10_HZ : \
+				(hw_mpu9250_dlpf == HWSNAPDRAGONFLIGHT_MPU9250GYROLPF_5) ? PIOS_MPU9250_GYRO_LOWPASS_5_HZ : \
+				pios_mpu9250_cfg.default_gyro_filter;
+			PIOS_MPU9250_SetGyroLPF(mpu9250_gyro_lpf);
+
+			HwSnapdragonFlightMPU9250AccelLPFGet(&hw_mpu9250_dlpf);
+			enum pios_mpu9250_accel_filter mpu9250_accel_lpf = \
+				(hw_mpu9250_dlpf == HWSNAPDRAGONFLIGHT_MPU9250ACCELLPF_460) ? PIOS_MPU9250_ACCEL_LOWPASS_460_HZ : \
+				(hw_mpu9250_dlpf == HWSNAPDRAGONFLIGHT_MPU9250ACCELLPF_184) ? PIOS_MPU9250_ACCEL_LOWPASS_184_HZ : \
+				(hw_mpu9250_dlpf == HWSNAPDRAGONFLIGHT_MPU9250ACCELLPF_92) ? PIOS_MPU9250_ACCEL_LOWPASS_92_HZ : \
+				(hw_mpu9250_dlpf == HWSNAPDRAGONFLIGHT_MPU9250ACCELLPF_41) ? PIOS_MPU9250_ACCEL_LOWPASS_41_HZ : \
+				(hw_mpu9250_dlpf == HWSNAPDRAGONFLIGHT_MPU9250ACCELLPF_20) ? PIOS_MPU9250_ACCEL_LOWPASS_20_HZ : \
+				(hw_mpu9250_dlpf == HWSNAPDRAGONFLIGHT_MPU9250ACCELLPF_10) ? PIOS_MPU9250_ACCEL_LOWPASS_10_HZ : \
+				(hw_mpu9250_dlpf == HWSNAPDRAGONFLIGHT_MPU9250ACCELLPF_5) ? PIOS_MPU9250_ACCEL_LOWPASS_5_HZ : \
+				pios_mpu9250_cfg.default_accel_filter;
+			PIOS_MPU9250_SetAccelLPF(mpu9250_accel_lpf);
+
+			uint8_t hw_mpu9250_samplerate;
+			HwSnapdragonFlightMPU9250RateGet(&hw_mpu9250_samplerate);
+			uint16_t mpu9250_samplerate = \
+				(hw_mpu9250_samplerate == HWSNAPDRAGONFLIGHT_MPU9250RATE_200) ? 200 : \
+				(hw_mpu9250_samplerate == HWSNAPDRAGONFLIGHT_MPU9250RATE_250) ? 250 : \
+				(hw_mpu9250_samplerate == HWSNAPDRAGONFLIGHT_MPU9250RATE_333) ? 333 : \
+				(hw_mpu9250_samplerate == HWSNAPDRAGONFLIGHT_MPU9250RATE_500) ? 500 : \
+				(hw_mpu9250_samplerate == HWSNAPDRAGONFLIGHT_MPU9250RATE_1000) ? 1000 : \
+				pios_mpu9250_cfg.default_samplerate;
+			PIOS_MPU9250_SetSampleRate(mpu9250_samplerate);
+#endif /* PIOS_INCLUDE_MPU9250_SPI */
 		}
 		break;
 	}
+
+#if defined(PIOS_INCLUDE_ADC)
+	PIOS_INTERNAL_ADC_Init(&internal_adc_id, &pios_adc_cfg);
+
+	PIOS_ADC_Init(&pios_internal_adc_id, &pios_internal_adc_driver, internal_adc_id);
+#endif
+
+#if defined(PIOS_INCLUDE_FLASH_JEDEC)
+	if ( PIOS_STREAMFS_Init(&streamfs_id, &streamfs_settings, FLASH_PARTITION_LABEL_LOG) != 0)
+		panic(8);
+
+	const uint32_t LOG_BUF_LEN = 256;
+	uint8_t *log_rx_buffer = PIOS_malloc(LOG_BUF_LEN);
+	uint8_t *log_tx_buffer = PIOS_malloc(LOG_BUF_LEN);
+	if (PIOS_COM_Init(&pios_com_spiflash_logging_id, &pios_streamfs_com_driver, streamfs_id,
+	                  log_rx_buffer, LOG_BUF_LEN, log_tx_buffer, LOG_BUF_LEN) != 0)
+		panic(9);
+#endif /* PIOS_INCLUDE_FLASH_JEDEC */
 
 }
 
 /**
  * @}
- * @}
  */
-
