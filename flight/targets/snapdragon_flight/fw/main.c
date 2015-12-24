@@ -2,12 +2,13 @@
  ******************************************************************************
  * @addtogroup TauLabsTargets Tau Labs Targets
  * @{
- * @addtogroup Sparky2 Tau Labs Sparky2 support files
+ * @addtogroup lvl1sb LVL1 Sensor Board support files
  * @{
  *
- * @file       main.c 
+ * @file       main.c
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2012-2015
- * @brief      Start up file for Sparky2
+ * @author     Kenn Sebesta, Copyright (C) 2015
+ * @brief      Start up file for Snapdragon Flight
  * @see        The GNU Public License (GPL) Version 3
  * 
  *****************************************************************************/
@@ -64,7 +65,7 @@ int main()
 {
 	/* NOTE: Do NOT modify the following start-up sequence */
 	/* Any new initialization functions should be added in OpenPilotInit() */
-	PIOS_heap_initialize_blocks();  
+	PIOS_heap_initialize_blocks();
 
 #if defined(PIOS_INCLUDE_CHIBIOS)
 	halInit();
@@ -75,12 +76,12 @@ int main()
 
 	/* Brings up System using CMSIS functions, enables the LEDs. */
 	PIOS_SYS_Init();
-	
-	/* For Sparky2 we use a FreeRTOS task to bring up the system so we can */
-	/* always rely on FreeRTOS primitive */	
+
+	/* For Snapdragon Flight we use an RTOS task to bring up the system so we can */
+	/* always rely on the RTOS primitive */
 	initTaskHandle = PIOS_Thread_Create(initTask, "init", INIT_TASK_STACK, NULL, INIT_TASK_PRIORITY);
 	PIOS_Assert(initTaskHandle != NULL);
-	
+
 #if defined(PIOS_INCLUDE_FREERTOS)
 	/* Start the FreeRTOS scheduler */
 	vTaskStartScheduler();
@@ -104,8 +105,7 @@ int main()
  *
  * Runs board and module initialisation, then terminates.
  */
-void
-initTask(void *parameters)
+void initTask(void *parameters)
 {
 	/* board driver init */
 	PIOS_Board_Init();

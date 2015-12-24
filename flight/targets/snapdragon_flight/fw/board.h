@@ -20,14 +20,14 @@
 #include "pios_chibios_transition_priv.h"
 
 /*
- * Setup for STMicroelectronics STM32F4 (sparky2)
+ * Setup for Qualcomm 801 (Snapdragon Flight)
  */
 
 /*
  * Board identifier.
  */
-#define BOARD_SPARKY2
-#define BOARD_NAME                  "sparky2 flight control"
+#define BOARD_QUALCOMM_SNAPDRAGON_FLIGHT
+#define BOARD_NAME                  "Qualcomm Snapdragon Flight"
 
 
 /*
