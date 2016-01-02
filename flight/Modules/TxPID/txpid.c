@@ -75,12 +75,17 @@ struct txpid_struct {
 	TxPIDSettingsData inst;
 	StabilizationSettingsData stab;
 	AccessoryDesiredData accessory;
+#ifdef UAVOBJ_INIT_vtolpathfollowersettings
 	VtolPathFollowerSettingsData vtolPathFollowerSettingsData;
+#endif
+#if (TELEMETRY_UPDATE_PERIOD_MS != 0)
 	UAVObjMetadata metadata;
+#endif
 };
 
 // Private variables
 static struct txpid_struct *txpid_data;
+static bool module_enabled;
 
 // Private functions
 static void updatePIDs(UAVObjEvent* ev);
@@ -93,8 +98,6 @@ static float scale(float val, float inMin, float inMax, float outMin, float outM
  */
 int32_t TxPIDInitialize(void)
 {
-	bool module_enabled;
-
 #ifdef MODULE_TxPID_BUILTIN
 	module_enabled = true;
 #else
@@ -104,23 +107,36 @@ int32_t TxPIDInitialize(void)
 		module_enabled = true;
 	} else {
 		module_enabled = false;
+		return -1;
 	}
 #endif
 
-	if (module_enabled) {
-		txpid_data = PIOS_malloc(sizeof(*txpid_data));
+	txpid_data = PIOS_malloc(sizeof(*txpid_data));
 
-		if (txpid_data != NULL) {
-			memset(txpid_data, 0x00, sizeof(*txpid_data));
-		}
-		else {
-			return -1;
-		}
+	if (txpid_data != NULL) {
+		memset(txpid_data, 0x00, sizeof(*txpid_data));
+	}
+	else {
+		return -1;
+	}
 
-		TxPIDSettingsInitialize();
-		AccessoryDesiredInitialize();
+	TxPIDSettingsInitialize();
+	AccessoryDesiredInitialize();
 
-		UAVObjEvent ev = {
+	return 0;
+}
+
+/**
+ * Module start routine automatically called after initialization routine
+ * @return 0 when was successful
+ */
+static int32_t TxPIDStart(void)
+{
+	if (!module_enabled) {
+		return -1;
+	}
+
+	UAVObjEvent ev = {
 			.obj = AccessoryDesiredHandle(),
 			.instId = 0,
 			.event = 0,
@@ -128,28 +144,24 @@ int32_t TxPIDInitialize(void)
 		EventPeriodicCallbackCreate(&ev, updatePIDs, SAMPLE_PERIOD_MS);
 
 #if (TELEMETRY_UPDATE_PERIOD_MS != 0)
-		// Change StabilizationSettings update rate from OnChange to periodic
-		// to prevent telemetry link flooding with frequent updates in case of
-		// control channel jitter.
-		// Warning: saving to flash with this code active will change the
-		// StabilizationSettings update rate permanently. Use Metadata via
-		// browser to reset to defaults (telemetryAcked=true, OnChange).
-		//UAVObjMetadata metadata;
-		StabilizationSettingsInitialize();
-		StabilizationSettingsGetMetadata(&txpid_data->metadata);
-		txpid_data->metadata.telemetryAcked = 0;
-		txpid_data->metadata.telemetryUpdateMode = UPDATEMODE_PERIODIC;
-		txpid_data->metadata.telemetryUpdatePeriod = TELEMETRY_UPDATE_PERIOD_MS;
-		StabilizationSettingsSetMetadata(&txpid_data->metadata);
+	// Change StabilizationSettings update rate from OnChange to periodic
+	// to prevent telemetry link flooding with frequent updates in case of
+	// control channel jitter.
+	// Warning: saving to flash with this code active will change the
+	// StabilizationSettings update rate permanently. Use Metadata via
+	// browser to reset to defaults (telemetryAcked=true, OnChange).
+	StabilizationSettingsInitialize();
+	StabilizationSettingsGetMetadata(&txpid_data->metadata);
+	txpid_data->metadata.telemetryAcked = 0;
+	txpid_data->metadata.telemetryUpdateMode = UPDATEMODE_PERIODIC;
+	txpid_data->metadata.telemetryUpdatePeriod = TELEMETRY_UPDATE_PERIOD_MS;
+	StabilizationSettingsSetMetadata(&txpid_data->metadata);
 #endif
 
-		return 0;
-	}
-
-	return -1;
+	return 0;
 }
 
-MODULE_INITCALL(TxPIDInitialize, NULL);
+MODULE_INITCALL(TxPIDInitialize, TxPIDStart);
 
 /**
  * Update PIDs callback function
@@ -159,7 +171,6 @@ static void updatePIDs(UAVObjEvent* ev)
 	if (ev->obj != AccessoryDesiredHandle())
 		return;
 
-	//TxPIDSettingsData inst;
 	TxPIDSettingsGet(&txpid_data->inst);
 
 	if (txpid_data->inst.UpdateMode == TXPIDSETTINGS_UPDATEMODE_NEVER)
@@ -171,11 +182,9 @@ static void updatePIDs(UAVObjEvent* ev)
 			(armed == FLIGHTSTATUS_ARMED_DISARMED))
 		return;
 
-	//StabilizationSettingsData stab;
 	StabilizationSettingsGet(&txpid_data->stab);
 
 #ifdef UAVOBJ_INIT_vtolpathfollowersettings
-	//VtolPathFollowerSettingsData vtolPathFollowerSettingsData;
 	// Check to make sure the settings UAVObject has been instantiated
 	if (VtolPathFollowerSettingsHandle()) {
 		VtolPathFollowerSettingsGet(&txpid_data->vtolPathFollowerSettingsData);
@@ -183,8 +192,6 @@ static void updatePIDs(UAVObjEvent* ev)
 
 	bool vtolPathFollowerSettingsNeedsUpdate = false;
 #endif
-
-	//AccessoryDesiredData accessory;
 
 	bool stabilizationSettingsNeedsUpdate = false;
 
