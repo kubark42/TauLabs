@@ -156,8 +156,6 @@ static int32_t RadioComBridgeStart(void)
 		// Configure the UAVObject callbacks
 		ObjectPersistenceConnectCallback(&objectPersistenceUpdatedCb);
 
-		updateSettings();
-
 		// Watchdog must be registered before starting tasks
 #ifdef PIOS_INCLUDE_WDG
 		PIOS_WDG_RegisterFlag(PIOS_WDG_TELEMETRYTX);
@@ -308,6 +306,8 @@ static void telemetryTxTask( __attribute__ ((unused))
 			    void *parameters)
 {
 	UAVObjEvent ev;
+
+	updateSettings();
 
 	// Loop forever
 	while (1) {
