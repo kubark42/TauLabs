@@ -392,7 +392,7 @@ static void radioRxTask( __attribute__ ((unused))
 		PIOS_WDG_UpdateFlag(PIOS_WDG_RADIORX);
 #endif
 		if (PIOS_COM_RFM22B) {
-			uint8_t serial_data[1];
+			uint8_t serial_data[32];
 			uint16_t bytes_to_process =
 			    PIOS_COM_ReceiveBuffer(PIOS_COM_RFM22B,
 						   serial_data,
@@ -408,7 +408,7 @@ static void radioRxTask( __attribute__ ((unused))
 				}
 			}
 		} else {
-			PIOS_Thread_Sleep(5);
+			PIOS_Thread_Sleep(3);
 		}
 	}
 }
@@ -434,7 +434,7 @@ static void telemetryRxTask( __attribute__ ((unused))
 		}
 #endif /* PIOS_INCLUDE_USB */
 		if (inputPort) {
-			uint8_t serial_data[1];
+			uint8_t serial_data[32];
 			uint16_t bytes_to_process =
 			    PIOS_COM_ReceiveBuffer(inputPort, serial_data,
 						   sizeof(serial_data),
