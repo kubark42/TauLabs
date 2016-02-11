@@ -50,7 +50,7 @@
 #include "accessorydesired.h"
 #include "manualcontrolcommand.h"
 #include "stabilizationsettings.h"
-#ifdef UAVOBJ_INIT_vtolpathfollowersettings
+#ifndef SMALLF1
 #include "vtolpathfollowersettings.h"
 #endif
 
@@ -75,7 +75,7 @@ struct txpid_struct {
 	TxPIDSettingsData inst;
 	StabilizationSettingsData stab;
 	AccessoryDesiredData accessory;
-#ifdef UAVOBJ_INIT_vtolpathfollowersettings
+#ifndef SMALLF1
 	VtolPathFollowerSettingsData vtolPathFollowerSettingsData;
 #endif
 #if (TELEMETRY_UPDATE_PERIOD_MS != 0)
@@ -183,7 +183,7 @@ static void updatePIDs(UAVObjEvent* ev)
 
 	StabilizationSettingsGet(&txpid_data->stab);
 
-#ifdef UAVOBJ_INIT_vtolpathfollowersettings
+#ifndef SMALLF1
 	// Check to make sure the settings UAVObject has been instantiated
 	if (VtolPathFollowerSettingsHandle()) {
 		VtolPathFollowerSettingsGet(&txpid_data->vtolPathFollowerSettingsData);
@@ -359,7 +359,7 @@ static void updatePIDs(UAVObjEvent* ev)
 			case TXPIDSETTINGS_PIDS_YAWVBARKD:
 				stabilizationSettingsNeedsUpdate |= update(&txpid_data->stab.VbarYawPID[STABILIZATIONSETTINGS_VBARYAWPID_KD], value);
 				break;
-#ifdef UAVOBJ_INIT_vtolpathfollowersettings
+#ifndef SMALLF1
 			case TXPIDSETTINGS_PIDS_HORIZONTALPOSKP:
 				vtolPathFollowerSettingsNeedsUpdate |= update(&txpid_data->vtolPathFollowerSettingsData.HorizontalPosPI[VTOLPATHFOLLOWERSETTINGS_HORIZONTALPOSPI_KP], value);
 				break;
@@ -378,7 +378,7 @@ static void updatePIDs(UAVObjEvent* ev)
 			case TXPIDSETTINGS_PIDS_HORIZONTALVELKD:
 				vtolPathFollowerSettingsNeedsUpdate |= update(&txpid_data->vtolPathFollowerSettingsData.HorizontalVelPID[VTOLPATHFOLLOWERSETTINGS_HORIZONTALVELPID_KD], value);
 				break;
-#endif /* UAVOBJ_INIT_vtolpathfollowersettings */
+#endif /* SMALLF1 */
 			default:
 				// Previously this would assert.  But now the
 				// object may be missing and it's not worth a
@@ -393,7 +393,7 @@ static void updatePIDs(UAVObjEvent* ev)
 		StabilizationSettingsSet(&txpid_data->stab);
 	}
 
-#ifdef UAVOBJ_INIT_vtolpathfollowersettings
+#ifndef SMALLF1
 	if (vtolPathFollowerSettingsNeedsUpdate) {
 		// Check to make sure the settings UAVObject has been instantiated
 		if (VtolPathFollowerSettingsHandle()) {
