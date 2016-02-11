@@ -7,6 +7,8 @@
  *
  * @file       txpid.c
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2011.
+ * @author     Tau Labs, http://taulabs.org, Copyright (C) 2013-2016
+ * @author     d-Ronin, http://dronin.org, Copyright (C) 2015
  * @brief      Optional module to tune PID settings using R/C transmitter.
  *
  * @see        The GNU Public License (GPL) Version 3
