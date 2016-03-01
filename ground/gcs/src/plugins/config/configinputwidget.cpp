@@ -760,7 +760,7 @@ void ConfigInputWidget::wizardTearDownStep(enum wizardSteps step)
 }
 
 /**
- * @brief ConfigInputWidget::fastMdata Set manual control command to fast updates. Set all others to updates slowly.
+ * @brief ConfigInputWidget::fastMdata Set manual control command to fast updates.
  */
 void ConfigInputWidget::fastMdata()
 {
@@ -773,7 +773,6 @@ void ConfigInputWidget::fastMdata()
     originalMetaData = utilMngr->readAllNonSettingsMetadata();
 
     // Update data rates
-    quint16 slowUpdate = 5000; // in [ms]
     quint16 fastUpdate =  150; // in [ms]
 
     // Iterate over list of UAVObjects, configuring all dynamic data metadata objects.
@@ -792,17 +791,10 @@ void ConfigInputWidget::fastMdata()
                         break;
                     case AccessoryDesired::OBJID:
                     case ManualControlCommand::OBJID:
-                        UAVObject::SetFlightTelemetryUpdateMode(mdata, UAVObject::UPDATEMODE_PERIODIC);
+                        UAVObject::SetFlightTelemetryUpdateMode(mdata, UAVObject::UPDATEMODE_THROTTLED);
                         mdata.flightTelemetryUpdatePeriod = fastUpdate;
                         break;
-                    case ActuatorCommand::OBJID:
-                        UAVObject::SetFlightAccess(mdata, UAVObject::ACCESS_READONLY);
-                        UAVObject::SetFlightTelemetryUpdateMode(mdata, UAVObject::UPDATEMODE_PERIODIC);
-                        mdata.flightTelemetryUpdatePeriod = slowUpdate;
-                        break;
                     default:
-                        UAVObject::SetFlightTelemetryUpdateMode(mdata, UAVObject::UPDATEMODE_PERIODIC);
-                        mdata.flightTelemetryUpdatePeriod = slowUpdate;
                         break;
                 }
 
