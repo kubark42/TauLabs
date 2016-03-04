@@ -20,17 +20,8 @@
 				<option>File</option>
 			</options>
 		</field>
-		<field name="ComSpeed" units="bps" type="enum" elements="1" defaultvalue="115200">
-			<options>
-				<option>2400</option>
-				<option>4800</option>
-				<option>9600</option>
-				<option>19200</option>
-				<option>38400</option>
-				<option>57600</option>
-				<option>115200</option>
-			</options>
-		</field>
+		<field name="ComSpeed" units="bps" type="enum" parent="HwShared.SpeedBps" elements="1" defaultvalue="115200"/>
+
 		<access gcs="readwrite" flight="readwrite"/>
 		<telemetrygcs acked="true" updatemode="onchange" period="0"/>
 		<telemetryflight acked="true" updatemode="onchange" period="0"/>

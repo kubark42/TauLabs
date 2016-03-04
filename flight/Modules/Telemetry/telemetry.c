@@ -35,6 +35,8 @@
 #include "sessionmanaging.h"
 #include "pios_thread.h"
 #include "pios_queue.h"
+#include "pios_hal.h"
+
 
 // Private constants
 #define MAX_QUEUE_SIZE   TELEM_QUEUE_SIZE
@@ -569,29 +571,7 @@ static void updateSettings()
 		ModuleSettingsTelemetrySpeedGet(&speed);
 
 		// Set port speed
-		switch (speed) {
-		case MODULESETTINGS_TELEMETRYSPEED_2400:
-			PIOS_COM_ChangeBaud(PIOS_COM_TELEM_RF, 2400);
-			break;
-		case MODULESETTINGS_TELEMETRYSPEED_4800:
-			PIOS_COM_ChangeBaud(PIOS_COM_TELEM_RF, 4800);
-			break;
-		case MODULESETTINGS_TELEMETRYSPEED_9600:
-			PIOS_COM_ChangeBaud(PIOS_COM_TELEM_RF, 9600);
-			break;
-		case MODULESETTINGS_TELEMETRYSPEED_19200:
-			PIOS_COM_ChangeBaud(PIOS_COM_TELEM_RF, 19200);
-			break;
-		case MODULESETTINGS_TELEMETRYSPEED_38400:
-			PIOS_COM_ChangeBaud(PIOS_COM_TELEM_RF, 38400);
-			break;
-		case MODULESETTINGS_TELEMETRYSPEED_57600:
-			PIOS_COM_ChangeBaud(PIOS_COM_TELEM_RF, 57600);
-			break;
-		case MODULESETTINGS_TELEMETRYSPEED_115200:
-			PIOS_COM_ChangeBaud(PIOS_COM_TELEM_RF, 115200);
-			break;
-		}
+		PIOS_HAL_ConfigureSerialSpeed(PIOS_COM_TELEM_RF, speed);
 	}
 }
 

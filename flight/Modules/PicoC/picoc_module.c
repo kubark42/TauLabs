@@ -40,6 +40,7 @@
 #include "flightstatus.h"
 #include "modulesettings.h"
 #include "pios_thread.h"
+#include "pios_hal.h"
 
 // Global variables
 extern uintptr_t pios_waypoints_settings_fs_id;	/* use the waypoint filesystem */
@@ -293,29 +294,7 @@ static void updateSettings()
 	// if there is a com port, setup its speed.
 	if (picocPort) {
 		// set port speed
-		switch (picocsettings.ComSpeed) {
-		case PICOCSETTINGS_COMSPEED_2400:
-			PIOS_COM_ChangeBaud(picocPort, 2400);
-			break;
-		case PICOCSETTINGS_COMSPEED_4800:
-			PIOS_COM_ChangeBaud(picocPort, 4800);
-			break;
-		case PICOCSETTINGS_COMSPEED_9600:
-			PIOS_COM_ChangeBaud(picocPort, 9600);
-			break;
-		case PICOCSETTINGS_COMSPEED_19200:
-			PIOS_COM_ChangeBaud(picocPort, 19200);
-			break;
-		case PICOCSETTINGS_COMSPEED_38400:
-			PIOS_COM_ChangeBaud(picocPort, 38400);
-			break;
-		case PICOCSETTINGS_COMSPEED_57600:
-			PIOS_COM_ChangeBaud(picocPort, 57600);
-			break;
-		case PICOCSETTINGS_COMSPEED_115200:
-			PIOS_COM_ChangeBaud(picocPort, 115200);
-			break;
-		}
+		PIOS_HAL_ConfigureSerialSpeed(picocPort, picocsettings.ComSpeed);
 	}
 }
 

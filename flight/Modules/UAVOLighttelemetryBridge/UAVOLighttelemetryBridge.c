@@ -57,6 +57,7 @@
 #include "positionactual.h"
 
 #include "pios_thread.h"
+#include "pios_hal.h"
 
 #if defined(PIOS_INCLUDE_LIGHTTELEMETRY)
 // Private constants
@@ -388,33 +389,9 @@ static void updateSettings()
 		// Retrieve settings
 		uint8_t speed;
 		ModuleSettingsLightTelemetrySpeedGet(&speed);
+
 		// Set port speed
-		switch (speed) {
-		case MODULESETTINGS_LIGHTTELEMETRYSPEED_1200:
-			PIOS_COM_ChangeBaud(lighttelemetryPort, 1200);
-			break;
-		case MODULESETTINGS_LIGHTTELEMETRYSPEED_2400:
-			PIOS_COM_ChangeBaud(lighttelemetryPort, 2400);
-			break;
-		case MODULESETTINGS_LIGHTTELEMETRYSPEED_4800:
-			PIOS_COM_ChangeBaud(lighttelemetryPort, 4800);
-			break;
-		case MODULESETTINGS_LIGHTTELEMETRYSPEED_9600:
-			PIOS_COM_ChangeBaud(lighttelemetryPort, 9600);
-			break;
-		case MODULESETTINGS_LIGHTTELEMETRYSPEED_19200:
-			PIOS_COM_ChangeBaud(lighttelemetryPort, 19200);
-			break;
-		case MODULESETTINGS_LIGHTTELEMETRYSPEED_38400:
-			PIOS_COM_ChangeBaud(lighttelemetryPort, 38400);
-			break;
-		case MODULESETTINGS_LIGHTTELEMETRYSPEED_57600:
-			PIOS_COM_ChangeBaud(lighttelemetryPort, 57600);
-			break;
-		case MODULESETTINGS_LIGHTTELEMETRYSPEED_115200:
-			PIOS_COM_ChangeBaud(lighttelemetryPort, 115200);
-			break;
-		}
+		PIOS_HAL_ConfigureSerialSpeed(lighttelemetryPort, speed);
 	}
 }
 #endif //end define lighttelemetry

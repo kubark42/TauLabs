@@ -838,3 +838,38 @@ void PIOS_HAL_ConfigureRFM22B(HwSharedRadioPortOptions radio_type,
 	RFM22BStatusInstSet(status_inst, &rfm22bstatus);
 }
 #endif /* PIOS_INCLUDE_RFM22B */
+
+void PIOS_HAL_ConfigureSerialSpeed(uintptr_t com_id, HwSharedSpeedBpsOptions speed) {
+	switch (speed) {
+		case HWSHARED_SPEEDBPS_1200:
+			PIOS_COM_ChangeBaud(com_id, 1200);
+			break;
+		case HWSHARED_SPEEDBPS_2400:
+			PIOS_COM_ChangeBaud(com_id, 2400);
+			break;
+		case HWSHARED_SPEEDBPS_4800:
+			PIOS_COM_ChangeBaud(com_id, 4800);
+			break;
+		case HWSHARED_SPEEDBPS_9600:
+			PIOS_COM_ChangeBaud(com_id, 9600);
+			break;
+		case HWSHARED_SPEEDBPS_19200:
+			PIOS_COM_ChangeBaud(com_id, 19200);
+			break;
+		case HWSHARED_SPEEDBPS_38400:
+			PIOS_COM_ChangeBaud(com_id, 38400);
+			break;
+		case HWSHARED_SPEEDBPS_57600:
+			PIOS_COM_ChangeBaud(com_id, 57600);
+			break;
+		case HWSHARED_SPEEDBPS_115200:
+			PIOS_COM_ChangeBaud(com_id, 115200);
+			break;
+		case HWSHARED_SPEEDBPS_230400:
+			PIOS_COM_ChangeBaud(com_id, 230400);
+			break;
+		case HWSHARED_SPEEDBPS_250000:
+			PIOS_COM_ChangeBaud(com_id, 250000);
+			break;
+	}
+}

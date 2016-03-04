@@ -44,6 +44,7 @@
 #include "baroaltitude.h"
 #include "mavlink.h"
 #include "pios_thread.h"
+#include "pios_hal.h"
 
 #include "custom_types.h"
 
@@ -486,29 +487,7 @@ static void updateSettings()
 		ModuleSettingsMavlinkSpeedGet(&speed);
 
 		// Set port speed
-		switch (speed) {
-		case MODULESETTINGS_MAVLINKSPEED_2400:
-			PIOS_COM_ChangeBaud(mavlink_port, 2400);
-			break;
-		case MODULESETTINGS_MAVLINKSPEED_4800:
-			PIOS_COM_ChangeBaud(mavlink_port, 4800);
-			break;
-		case MODULESETTINGS_MAVLINKSPEED_9600:
-			PIOS_COM_ChangeBaud(mavlink_port, 9600);
-			break;
-		case MODULESETTINGS_MAVLINKSPEED_19200:
-			PIOS_COM_ChangeBaud(mavlink_port, 19200);
-			break;
-		case MODULESETTINGS_MAVLINKSPEED_38400:
-			PIOS_COM_ChangeBaud(mavlink_port, 38400);
-			break;
-		case MODULESETTINGS_MAVLINKSPEED_57600:
-			PIOS_COM_ChangeBaud(mavlink_port, 57600);
-			break;
-		case MODULESETTINGS_MAVLINKSPEED_115200:
-			PIOS_COM_ChangeBaud(mavlink_port, 115200);
-			break;
-		}
+		PIOS_HAL_ConfigureSerialSpeed(mavlink_port, speed);
 	}
 }
 /**

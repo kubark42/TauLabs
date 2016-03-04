@@ -41,6 +41,7 @@
 #include "gpsvelocity.h"
 #include "modulesettings.h"
 #include "pios_thread.h"
+#include "pios_hal.h"
 
 #include "NMEA.h"
 #include "UBX.h"
@@ -325,32 +326,7 @@ static void updateSettings()
 		ModuleSettingsGPSSpeedGet(&speed);
 
 		// Set port speed
-		switch (speed) {
-		case MODULESETTINGS_GPSSPEED_2400:
-			PIOS_COM_ChangeBaud(gpsPort, 2400);
-			break;
-		case MODULESETTINGS_GPSSPEED_4800:
-			PIOS_COM_ChangeBaud(gpsPort, 4800);
-			break;
-		case MODULESETTINGS_GPSSPEED_9600:
-			PIOS_COM_ChangeBaud(gpsPort, 9600);
-			break;
-		case MODULESETTINGS_GPSSPEED_19200:
-			PIOS_COM_ChangeBaud(gpsPort, 19200);
-			break;
-		case MODULESETTINGS_GPSSPEED_38400:
-			PIOS_COM_ChangeBaud(gpsPort, 38400);
-			break;
-		case MODULESETTINGS_GPSSPEED_57600:
-			PIOS_COM_ChangeBaud(gpsPort, 57600);
-			break;
-		case MODULESETTINGS_GPSSPEED_115200:
-			PIOS_COM_ChangeBaud(gpsPort, 115200);
-			break;
-		case MODULESETTINGS_GPSSPEED_230400:
-			PIOS_COM_ChangeBaud(gpsPort, 230400);
-			break;
-		}
+		PIOS_HAL_ConfigureSerialSpeed(gpsPort, speed);
 	}
 }
 

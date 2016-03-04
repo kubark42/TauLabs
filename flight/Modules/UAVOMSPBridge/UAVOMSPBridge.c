@@ -31,6 +31,8 @@
 
 #include "openpilot.h"
 #include "physical_constants.h"
+#include "pios_hal.h"
+
 #include "modulesettings.h"
 #include "flightbatterysettings.h"
 #include "flightbatterystate.h"
@@ -461,29 +463,8 @@ static void setMSPSpeed(struct msp_bridge *m)
 		uint8_t speed;
 		ModuleSettingsMSPSpeedGet(&speed);
 
-		switch (speed) {
-		case MODULESETTINGS_MSPSPEED_2400:
-			PIOS_COM_ChangeBaud(m->com, 2400);
-			break;
-		case MODULESETTINGS_MSPSPEED_4800:
-			PIOS_COM_ChangeBaud(m->com, 4800);
-			break;
-		case MODULESETTINGS_MSPSPEED_9600:
-			PIOS_COM_ChangeBaud(m->com, 9600);
-			break;
-		case MODULESETTINGS_MSPSPEED_19200:
-			PIOS_COM_ChangeBaud(m->com, 19200);
-			break;
-		case MODULESETTINGS_MSPSPEED_38400:
-			PIOS_COM_ChangeBaud(m->com, 38400);
-			break;
-		case MODULESETTINGS_MSPSPEED_57600:
-			PIOS_COM_ChangeBaud(m->com, 57600);
-			break;
-		case MODULESETTINGS_MSPSPEED_115200:
-			PIOS_COM_ChangeBaud(m->com, 115200);
-			break;
-		}
+		// Set port speed
+		PIOS_HAL_ConfigureSerialSpeed(m->com, speed);
 	}
 }
 
