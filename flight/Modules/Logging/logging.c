@@ -187,9 +187,9 @@ static void loggingTask(void *parameters)
 	}
 #endif
 
-	if (!destination_spi_flash) {
-		updateSettings();
-	}
+//	if (!destination_spi_flash) {
+//		updateSettings();
+//	}
 
 	if (settings.LogBehavior == LOGGINGSETTINGS_LOGBEHAVIOR_LOGONSTART) {
 		loggingData.Operation = LOGGINGSTATS_OPERATION_INITIALIZING;

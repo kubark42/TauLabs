@@ -874,73 +874,13 @@ void PIOS_HAL_ConfigureSerialSpeed(uintptr_t com_id,
 		case HWSHARED_SPEEDBPS_57600:
 			PIOS_COM_ChangeBaud(com_id, 57600);
 			break;
-		case HWSHARED_SPEEDBPS_INITHM10:
-			PIOS_COM_ChangeBaud(com_id, 9600);
-
-			PIOS_COM_SendString(com_id,"AT+BAUD4"); // 115200
-			PIOS_Thread_Sleep(BT_COMMAND_QDELAY);
-
-			PIOS_COM_ChangeBaud(com_id, 115200);
-
-			PIOS_Thread_Sleep(BT_COMMAND_QDELAY);
-			PIOS_COM_SendString(com_id,"AT+NAMEdRonin");
-			PIOS_Thread_Sleep(BT_COMMAND_QDELAY);
-			PIOS_COM_SendString(com_id,"AT+PASS000000");
-			PIOS_Thread_Sleep(BT_COMMAND_QDELAY);
-			PIOS_COM_SendString(com_id,"AT+POWE3");
-			PIOS_Thread_Sleep(BT_COMMAND_QDELAY);
-			PIOS_COM_SendString(com_id,"AT+RESET");
-			PIOS_Thread_Sleep(BT_COMMAND_QDELAY);
-			break;
-
-		case HWSHARED_SPEEDBPS_INITHC06:
-			/* Some modules default to 38400, some to 9600.
-			 * Best effort to work with 38400. */
-
-			/* ~4.5 second init time. */
-			PIOS_COM_ChangeBaud(com_id, 38400);
-			PIOS_COM_SendString(com_id,"AT+BAUD8"); // 115200
-			PIOS_Thread_Sleep(BT_COMMAND_DELAY);
-
-			PIOS_COM_ChangeBaud(com_id, 9600);
-			PIOS_COM_SendString(com_id,"AT+BAUD8"); 
-			PIOS_Thread_Sleep(BT_COMMAND_DELAY);
-
-			PIOS_COM_ChangeBaud(com_id, 115200); 
-			PIOS_COM_SendString(com_id,"AT+NAMEdRonin");
-			PIOS_Thread_Sleep(BT_COMMAND_DELAY);
-			PIOS_COM_SendString(com_id,"AT+PIN0000");
-			PIOS_Thread_Sleep(BT_COMMAND_DELAY);
-			break;
-
-		case HWSHARED_SPEEDBPS_INITHC05:
-			/* Some modules default to 38400, some to 9600.
-			 * Best effort to work with 38400. */
-
-			/* Not silence delimited; but usually requires you to
-			 * push a button at magical timing */
-			PIOS_COM_ChangeBaud(com_id, 38400);
-			PIOS_COM_SendString(com_id,"AT+UART=115200,0,0\r\n"); // 9600
-			PIOS_Thread_Sleep(BT_COMMAND_DELAY/2);
-			PIOS_COM_ChangeBaud(com_id, 9600);
-			PIOS_COM_SendString(com_id,"AT+UART=115200,0,0\r\n"); // 9600
-			PIOS_Thread_Sleep(BT_COMMAND_DELAY/2);
-
-			PIOS_COM_ChangeBaud(com_id, 115200);
-
-			PIOS_COM_SendString(com_id,"AT+NAME=dRonin\r\n");
-			PIOS_Thread_Sleep(BT_COMMAND_DELAY/2);
-			PIOS_COM_SendString(com_id,"AT+PSWD=0000\r\n");
-			PIOS_Thread_Sleep(BT_COMMAND_DELAY/2);
-
-			break;
-
 		case HWSHARED_SPEEDBPS_115200:
 			PIOS_COM_ChangeBaud(com_id, 115200);
 			break;
-
 		case HWSHARED_SPEEDBPS_230400:
 			PIOS_COM_ChangeBaud(com_id, 230400);
 			break;
+	default:
+		break;
 	}
 }

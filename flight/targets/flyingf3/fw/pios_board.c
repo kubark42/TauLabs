@@ -384,9 +384,12 @@ void PIOS_Board_Init(void) {
 			NULL,                                // ppm_cfg
 			NULL,                                // pwm_cfg
 			PIOS_LED_ALARM,                      // led_id
-			&pios_usart1_dsm_aux_cfg,            // dsm_cfg
+			NULL,                                // dsm_hsum_cfg
+                        NULL,                                // dsm_cfg
 			hw_DSMxMode,                         // dsm_mode
-			NULL);                               // sbus_cfg
+                               NULL,                                // sbus_rcvr_cfg
+                               NULL,                                // sbus_cfg
+			NULL);                               // sbus_toggle
 
 	/* UART2 Port */
 	uint8_t hw_uart2;
@@ -400,9 +403,12 @@ void PIOS_Board_Init(void) {
 			NULL,                                // ppm_cfg
 			NULL,                                // pwm_cfg
 			PIOS_LED_ALARM,                      // led_id
+                        NULL,                                // dsm_hsum_cfg
 			&pios_usart2_dsm_aux_cfg,            // dsm_cfg
 			hw_DSMxMode,                         // dsm_mode
-			NULL);                               // sbus_cfg
+                               NULL,                                // sbus_rcvr_cfg
+                               NULL,                                // sbus_cfg
+			NULL);                               // sbus_toggle
 
 	/* UART3 Port */
 	uint8_t hw_uart3;
@@ -416,9 +422,12 @@ void PIOS_Board_Init(void) {
 			NULL,                                // ppm_cfg
 			NULL,                                // pwm_cfg
 			PIOS_LED_ALARM,                      // led_id
+                        NULL,                                // dsm_hsum_cfg
 			&pios_usart3_dsm_aux_cfg,            // dsm_cfg
 			hw_DSMxMode,                         // dsm_mode
-			NULL);                               // sbus_cfg
+                               NULL,                                // sbus_rcvr_cfg
+                               NULL,                                // sbus_cfg
+			NULL);                               // sbus_toggle
 
 	/* UART4 Port */
 	uint8_t hw_uart4;
@@ -432,9 +441,12 @@ void PIOS_Board_Init(void) {
 			NULL,                                // ppm_cfg
 			NULL,                                // pwm_cfg
 			PIOS_LED_ALARM,                      // led_id
+                        NULL,                                // dsm_hsum_cfg
 			&pios_usart4_dsm_aux_cfg,            // dsm_cfg
 			hw_DSMxMode,                         // dsm_mode
-			NULL);                               // sbus_cfg
+                               NULL,                                // sbus_rcvr_cfg
+                               NULL,                                // sbus_cfg
+			NULL);                               // sbus_toggle
 
 	/* UART5 Port */
 	uint8_t hw_uart5;
@@ -448,9 +460,12 @@ void PIOS_Board_Init(void) {
 			NULL,                                // ppm_cfg
 			NULL,                                // pwm_cfg
 			PIOS_LED_ALARM,                      // led_id
+                        NULL,                                // dsm_hsum_cfg
 			&pios_usart5_dsm_aux_cfg,            // dsm_cfg
 			hw_DSMxMode,                         // dsm_mode
-			NULL);                               // sbus_cfg
+                               NULL,                                // sbus_rcvr_cfg
+                               NULL,                                // sbus_cfg
+			NULL);                               // sbus_toggle
 
 	/* Configure the rcvr port */
 	uint8_t hw_rcvrport;
@@ -470,9 +485,12 @@ void PIOS_Board_Init(void) {
 				NULL,                                   // ppm_cfg
 				&pios_pwm_cfg,                          // pwm_cfg
 				PIOS_LED_ALARM,                         // led_id
+                                NULL,                                // dsm_hsum_cfg
 				NULL,                                   // dsm_cfg
 				0,                                      // dsm_mode
-				NULL);                                  // sbus_cfg
+                                       NULL,                                // sbus_rcvr_cfg
+                                       NULL,                                // sbus_cfg
+                                NULL);                               // sbus_toggle
 		break;
 
 	case HWFLYINGF3_RCVRPORT_PPM:
@@ -485,9 +503,12 @@ void PIOS_Board_Init(void) {
 				&pios_ppm_cfg,                          // ppm_cfg
 				NULL,                                   // pwm_cfg
 				PIOS_LED_ALARM,                         // led_id
+                                NULL,                                // dsm_hsum_cfg
 				NULL,                                   // dsm_cfg
 				0,                                      // dsm_mode
-				NULL);                                  // sbus_cfg
+                                       NULL,                                // sbus_rcvr_cfg
+                                       NULL,                                // sbus_cfg
+                                NULL);                               // sbus_toggle
 		break;
 
 	case HWFLYINGF3_RCVRPORT_PPMPWM:
@@ -499,9 +520,12 @@ void PIOS_Board_Init(void) {
 				&pios_ppm_cfg,                          // ppm_cfg
 				NULL,                                   // pwm_cfg
 				PIOS_LED_ALARM,                         // led_id
+                                NULL,                                // dsm_hsum_cfg
 				NULL,                                   // dsm_cfg
 				0,                                      // dsm_mode
-				NULL);                                  // sbus_cfg
+                                       NULL,                                // sbus_rcvr_cfg
+                                       NULL,                                // sbus_cfg
+                                NULL);                               // sbus_toggle
 
 		PIOS_HAL_ConfigurePort(HWSHARED_PORTTYPES_PWM,  // port type protocol
 				NULL,                                   // usart_port_cfg
@@ -511,9 +535,12 @@ void PIOS_Board_Init(void) {
 				NULL,                                   // ppm_cfg
 				&pios_pwm_with_ppm_cfg,                 // pwm_cfg
 				PIOS_LED_ALARM,                         // led_id
+                                NULL,                                // dsm_hsum_cfg
 				NULL,                                   // dsm_cfg
 				0,                                      // dsm_mode
-				NULL);                                  // sbus_cfg
+                                       NULL,                                // sbus_rcvr_cfg
+                                       NULL,                                // sbus_cfg
+                                NULL);                               // sbus_toggle
 		break;
 	}
 
