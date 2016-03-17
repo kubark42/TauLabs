@@ -10,28 +10,28 @@
  * @author     Tau Labs, http://taulabs.org, Copyright (C) 2012-2016
  * @brief      The board specific initialization routines
  * @see        The GNU Public License (GPL) Version 3
- * 
+ *
  *****************************************************************************/
-/* 
- * This program is free software; you can redistribute it and/or modify 
- * it under the terms of the GNU General Public License as published by 
- * the Free Software Foundation; either version 3 of the License, or 
+/*
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY 
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License 
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
  * for more details.
- * 
- * You should have received a copy of the GNU General Public License along 
- * with this program; if not, write to the Free Software Foundation, Inc., 
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
 /* Pull in the board-specific static HW definitions.
  * Including .c files is a bit ugly but this allows all of
  * the HW definitions to be const and static to limit their
- * scope.  
+ * scope.
  *
  * NOTE: THIS IS THE ONLY PLACE THAT SHOULD EVER INCLUDE THIS FILE
  */
@@ -165,7 +165,6 @@ static const struct pios_ms5xxx_cfg pios_ms5xxx_cfg = {
 #define PIOS_COM_CAN_RX_BUF_LEN 256
 #define PIOS_COM_CAN_TX_BUF_LEN 256
 
-uintptr_t openlog_logging_id;
 uintptr_t pios_can_id;
 uintptr_t pios_com_can_id;
 uintptr_t pios_uavo_settings_fs_id;
@@ -350,7 +349,7 @@ void PIOS_Board_Init(void) {
 	}
 
 	PIOS_HAL_ConfigureCDC(hw_usb_vcpport, pios_usb_id, &pios_usb_cdc_cfg);
-	
+
 #endif	/* PIOS_INCLUDE_USB_CDC */
 
 #if defined(PIOS_INCLUDE_USB_HID)
@@ -364,7 +363,7 @@ void PIOS_Board_Init(void) {
 	}
 
 	PIOS_HAL_ConfigureHID(hw_usb_hidport, pios_usb_id, &pios_usb_hid_cfg);
-	
+
 #endif	/* PIOS_INCLUDE_USB_HID */
 #endif	/* PIOS_INCLUDE_USB */
 
@@ -378,18 +377,19 @@ void PIOS_Board_Init(void) {
 
 	PIOS_HAL_ConfigurePort(hw_uart1,             // port type protocol
 			&pios_usart1_cfg,                    // usart_port_cfg
+			&pios_usart1_sport_cfg,              // frsky usart_port_cfg
 			&pios_usart_com_driver,              // com_driver
 			NULL,                                // i2c_id
 			NULL,                                // i2c_cfg
 			NULL,                                // ppm_cfg
 			NULL,                                // pwm_cfg
 			PIOS_LED_ALARM,                      // led_id
-			NULL,                                // dsm_hsum_cfg
-                        NULL,                                // dsm_cfg
+			&pios_usart1_dsm_hsum_cfg,           // usart_dsm_hsum_cfg
+			&pios_usart1_dsm_aux_cfg,            // dsm_cfg
 			hw_DSMxMode,                         // dsm_mode
-                               NULL,                                // sbus_rcvr_cfg
-                               NULL,                                // sbus_cfg
-			NULL);                               // sbus_toggle
+			&pios_usart1_sbus_cfg,               // sbus_rcvr_cfg
+			&pios_usart1_sbus_aux_cfg,           // sbus_cfg
+			false);                              // sbus_toggle
 
 	/* UART2 Port */
 	uint8_t hw_uart2;
@@ -397,18 +397,19 @@ void PIOS_Board_Init(void) {
 
 	PIOS_HAL_ConfigurePort(hw_uart2,             // port type protocol
 			&pios_usart2_cfg,                    // usart_port_cfg
+			&pios_usart2_sport_cfg,              // frsky usart_port_cfg
 			&pios_usart_com_driver,              // com_driver
 			NULL,                                // i2c_id
 			NULL,                                // i2c_cfg
 			NULL,                                // ppm_cfg
 			NULL,                                // pwm_cfg
 			PIOS_LED_ALARM,                      // led_id
-                        NULL,                                // dsm_hsum_cfg
+			&pios_usart2_dsm_hsum_cfg,           // usart_dsm_hsum_cfg
 			&pios_usart2_dsm_aux_cfg,            // dsm_cfg
 			hw_DSMxMode,                         // dsm_mode
-                               NULL,                                // sbus_rcvr_cfg
-                               NULL,                                // sbus_cfg
-			NULL);                               // sbus_toggle
+			&pios_usart2_sbus_cfg,               // sbus_rcvr_cfg
+			&pios_usart2_sbus_aux_cfg,           // sbus_cfg
+			false);                              // sbus_toggle
 
 	/* UART3 Port */
 	uint8_t hw_uart3;
@@ -416,18 +417,19 @@ void PIOS_Board_Init(void) {
 
 	PIOS_HAL_ConfigurePort(hw_uart3,             // port type protocol
 			&pios_usart3_cfg,                    // usart_port_cfg
+			&pios_usart3_sport_cfg,              // frsky usart_port_cfg
 			&pios_usart_com_driver,              // com_driver
 			NULL,                                // i2c_id
 			NULL,                                // i2c_cfg
 			NULL,                                // ppm_cfg
 			NULL,                                // pwm_cfg
 			PIOS_LED_ALARM,                      // led_id
-                        NULL,                                // dsm_hsum_cfg
+			&pios_usart3_dsm_hsum_cfg,           // usart_dsm_hsum_cfg
 			&pios_usart3_dsm_aux_cfg,            // dsm_cfg
 			hw_DSMxMode,                         // dsm_mode
-                               NULL,                                // sbus_rcvr_cfg
-                               NULL,                                // sbus_cfg
-			NULL);                               // sbus_toggle
+			&pios_usart3_sbus_cfg,               // sbus_rcvr_cfg
+			&pios_usart3_sbus_aux_cfg,           // sbus_cfg
+			false);                              // sbus_toggle
 
 	/* UART4 Port */
 	uint8_t hw_uart4;
@@ -435,18 +437,19 @@ void PIOS_Board_Init(void) {
 
 	PIOS_HAL_ConfigurePort(hw_uart4,             // port type protocol
 			&pios_usart4_cfg,                    // usart_port_cfg
+			&pios_usart4_sport_cfg,              // frsky usart_port_cfg
 			&pios_usart_com_driver,              // com_driver
 			NULL,                                // i2c_id
 			NULL,                                // i2c_cfg
 			NULL,                                // ppm_cfg
 			NULL,                                // pwm_cfg
 			PIOS_LED_ALARM,                      // led_id
-                        NULL,                                // dsm_hsum_cfg
+			&pios_usart4_dsm_hsum_cfg,           // usart_dsm_hsum_cfg
 			&pios_usart4_dsm_aux_cfg,            // dsm_cfg
 			hw_DSMxMode,                         // dsm_mode
-                               NULL,                                // sbus_rcvr_cfg
-                               NULL,                                // sbus_cfg
-			NULL);                               // sbus_toggle
+			&pios_usart4_sbus_cfg,               // sbus_rcvr_cfg
+			&pios_usart4_sbus_aux_cfg,           // sbus_cfg
+			false);                              // sbus_toggle
 
 	/* UART5 Port */
 	uint8_t hw_uart5;
@@ -454,93 +457,98 @@ void PIOS_Board_Init(void) {
 
 	PIOS_HAL_ConfigurePort(hw_uart5,             // port type protocol
 			&pios_usart5_cfg,                    // usart_port_cfg
+			&pios_usart5_sport_cfg,              // frsky usart_port_cfg
 			&pios_usart_com_driver,              // com_driver
 			NULL,                                // i2c_id
 			NULL,                                // i2c_cfg
 			NULL,                                // ppm_cfg
 			NULL,                                // pwm_cfg
 			PIOS_LED_ALARM,                      // led_id
-                        NULL,                                // dsm_hsum_cfg
+			&pios_usart5_dsm_hsum_cfg,           // usart_dsm_hsum_cfg
 			&pios_usart5_dsm_aux_cfg,            // dsm_cfg
 			hw_DSMxMode,                         // dsm_mode
-                               NULL,                                // sbus_rcvr_cfg
-                               NULL,                                // sbus_cfg
-			NULL);                               // sbus_toggle
+			&pios_usart5_sbus_cfg,               // sbus_rcvr_cfg
+			&pios_usart5_sbus_aux_cfg,           // sbus_cfg
+			false);                              // sbus_toggle
 
 	/* Configure the rcvr port */
 	uint8_t hw_rcvrport;
 	HwFlyingF3RcvrPortGet(&hw_rcvrport);
 
 	switch (hw_rcvrport) {
-	
+
 	case HWFLYINGF3_RCVRPORT_DISABLED:
 		break;
-	
+
 	case HWFLYINGF3_RCVRPORT_PWM:
 		PIOS_HAL_ConfigurePort(HWSHARED_PORTTYPES_PWM,  // port type protocol
 				NULL,                                   // usart_port_cfg
+				NULL,                                   // frsky usart_port_cfg
 				NULL,                                   // com_driver
 				NULL,                                   // i2c_id
 				NULL,                                   // i2c_cfg
 				NULL,                                   // ppm_cfg
 				&pios_pwm_cfg,                          // pwm_cfg
 				PIOS_LED_ALARM,                         // led_id
-                                NULL,                                // dsm_hsum_cfg
+				NULL,                                   // usart_dsm_hsum_cfg
 				NULL,                                   // dsm_cfg
 				0,                                      // dsm_mode
-                                       NULL,                                // sbus_rcvr_cfg
-                                       NULL,                                // sbus_cfg
-                                NULL);                               // sbus_toggle
+				NULL,                                   // sbus_rcvr_cfg
+				NULL,                                   // sbus_cfg
+				false);                                 // sbus_toggle
 		break;
 
 	case HWFLYINGF3_RCVRPORT_PPM:
 	case HWFLYINGF3_RCVRPORT_PPMOUTPUTS:
 		PIOS_HAL_ConfigurePort(HWSHARED_PORTTYPES_PPM,  // port type protocol
 				NULL,                                   // usart_port_cfg
+				NULL,                                   // frsky usart_port_cfg
 				NULL,                                   // com_driver
 				NULL,                                   // i2c_id
 				NULL,                                   // i2c_cfg
 				&pios_ppm_cfg,                          // ppm_cfg
 				NULL,                                   // pwm_cfg
 				PIOS_LED_ALARM,                         // led_id
-                                NULL,                                // dsm_hsum_cfg
+				NULL,                                   // usart_dsm_hsum_cfg
 				NULL,                                   // dsm_cfg
 				0,                                      // dsm_mode
-                                       NULL,                                // sbus_rcvr_cfg
-                                       NULL,                                // sbus_cfg
-                                NULL);                               // sbus_toggle
+				NULL,                                   // sbus_rcvr_cfg
+				NULL,                                   // sbus_cfg
+				false);                                 // sbus_toggle
 		break;
 
 	case HWFLYINGF3_RCVRPORT_PPMPWM:
 		PIOS_HAL_ConfigurePort(HWSHARED_PORTTYPES_PPM,  // port type protocol
 				NULL,                                   // usart_port_cfg
+				NULL,                                   // frsky usart_port_cfg
 				NULL,                                   // com_driver
 				NULL,                                   // i2c_id
 				NULL,                                   // i2c_cfg
 				&pios_ppm_cfg,                          // ppm_cfg
 				NULL,                                   // pwm_cfg
 				PIOS_LED_ALARM,                         // led_id
-                                NULL,                                // dsm_hsum_cfg
+				NULL,                                   // usart_dsm_hsum_cfg
 				NULL,                                   // dsm_cfg
 				0,                                      // dsm_mode
-                                       NULL,                                // sbus_rcvr_cfg
-                                       NULL,                                // sbus_cfg
-                                NULL);                               // sbus_toggle
+				NULL,                                   // sbus_rcvr_cfg
+				NULL,                                   // sbus_cfg
+				false);                                 // sbus_toggle
 
 		PIOS_HAL_ConfigurePort(HWSHARED_PORTTYPES_PWM,  // port type protocol
 				NULL,                                   // usart_port_cfg
+				NULL,                                   // frsky usart_port_cfg
 				NULL,                                   // com_driver
 				NULL,                                   // i2c_id
 				NULL,                                   // i2c_cfg
 				NULL,                                   // ppm_cfg
 				&pios_pwm_with_ppm_cfg,                 // pwm_cfg
 				PIOS_LED_ALARM,                         // led_id
-                                NULL,                                // dsm_hsum_cfg
+				NULL,                                   // usart_dsm_hsum_cfg
 				NULL,                                   // dsm_cfg
 				0,                                      // dsm_mode
-                                       NULL,                                // sbus_rcvr_cfg
-                                       NULL,                                // sbus_cfg
-                                NULL);                               // sbus_toggle
+				NULL,                                   // sbus_rcvr_cfg
+				NULL,                                   // sbus_cfg
+				false);                                 // sbus_toggle
 		break;
 	}
 
