@@ -513,7 +513,10 @@ static void session_managing_updated(UAVObjEvent * ev, void *ctx, void *obj, int
 		} else {
 			uint8_t index = sessionManaging.ObjectOfInterestIndex;
 			sessionManaging.ObjectID = UAVObjIDByIndex(index);
-			sessionManaging.ObjectInstances = UAVObjGetNumInstances(UAVObjGetByID(sessionManaging.ObjectID));
+
+			if (index < UAVObjCount()) {
+				sessionManaging.ObjectInstances = UAVObjGetNumInstances(UAVObjGetByID(sessionManaging.ObjectID));
+			}
 		}
 		SessionManagingSet(&sessionManaging);
 	}
