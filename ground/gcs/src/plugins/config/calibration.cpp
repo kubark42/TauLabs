@@ -57,6 +57,9 @@
 
 #define META_OPERATIONS_TIMEOUT 5000
 
+void computeEllipsoidCalibration(Eigen::VectorXd const measurement_x, Eigen::VectorXd const measurement_y, Eigen::VectorXd const measurement_z, Eigen::Matrix3d *b_soft, Eigen::Vector3d *b_hard);
+int findBestEllipsoidFit(Eigen::VectorXd measurement_x, Eigen::VectorXd measurement_y, Eigen::VectorXd measurement_z, Eigen::Vector3d *center, Eigen::Matrix3d *radii, Eigen::MatrixXd *evecs);
+
 class Thread : public QThread
 {
 public:
@@ -282,8 +285,8 @@ void Calibration::dataUpdated(UAVObject * obj) {
 
             emit toggleControls(true);
 
-            // Do ellipsoid fit calculation
-            int ret = computeEllipsoidFit(mag_accum_x, mag_accum_y, mag_accum_z);
+            // Do final ellipsoid fit calculation
+            int ret = extractEllipsoidCalibration(mag_accum_x, mag_accum_y, mag_accum_z);
             if (ret == CALIBRATION_SUCCESS) {
                 // Load calibration results
                 SensorSettings * sensorSettings = SensorSettings::GetInstance(getObjectManager());
@@ -1229,11 +1232,9 @@ bool Calibration::storeEllipsoidCalibrationMeasurement(UAVObject *obj) {
         Q_ASSERT(0);
     }
 
-    int sphereCompletion = 0;
-
-	 // Periodically recompute the fit
-    if (mag_accum_x.length() % 3 == 0 && mag_accum_x.length() > 0) {
-        sphereCompletion = computeEllipsoidFit(mag_accum_x, mag_accum_y, mag_accum_z);
+     // Periodically recompute the fit, but only if there are enough points to define the ellipsoid
+    if ((mag_accum_x.length() % 2) == 0 && mag_accum_x.length() > 4) {
+        int sphereCompletion = extractEllipsoidCalibration(mag_accum_x, mag_accum_y, mag_accum_z);
 
         // update the progress indicator
         emit sixPointProgressChanged(sphereCompletion / (2.0 * SPHERE_RADIAL_SECTORS * SPHERE_AZIMUTH_SECTORS) * 100);
@@ -1438,17 +1439,48 @@ void Calibration::updateTempCompCalibrationDisplay()
 
 
 /**
- * @brief Calibration::computeEllipsoidFit Compute the unit spherical transformation fit for
- * an uncalibrated data set distributed across an ellipsoid which is not centered on (0,0,0)
- * and which has a rotation misalignment. See, for instance,
- * http://www.m-hikari.com/ams/ams-2014/ams-149-152-2014/malyuginaAMS149-152-2014.pdf
- *
+ * @brief computeEllipsoidCalibration computes the calibration matrix and offset required to correct measured data
+ * @param measurement_x data points along the x-axis
+ * @param measurement_y data points along the y-axis
+ * @param measurement_z data points along the z-axis
+ * @param b_soft matrix which scales, deskews, and re-orients data to xyz coordinate axes
+ * @param b_hard offset which centers data on xyz origin
+ */
+void computeEllipsoidCalibration(Eigen::VectorXd const measurement_x, Eigen::VectorXd const measurement_y, Eigen::VectorXd const measurement_z, Eigen::Matrix3d *b_soft, Eigen::Vector3d *b_hard)
+{
+    Eigen::Vector3d center;
+    Eigen::Matrix3d radii;
+    Eigen::MatrixXd evecs;
+
+    // Compute the ellipsoid that best fits the measurements
+    findBestEllipsoidFit(measurement_x, measurement_y, measurement_z, &center, &radii, &evecs);
+
+    // Compute the soft iron correction from the principal axis of the ellipsoid.
+    // This is what scales the ellipsoid to the unit sphere.
+    Eigen::Matrix3d W;
+    W.setZero(3,3);
+    W(0,0) = 1/radii(0,0);
+    W(1,1) = 1/radii(1,1);
+    W(2,2) = 1/radii(2,2);
+
+    Eigen::Matrix3d RR;
+    RR << evecs.col(0), evecs.col(1), evecs.col(2);
+
+    // Calculate soft magnetic rotation
+    *b_soft = RR*W*RR.transpose();
+
+    // Compute hard magnetic translation
+    *b_hard = center;
+}
+
+/**
+ * @brief Calibration::extractEllipsoidCalibration
  * @param accum_x data points along the x-axis
  * @param accum_y data points along the y-axis
  * @param accum_z data points along the z-axis
  * @return
  */
-int Calibration::computeEllipsoidFit(QList<double> accum_x, QList<double> accum_y, QList<double> accum_z)
+int Calibration::extractEllipsoidCalibration(QList<double> accum_x, QList<double> accum_y, QList<double> accum_z)
 {
     Eigen::VectorXd measurement_x;
     Eigen::VectorXd measurement_y;
@@ -1458,95 +1490,35 @@ int Calibration::computeEllipsoidFit(QList<double> accum_x, QList<double> accum_
     measurement_y.resize(accum_y.length());
     measurement_z.resize(accum_z.length());
 
+    // Copy data into Eigen struct. This is probably not very efficient.
     for (int i=0; i<accum_x.length(); i++) {
         measurement_x(i) = accum_x.at(i);
         measurement_y(i) = accum_y.at(i);
         measurement_z(i) = accum_z.at(i);
     }
 
-    // Fit ellipsoid in the form Ax^2 + By^2 + Cz^2 + 2Dxy + 2Exz + 2Fyz + 2Gx + 2Hy + 2Iz = 1
-    Eigen::MatrixXd D(measurement_x.rows(), 9);
-    D << (    measurement_x.array() * measurement_x.array()).matrix(),
-         (    measurement_y.array() * measurement_y.array()).matrix(),
-         (    measurement_z.array() * measurement_z.array()).matrix(),
-         (2 * measurement_x.array() * measurement_y.array()).matrix(),
-         (2 * measurement_x.array() * measurement_z.array()).matrix(),
-         (2 * measurement_y.array() * measurement_z.array()).matrix(),
-         (2 * measurement_x.array()).matrix(),
-         (2 * measurement_y.array()).matrix(),
-         (2 * measurement_z.array()).matrix();
-
-    // Solve the normal system of equations, sum(D') = D'*D*v;
-    Eigen::VectorXd v(9);
-    v = (D.transpose()*D).ldlt().solve(D.transpose().rowwise().sum());
-
-    // Form the algebraic form of the ellipsoid
-    Eigen::Matrix4d A;
-    A << v(0), v(3), v(4), v(6),
-         v(3), v(1), v(5), v(7),
-         v(4), v(5), v(2), v(8),
-         v(6), v(7), v(8), -1;
-
-    // Find the center of the ellipsoid
-    Eigen::Vector3d center;
-    center = -A.block(0,0,3,3).ldlt().solve(Eigen::Vector3d(v(6), v(7), v(8)));
-
-    // Form the corresponding rigid transformation matrix
-    Eigen::Matrix4d T;
-    T.setIdentity();
-    T(3,0) = center(0);
-    T(3,1) = center(1);
-    T(3,2) = center(2);
-
-    // Translate to the center
-    Eigen::Matrix4d R = T * A * T.transpose();
-
-    // Solve the eigenproblem, which will have only real components
-    Eigen::Matrix3d Q;
-    Q = R.block(0,0,3,3) / -R(3,3);
-
-    // Solve the eigenproblem, which will have only real components
-    Eigen::EigenSolver<Eigen::MatrixXd> es;
-    es.compute(Q, true);
-    Eigen::MatrixXd evals = es.eigenvalues().real().asDiagonal();
-    Eigen::MatrixXd evecs = es.eigenvectors().real();
-
-    // Calculate the ellipsoid's radii.
-    Eigen::Matrix3d radii;
-    radii = evals.inverse().array().sqrt().matrix();
-
-    // Compute the soft iron correction from the principal axis of the ellipsoid.
-    // This is what scales the ellipsoid to the unit sphere. The 0.5 is the radius
-    // of the unit sphere
-    // NOTE: had to switch X and Y axis to fit original data
-    Eigen::Matrix3d W;
-    W.setZero(3,3);
-    W(0,0) = 1/radii(0,0);
-    W(1,1) = 1/radii(1,1);
-    W(2,2) = 1/radii(2,2);
-
-    Eigen::Matrix3d RR;
-
-    RR << evecs.col(0), evecs.col(1), evecs.col(2);
-
-    // Calculate soft magnetic rotation
+    // Find the calibration matrix and offset vector
     Eigen::Matrix3d b_soft;
-    b_soft = RR*W*RR.transpose();
-
-    // Compute hard magnetic translation
     Eigen::Vector3d b_hard;
-    b_hard = center;
+    computeEllipsoidCalibration(measurement_x, measurement_y, measurement_z, &b_soft, &b_hard);
 
     // Correct data set and visualize, using new calibration coefficients
+    // dummyTmp = [m_x, m_y, m_z, 1..1']
     Eigen::MatrixXd dummyTmp(measurement_x.rows(),4);
-    Eigen::Matrix4d translationMat;
     dummyTmp << measurement_x, measurement_y, measurement_z, Eigen::MatrixXd::Ones(measurement_x.rows(),1);
+
+    // translationMat = [1, 0, 0, 0; 0, 0, 1, 0; 0, 0, 1, 0; -bh_x, -bh_y, -bh_z, 1]
+    Eigen::Matrix4d translationMat;
     translationMat << Eigen::MatrixXd::Identity(3,3), Eigen::MatrixXd::Zero(3,1),
             -b_hard(0), -b_hard(1), -b_hard(2), 1;
-    Eigen::MatrixXd B_temp = (dummyTmp*translationMat).leftCols(3);
-    Eigen::MatrixXd B = (b_soft * B_temp.transpose()).transpose();
 
-    // Convert to QVector
+    // Remove hard-iron offset by rigid translation of measurement data
+    Eigen::MatrixXd tmpMat = (dummyTmp*translationMat).leftCols(3);
+
+    // Remove soft-iron error by rotating and scaling of traslated data. The resulting `B` is the finised data
+    Eigen::MatrixXd B = (b_soft * tmpMat.transpose()).transpose();
+
+    // Convert corrected data to QVector
     QVector< QVector<double> > correctedData;
     correctedData.resize(B.rows());
     for (int i=0; i<B.rows(); i++) {
@@ -1603,6 +1575,138 @@ int Calibration::computeEllipsoidFit(QList<double> accum_x, QList<double> accum_
     }
 
     return sphereCompletion;
+}
+
+
+/**
+ * @brief findBestEllipsoidFit Compute the unit spherical transformation fit for
+ * an uncalibrated data set distributed across an ellipsoid which is not centered on (0,0,0)
+ * and which has a rotation misalignment. See, for instance,
+ * http://www.m-hikari.com/ams/ams-2014/ams-149-152-2014/malyuginaAMS149-152-2014.pdf
+ *
+ * @param measurement_x data points along the x-axis
+ * @param measurement_y data points along the y-axis
+ * @param measurement_z data points along the z-axis
+ * @param center
+ * @param radii
+ * @param evecs
+ * @return
+ */
+int findBestEllipsoidFit(Eigen::VectorXd measurement_x, Eigen::VectorXd measurement_y, Eigen::VectorXd measurement_z, Eigen::Vector3d *center, Eigen::Matrix3d *radii, Eigen::MatrixXd *evecs)
+{
+    bool isValid = false;
+
+#if 1
+    // Fit ellipsoid in the form Ax^2 + By^2 + Cz^2 + 2Dxy + 2Exz + 2Fyz + 2Gx + 2Hy + 2Iz = 1
+    Eigen::MatrixXd D(measurement_x.rows(), 9);
+    D << (    measurement_x.array() * measurement_x.array()).matrix(),
+         (    measurement_y.array() * measurement_y.array()).matrix(),
+         (    measurement_z.array() * measurement_z.array()).matrix(),
+         (2 * measurement_x.array() * measurement_y.array()).matrix(),
+         (2 * measurement_x.array() * measurement_z.array()).matrix(),
+         (2 * measurement_y.array() * measurement_z.array()).matrix(),
+         (2 * measurement_x.array()).matrix(),
+         (2 * measurement_y.array()).matrix(),
+         (2 * measurement_z.array()).matrix();
+
+    // Solve the normal system of equations, sum(D') = D'*D*v;
+    Eigen::VectorXd v(9);
+    v = (D.transpose()*D).ldlt().solve(D.transpose().rowwise().sum());
+
+    // Form the algebraic form of the ellipsoid
+    Eigen::Matrix4d A;
+    A << v(0), v(3), v(4), v(6),
+         v(3), v(1), v(5), v(7),
+         v(4), v(5), v(2), v(8),
+         v(6), v(7), v(8), -1;
+#else
+    // Fit ellipsoid in the form Ax^2 + By^2 + Cz^2 + 2Dxy + 2Exz + 2Fyz + 2Gx + 2Hy + 2Iz + J = 0 and A + B + C = 3 constraint removing one extra parameter
+    Eigen::MatrixXd D(measurement_x.rows(), 9);
+    D << (    measurement_x.array()*measurement_x.array() + measurement_y.array()*measurement_y.array() - 2*measurement_z.array()*measurement_z.array()).matrix(),
+         (    measurement_x.array()*measurement_x.array() + measurement_z.array()*measurement_z.array() - 2*measurement_y.array()*measurement_y.array()).matrix(),
+         (2*measurement_x.array() * measurement_y.array()).matrix(),
+         (2*measurement_x.array() * measurement_z.array()).matrix(),
+         (2*measurement_y.array() * measurement_z.array()).matrix(),
+         (2*measurement_x.array()).matrix(),
+         (2*measurement_y.array()).matrix(),
+         (2*measurement_z.array()).matrix(),
+         (1 + 0*measurement_x.array()).matrix();
+
+    /* solve the normal system of equations */
+    // d2 = x.*x + y.*y + z.*z
+    Eigen::MatrixXd d2 = measurement_x.array() * measurement_x.array() + measurement_y.array() * measurement_y.array() + measurement_z.array() * measurement_z.array();
+
+    // Solve the normal system of equations, D'*d2*v = D'*D;
+    Eigen::VectorXd u(9);
+    u = (D.transpose() * D).ldlt().solve(D.transpose() * d2);
+
+    Eigen::VectorXd v(10);
+    v(0) = u(0) +   u(1) - 1;
+    v(1) = u(0) - 2*u(2) - 1;
+    v(2) = u(1) - 2*u(0) - 1;
+    for (int i=3; i<10; i++) {
+        v(i) = u(i-1);
+    }
+
+    // Form the algebraic form of the ellipsoid
+    Eigen::Matrix4d A;
+    A << v(0), v(3), v(4), v(6),
+         v(3), v(1), v(5), v(7),
+         v(4), v(5), v(2), v(8),
+         v(6), v(7), v(8), v(9);
+
+#endif
+    // Find the center of the ellipsoid, [cx,cy,cz] = -A(1:3, 1:3) \ v(7:9)
+    *center = -A.block(0,0,3,3).ldlt().solve(Eigen::Vector3d(v(6), v(7), v(8)));
+
+    // Form the corresponding rigid transformation matrix
+    Eigen::Matrix4d T;
+    T.setIdentity();
+    T(3,0) = (*center)(0);
+    T(3,1) = (*center)(1);
+    T(3,2) = (*center)(2);
+
+    // Translate to the center
+    Eigen::Matrix4d R = T * A * T.transpose();
+
+    // Solve the eigenproblem, which will have only real components
+    Eigen::Matrix3d Q;
+    Q = R.block(0,0,3,3) / -R(3,3);
+
+    // Solve the eigenproblem, which will have only real components
+    Eigen::EigenSolver<Eigen::MatrixXd> es;
+    es.compute(Q, true);
+    Eigen::MatrixXd evals = es.eigenvalues().real().asDiagonal();
+    *evecs = es.eigenvectors().real();
+
+    // Calculate the ellipsoid's radii.
+    *radii = evals.cwiseAbs().inverse().array().sqrt().matrix();
+
+    // The radii lose their sign because they were computed on the absolute
+    // value of the eigenvector. Add the sign back in if necessary
+    for (int i=0; i<3; i++) {
+        if ( evals(i)< 0) {
+            (*radii)(i,i) = -(*radii)(i,i);
+        }
+    }
+
+//    // Check that no radius is NaN. If one is, set it to a (maybe somewhat) harmless number.
+//    for (int i=0; i<3; i++) {
+//        if (std::isnan(radii(i,i))) {
+//            qDebug() << "[Calibration] radii: " <<
+//                        radii(0,0) << radii(0,1) << radii(0,2) << "\n" <<
+//                        radii(1,0) << radii(1,1) << radii(1,2) << "\n" <<
+//                        radii(2,0) << radii(2,1) << radii(2,2);
+
+//            qDebug() << "[Calibration] The " << i << "-th element is NaN. Setting to some other value so it doesn't block plotting. This is dangerous because a NaN should be handled properly.";
+//            radii(i,i) = 150;  // No solid rationale for this number. It made me happy.
+//        }
+//    }
+
+    // Need a validity test here. Currently just assuming that this algorithm can't fail, which is incorrect.
+    isValid = true;
+
+    return isValid;
 }
 
 

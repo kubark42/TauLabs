@@ -253,7 +253,7 @@ protected:
     int computeScaleBias();
 
     //! Computes the scale, bias, and rotation for the accelerometer and mag
-    int computeEllipsoidFit(QList<double> accum_x, QList<double> accum_y, QList<double> accum_z);
+    int extractEllipsoidCalibration(QList<double> accum_x, QList<double> accum_y, QList<double> accum_z);
 
     int SixPointInConstFieldCal( double ConstMag, double x[6], double y[6], double z[6], double S[3], double b[3] );
     int LinearEquationsSolving(int nDim, double* pfMatr, double* pfVect, double* pfSolution);
